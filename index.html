@@ -1,980 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>trapsite</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
-    
-    * { 
-      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    body { 
-      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-      color: #e6e6e6;
-      height: 100vh;
-      margin: 0;
-      overflow: hidden;
-    }
-    
-    #loading-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      padding: 20px;
-      text-align: center;
-      transition: opacity 0.4s ease;
-    }
-    
-    #loading-screen.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    
-    #chat-interface {
-      display: none;
-      flex-direction: column;
-      height: 100vh;
-      max-width: 480px;
-      margin: 0 auto;
-      width: 100%;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    
-    #chat-interface.visible {
-      display: flex;
-      opacity: 1;
-    }
-    
-    .card {
-      background: rgba(30, 30, 30, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 28px;
-      padding: 40px 32px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-      margin: 20px;
-    }
-    
-    .status { 
-      margin: 20px 0; 
-      min-height: 40px;
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      line-height: 1.4;
-    }
-    
-    .status.error { color: #ff453a; }
-    .status.success { color: #30d158; }
-    .status.warning { color: #ffd60a; }
-    .status.info { color: #5ac8fa; }
-    
-    .progress-container {
-      width: 100%;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      margin: 20px 0;
-      overflow: hidden;
-    }
-    
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #0071e3, #5e5ce6);
-      border-radius: 3px;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    
-    .btn {
-      background: linear-gradient(135deg, #0071e3, #0066cc);
-      color: white;
-      border: none;
-      border-radius: 24px;
-      padding: 16px;
-      font-size: 17px;
-      font-weight: 500;
-      width: 100%;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 8px 24px rgba(0, 113, 227, 0.3);
-    }
-    
-    .btn:hover:not(:disabled) { transform: translateY(-2px); }
-    .btn:active:not(:disabled) { transform: translateY(0); }
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .pulse {
-      animation: pulse 1.5s infinite;
-    }
-    
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.4); }
-      70% { box-shadow: 0 0 0 12px rgba(0, 113, 227, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0); }
-    }
-    
-    .brave-instructions {
-      background: rgba(255, 149, 0, 0.15);
-      border: 1px solid rgba(255, 149, 0, 0.4);
-      border-radius: 16px;
-      padding: 20px;
-      margin-top: 20px;
-      text-align: left;
-      font-size: 14px;
-      line-height: 1.6;
-      display: none;
-    }
-    
-    .brave-instructions.show {
-      display: block;
-      animation: fadeIn 0.5s ease-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .brave-instructions ol { 
-      padding-left: 22px; 
-      margin: 10px 0 5px;
-      color: #ffd60a;
-    }
-    .brave-instructions li { 
-      margin: 8px 0; 
-      padding-left: 4px;
-    }
-    .brave-instructions code {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-    }
-    .brave-instructions .critical {
-      color: #ff453a;
-      font-weight: 500;
-    }
-    
-    .logo {
-      font-size: 48px;
-      background: linear-gradient(90deg, #0071e3, #5e5ce6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      margin-bottom: 16px;
-    }
-    
-    .shield-icon {
-      font-size: 28px;
-      margin: 10px 0;
-      color: #ff9500;
-    }
-    
-    /* Chat Interface Styles */
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      scrollbar-width: none;
-    }
-    
-    #chat-box::-webkit-scrollbar { display: none; }
-    
-    .message {
-      max-width: 85%;
-      animation: fadeIn 0.3s ease-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .glass-effect {
-      background: rgba(30, 30, 30, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    }
-    
-    .user-message {
-      margin-left: auto;
-      background: linear-gradient(135deg, rgba(40, 40, 40, 0.85), rgba(35, 35, 35, 0.9));
-      border-top-right-radius: 12px;
-    }
-    
-    .ai-message {
-      background: linear-gradient(135deg, rgba(30, 30, 30, 0.75), rgba(25, 25, 25, 0.85));
-      border-top-left-radius: 12px;
-    }
-    
-    .input-area {
-      padding: 16px;
-      background: rgba(20, 20, 20, 0.9);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .input-container {
-      background: rgba(30, 30, 30, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 32px;
-      padding: 4px;
-      display: flex;
-      gap: 4px;
-    }
-    
-    .input-field {
-      background: transparent;
-      border: none;
-      color: #e6e6e6;
-      font-size: 16px;
-      padding: 0 16px;
-      flex: 1;
-      outline: none;
-    }
-    
-    .input-field::placeholder { color: #9d9d9d; }
-    
-    .action-button {
-      width: 40px;
-      height: 40px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #c8c8c8;
-      background: rgba(255, 255, 255, 0.05);
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .action-button:hover { background: rgba(255, 255, 255, 0.1); color: #e6e6e6; }
-    .action-button:active { background: rgba(255, 255, 255, 0.15); }
-    
-    .thinking {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background: #9d9d9d;
-      border-radius: 50%;
-      margin: 0 2px;
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-    
-    .thinking:nth-child(1) { animation-delay: -0.32s; }
-    .thinking:nth-child(2) { animation-delay: -0.16s; }
-    
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); } 
-      40% { transform: scale(1); }
-    }
-    
-    .model-badge {
-      background: rgba(0, 113, 227, 0.15);
-      color: #0071e3;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      display: inline-block;
-      margin-top: 8px;
-    }
-    
-    .timestamp {
-      font-size: 11px;
-      color: #9d9d9d;
-      margin-top: 8px;
-      text-align: right;
-      opacity: 0.8;
-    }
-    
-    .welcome-title {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      background: linear-gradient(90deg, #e6e6e6, #c8c8c8);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    
-    .welcome-subtitle {
-      font-size: 16px;
-      color: #c8c8c8;
-      line-height: 1.5;
-    }
-    
-    .fix-button {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffd60a;
-      border: 1px solid rgba(255, 214, 10, 0.3);
-      border-radius: 16px;
-      padding: 8px 16px;
-      margin-top: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-      width: 100%;
-    }
-    
-    .fix-button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-1px);
-    }
-    
-    .copy-instructions {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 15px;
-      font-family: monospace;
-      font-size: 13px;
-      text-align: left;
-      user-select: all;
-      cursor: text;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Private AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --ios-blue: #007AFF; }
+        body { background-color: #f2f2f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .chat-bubble { max-width: 85%; border-radius: 18px; padding: 10px 16px; font-size: 15px; line-height: 1.4; margin-bottom: 8px; }
+        .user { background-color: var(--ios-blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai { background-color: #e9e9eb; color: black; align-self: flex-start; border-bottom-left-radius: 4px; }
+        #chat-container { height: calc(100vh - 140px); overflow-y: auto; display: flex; flex-direction: column; padding: 16px; }
+        .btn-ios { transition: all 0.2s; }
+        .btn-ios:active { transform: scale(0.95); opacity: 0.7; }
+        /* Hide scrollbar */
+        #chat-container::-webkit-scrollbar { display: none; }
+    </style>
 </head>
-<body>
-  <!-- Loading Screen -->
-  <div id="loading-screen">
-    <div class="card">
-      <i class="fas fa-brain logo"></i>
-      <h1 class="text-2xl font-bold mb-2">trapsite</h1>
-      <p class="text-gray-400 mb-6">Private AI running entirely in your browser</p>
-      
-      <div class="status info" id="status">
-        <i class="fas fa-shield-alt shield-icon"></i>
-        <div>Detecting browser configuration...</div>
-      </div>
-      
-      <div class="progress-container" id="progress-container" style="display: none;">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-      
-      <button class="btn pulse" id="init-btn" disabled>
-        <i class="fas fa-spinner fa-spin mr-2"></i>Checking Compatibility...
-      </button>
-      
-      <div class="brave-instructions" id="brave-instructions">
-        <p class="font-medium flex items-center">
-          <i class="fas fa-shield-alt mr-2"></i>
-          <span>🛡️ Critical Brave Browser Fix Required</span>
-        </p>
-        <p class="mt-2">Brave Shields are <span class="critical">blocking WebGPU</span>. Follow these steps:</p>
-        <ol>
-          <li>Click the <span class="critical">Brave Shields icon (🦁)</span> in your address bar</li>
-          <li>Set Shields to: <span class="critical">"Standard"</span> (NOT "Strict" or "Aggressive")</li>
-          <li>Set Fingerprinting: <span class="critical">"Allow"</span> or "Standard"</li>
-          <li>Refresh this page after making changes</li>
-        </ol>
-        <p class="mt-3 text-sm">
-          <i class="fas fa-info-circle mr-1"></i>
-          Also ensure WebGPU is enabled at <code>brave://flags/#enable-unsafe-webgpu</code>
-        </p>
-        <button class="fix-button" id="copy-instructions-btn">
-          <i class="fas fa-copy mr-2"></i>Copy Setup Instructions
-        </button>
-        <div class="copy-instructions" id="instructions-text">
-1. Click Brave Shields icon (🦁) in address bar
-2. Set Shields: "Standard"
-3. Set Fingerprinting: "Allow" or "Standard"
-4. Refresh page
-5. If still failing: brave://flags → enable "Unsafe WebGPU" → Relaunch
+<body class="safe-area-inset-bottom">
+
+    <nav class="glass sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
+        <div>
+            <h1 class="text-lg font-semibold tracking-tight">Private AI</h1>
+            <p id="status" class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Ready to Load</p>
         </div>
-      </div>
-      
-      <p class="text-xs text-gray-500 mt-6">
-        <i class="fas fa-lock mr-1"></i> 100% Private • No data leaves your device
-      </p>
-    </div>
-  </div>
+        <button id="clear-btn" class="text-blue-500 text-sm font-medium btn-ios">Clear Chat</button>
+    </nav>
 
-  <!-- Chat Interface (Hidden Initially) -->
-  <div id="chat-interface">
-    <div style="padding: 16px; padding-bottom: 0;">
-      <div style="display: flex; align-items: center; justify-content: center; padding: 12px 0;">
-        <h1 class="text-xl font-semibold" style="background: linear-gradient(90deg, #0071e3, #5e5ce6); -webkit-background-clip: text; background-clip: text; color: transparent;">
-          trapsite
-        </h1>
-        <span class="model-badge" style="margin-left: 12px;">Llama 3.2 1B</span>
-      </div>
-    </div>
-    
-    <div id="chat-box">
-      <div class="ai-message glass-effect">
-        <div class="welcome-title">Hello.</div>
-        <div class="welcome-subtitle">I'm trapsite, your private AI assistant running entirely on your device. How can I help you today?</div>
-      </div>
-    </div>
-    
-    <div class="input-area">
-      <div class="input-container">
-        <button class="action-button" id="clear-btn" title="Clear chat">
-          <i class="fas fa-trash"></i>
-        </button>
-        <input type="text" id="user-input" class="input-field" placeholder="Message trapsite..." disabled>
-        <button class="action-button" id="send-btn" disabled>
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    // CRITICAL: Must be served over HTTPS
-    if (window.location.protocol !== 'https:') {
-      document.getElementById('status').innerHTML = `
-        <i class="fas fa-exclamation-triangle" style="font-size: 28px; margin-bottom: 10px;"></i>
-        <div>❌ Must be served over HTTPS!</div>
-        <div class="text-sm mt-2">GitHub Pages provides HTTPS automatically.</div>
-        <div class="text-sm">DO NOT open as local file (file://)</div>
-      `;
-      document.getElementById('init-btn').disabled = true;
-      document.getElementById('init-btn').classList.remove('pulse');
-      document.getElementById('init-btn').innerHTML = '<i class="fas fa-lock mr-2"></i>HTTPS Required';
-      throw new Error('HTTPS required');
-    }
-
-    // Brave browser detection (synchronous)
-    const isBrave = navigator.userAgent.includes('Brave');
-    const braveInstructions = document.getElementById('brave-instructions');
-    const statusEl = document.getElementById('status');
-    const initBtn = document.getElementById('init-btn');
-    const copyInstructionsBtn = document.getElementById('copy-instructions-btn');
-    const instructionsText = document.getElementById('instructions-text');
-    
-    // Show Brave instructions immediately if detected
-    if (isBrave) {
-      braveInstructions.classList.add('show');
-      statusEl.innerHTML = `
-        <i class="fas fa-shield-alt shield-icon" style="color: #ff9500;"></i>
-        <div>Brave Browser Detected</div>
-        <div class="text-sm">Shields may block WebGPU - follow instructions below</div>
-      `;
-      statusEl.className = 'status warning';
-    } else {
-      statusEl.innerHTML = `
-        <i class="fas fa-info-circle shield-icon" style="color: #5ac8fa;"></i>
-        <div>Checking browser compatibility...</div>
-      `;
-      statusEl.className = 'status info';
-    }
-    
-    // Copy instructions functionality
-    copyInstructionsBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(instructionsText.textContent.trim()).then(() => {
-        const originalText = copyInstructionsBtn.innerHTML;
-        copyInstructionsBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
-        copyInstructionsBtn.style.color = '#30d158';
-        setTimeout(() => {
-          copyInstructionsBtn.innerHTML = originalText;
-          copyInstructionsBtn.style.color = '';
-        }, 2000);
-      });
-    });
-    
-    // WebGPU Check with Detailed Error Handling
-    async function checkWebGPU() {
-      // First check: Is navigator.gpu available?
-      if (!navigator.gpu) {
-        statusEl.innerHTML = `
-          <i class="fas fa-times-circle" style="font-size: 28px; margin-bottom: 10px;"></i>
-          <div>WebGPU Not Supported</div>
-          <div class="text-sm mt-2">Use Chrome, Edge, or Brave with WebGPU enabled</div>
-        `;
-        statusEl.className = 'status error';
-        initBtn.disabled = true;
-        initBtn.classList.remove('pulse');
-        initBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Not Supported';
-        return false;
-      }
-      
-      try {
-        // Attempt to request adapter
-        const adapter = await navigator.gpu.requestAdapter();
-        
-        if (!adapter) {
-          // No adapter found - common in Brave with Shields blocking
-          if (isBrave) {
-            statusEl.innerHTML = `
-              <i class="fas fa-shield-alt" style="font-size: 28px; margin-bottom: 10px; color: #ff9500;"></i>
-              <div>🛡️ Brave Shields Blocking WebGPU</div>
-              <div class="text-sm mt-2">Follow the instructions above to fix</div>
-            `;
-            statusEl.className = 'status error';
-          } else {
-            statusEl.innerHTML = `
-              <i class="fas fa-times-circle" style="font-size: 28px; margin-bottom: 10px;"></i>
-              <div>No WebGPU Adapter Found</div>
-              <div class="text-sm mt-2">Update GPU drivers or try a different browser</div>
-            `;
-            statusEl.className = 'status error';
-          }
-          initBtn.disabled = true;
-          initBtn.classList.remove('pulse');
-          initBtn.innerHTML = '<i class="fas fa-shield-alt mr-2"></i>Fix Shields';
-          return false;
-        }
-        
-        // SUCCESS: Adapter found
-        // Try to get adapter name (non-standard but helpful)
-        let adapterName = 'GPU';
-        try {
-          // @ts-ignore - non-standard but available in some browsers
-          if (adapter.name) adapterName = adapter.name;
-          // @ts-ignore
-          else if (adapter.adapterInfo?.name) adapterName = adapter.adapterInfo.name;
-        } catch (e) {
-          // Ignore errors - use default name
-        }
-        
-        statusEl.innerHTML = `
-          <i class="fas fa-check-circle" style="font-size: 28px; margin-bottom: 10px; color: #30d158;"></i>
-          <div>WebGPU Ready • ${adapterName}</div>
-          <div class="text-sm mt-2">Click below to load the AI model</div>
-        `;
-        statusEl.className = 'status success';
-        initBtn.disabled = false;
-        initBtn.classList.add('pulse');
-        initBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i>Load AI Model';
-        return true;
-        
-      } catch (err) {
-        console.error('WebGPU initialization error:', err);
-        
-        // Handle specific error cases
-        let errorMsg = 'WebGPU initialization failed';
-        let errorDetail = '';
-        
-        if (err.message?.includes('creation failed')) {
-          errorMsg = 'GPU Adapter Creation Failed';
-          errorDetail = 'Update graphics drivers or try a different browser';
-        } 
-        else if (err.message?.includes('not enabled') || err.message?.includes('disabled')) {
-          errorMsg = 'WebGPU Disabled in Browser';
-          errorDetail = isBrave ? 
-            'Enable at brave://flags/#enable-unsafe-webgpu then relaunch' : 
-            'Enable WebGPU in browser flags/settings';
-        }
-        else if (isBrave) {
-          errorMsg = '🛡️ Brave Shields Blocking WebGPU';
-          errorDetail = 'Follow instructions above to configure Shields';
-        }
-        else {
-          errorMsg = 'WebGPU Error';
-          errorDetail = err.message ? err.message.substring(0, 60) : 'Unknown error occurred';
-        }
-        
-        statusEl.innerHTML = `
-          <i class="fas fa-exclamation-triangle" style="font-size: 28px; margin-bottom: 10px; color: #ff453a;"></i>
-          <div>${errorMsg}</div>
-          <div class="text-sm mt-2">${errorDetail}</div>
-          ${isBrave ? '<div class="text-xs mt-3 bg-black/20 p-2 rounded">Check Brave Shields settings above ↑</div>' : ''}
-        `;
-        statusEl.className = 'status error';
-        initBtn.disabled = true;
-        initBtn.classList.remove('pulse');
-        initBtn.innerHTML = isBrave ? '<i class="fas fa-shield-alt mr-2"></i>Fix Shields' : '<i class="fas fa-redo mr-2"></i>Retry';
-        return false;
-      }
-    }
-    
-    // Initialize WebGPU check immediately
-    const webGPUAvailable = await checkWebGPU();
-    
-    // Import WebLLM only after WebGPU check passes
-    let webllm;
-    if (webGPUAvailable) {
-      try {
-        webllm = await import("https://esm.run/@mlc-ai/web-llm");
-      } catch (importError) {
-        console.error('Failed to import WebLLM:', importError);
-        statusEl.innerHTML = `
-          <i class="fas fa-exclamation-triangle" style="font-size: 28px; margin-bottom: 10px; color: #ff453a;"></i>
-          <div>Failed to load AI library</div>
-          <div class="text-sm mt-2">Check internet connection and refresh page</div>
-        `;
-        statusEl.className = 'status error';
-        initBtn.disabled = true;
-        initBtn.classList.remove('pulse');
-        initBtn.innerHTML = '<i class="fas fa-redo mr-2"></i>Retry Page';
-      }
-    }
-    
-    // DOM Elements for chat interface
-    const loadingScreen = document.getElementById('loading-screen');
-    const chatInterface = document.getElementById('chat-interface');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const clearBtn = document.getElementById('clear-btn');
-    
-    // State
-    let engine = null;
-    let abortController = null;
-    let isGenerating = false;
-    let messageHistory = [];
-    
-    // Initialize AI Model
-    initBtn.addEventListener('click', async () => {
-      if (!webGPUAvailable || !webllm) {
-        // If WebGPU wasn't available initially, re-check
-        const recheck = await checkWebGPU();
-        if (!recheck) return;
-        
-        // Re-import WebLLM if needed
-        try {
-          webllm = await import("https://esm.run/@mlc-ai/web-llm");
-        } catch (importError) {
-          console.error('Failed to import WebLLM on retry:', importError);
-          statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to load AI library. Refresh page.';
-          statusEl.className = 'status error';
-          return;
-        }
-      }
-      
-      initBtn.disabled = true;
-      initBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Loading Model...`;
-      initBtn.classList.remove('pulse');
-      progressContainer.style.display = 'block';
-      statusEl.innerHTML = '<i class="fas fa-download"></i> Starting download...<br><span class="text-sm">First load only (~500MB)</span>';
-      statusEl.className = 'status info';
-      
-      try {
-        // Initialize engine with progress callback
-        engine = await webllm.CreateMLCEngine(
-          "Llama-3.2-1B-Instruct-q4f16_1-MLC",
-          {
-            initProgressCallback: (report) => {
-              // Update progress bar
-              const progress = Math.round(report.progress * 100);
-              progressBar.style.width = `${progress}%`;
-              
-              // Update status text with context
-              let statusText = report.text;
-              if (report.progress > 0 && report.progress < 0.95) {
-                statusText = `Downloading: ${progress}%<br>
-                  <span class="text-sm">${report.text}</span>`;
-              } else if (report.progress >= 0.95) {
-                statusText = "Finalizing setup...<br><span class=\"text-sm\">Optimizing for your device</span>";
-              }
-              
-              statusEl.innerHTML = `<i class="fas fa-download"></i> ${statusText}`;
-            }
-          }
-        );
-        
-        // SUCCESS! Initialize message history
-        messageHistory = [
-          { 
-            role: "system", 
-            content: "You are trapsite, a helpful AI assistant running locally in the user's browser. Be concise, friendly, and informative. All processing happens on the user's device privately." 
-          }
-        ];
-        
-        // Show success message
-        statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: #30d158;"></i> Model loaded successfully!`;
-        statusEl.className = 'status success';
-        progressBar.style.width = '100%';
-        
-        // Transition to chat interface after delay
-        setTimeout(() => {
-          // Hide loading screen
-          loadingScreen.classList.add('hidden');
-          
-          // Show chat interface
-          chatInterface.classList.add('visible');
-          
-          // Enable chat controls
-          userInput.disabled = false;
-          sendBtn.disabled = false;
-          clearBtn.disabled = false;
-          
-          // Focus input
-          userInput.focus();
-          
-          // Add welcome message to history
-          messageHistory.push({
-            role: "assistant",
-            content: "I'm trapsite ✨ Your private AI assistant running entirely on your device. How can I help you today?"
-          });
-        }, 800);
-        
-      } catch (error) {
-        console.error('Model load failed:', error);
-        let errorMsg = 'Model loading failed';
-        let errorDetail = '';
-        
-        if (error.message?.includes('device.lost')) {
-          errorMsg = 'GPU Device Lost';
-          errorDetail = 'Close other tabs/apps using GPU and retry';
-        } 
-        else if (error.message?.includes('network error') || error.message?.includes('Failed to fetch')) {
-          errorMsg = 'Download Failed';
-          errorDetail = 'Check internet connection and disable ad-blockers';
-        } 
-        else if (error.message?.includes('OOM') || error.message?.includes('out of memory')) {
-          errorMsg = 'Out of Memory';
-          errorDetail = 'Close other tabs/apps and retry';
-        } 
-        else if (error.message?.includes('CORS')) {
-          errorMsg = 'CORS Error';
-          errorDetail = 'Must be served from https:// (GitHub Pages works)';
-        }
-        else if (error.message) {
-          errorMsg = 'Load Error';
-          errorDetail = error.message.substring(0, 70);
-        }
-        
-        statusEl.innerHTML = `
-          <i class="fas fa-exclamation-triangle" style="color: #ff453a;"></i> ${errorMsg}
-          <div class="text-sm mt-2">${errorDetail}</div>
-          ${isBrave ? '<div class="text-xs mt-3">🛡️ Also check Brave Shields settings above</div>' : ''}
-        `;
-        statusEl.className = 'status error';
-        initBtn.disabled = false;
-        initBtn.innerHTML = `<i class="fas fa-redo mr-2"></i>Retry`;
-        initBtn.classList.add('pulse');
-        progressContainer.style.display = 'none';
-      }
-    });
-    
-    // ============ CHAT FUNCTIONALITY (Only used after model loads) ============
-    function getCurrentTime() {
-      const now = new Date();
-      return now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
-    }
-    
-    function addMessage(content, isUser = false) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'} glass-effect`;
-      
-      messageDiv.innerHTML = `
-        <div>${content}</div>
-        <div class="timestamp">${getCurrentTime()}</div>
-      `;
-      
-      chatBox.appendChild(messageDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      return messageDiv;
-    }
-    
-    function addThinkingIndicator() {
-      const thinkingDiv = document.createElement('div');
-      thinkingDiv.className = 'message ai-message glass-effect';
-      thinkingDiv.innerHTML = `
-        <div class="flex space-x-1">
-          <span class="thinking"></span>
-          <span class="thinking"></span>
-          <span class="thinking"></span>
-        </div>
-      `;
-      chatBox.appendChild(thinkingDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      return thinkingDiv;
-    }
-    
-    async function sendMessage() {
-      const message = userInput.value.trim();
-      if (!message || !engine || isGenerating) return;
-      
-      // Add user message
-      addMessage(message, true);
-      userInput.value = '';
-      
-      // Add to history
-      messageHistory.push({ role: 'user', content: message });
-      
-      // Add thinking indicator
-      const thinkingDiv = addThinkingIndicator();
-      isGenerating = true;
-      sendBtn.disabled = true;
-      userInput.disabled = true;
-      clearBtn.disabled = true;
-      
-      // Create abort controller
-      abortController = new AbortController();
-      
-      try {
-        // Generate response
-        const chunks = await engine.chat.completions.create({
-          messages: [...messageHistory],
-          stream: true,
-          max_tokens: 512
-        }, { signal: abortController.signal });
-        
-        let fullResponse = '';
-        let aiMessageDiv = null;
-        
-        for await (const chunk of chunks) {
-          if (!chunk?.choices?.[0]?.delta?.content) continue;
-          
-          const content = chunk.choices[0].delta.content;
-          fullResponse += content;
-          
-          // Safety limit
-          if (fullResponse.length > 2000) {
-            fullResponse = fullResponse.substring(0, 2000) + '... (truncated)';
-            if (abortController) abortController.abort();
-          }
-          
-          if (!aiMessageDiv) {
-            // Remove thinking indicator and add real message
-            chatBox.removeChild(thinkingDiv);
-            aiMessageDiv = addMessage(fullResponse);
-          } else {
-            // Update existing message
-            aiMessageDiv.querySelector('div:first-child').textContent = fullResponse;
-            if (fullResponse.length % 30 === 0) {
-              chatBox.scrollTop = chatBox.scrollHeight;
-            }
-          }
-        }
-        
-        // Add to history
-        if (fullResponse.trim()) {
-          messageHistory.push({ role: 'assistant', content: fullResponse.trim() });
-        }
-        
-      } catch (error) {
-        // Handle abort gracefully
-        if (error.name === 'AbortError' || error.message?.includes('abort')) {
-          console.log('Generation stopped');
-          if (chatBox.contains(thinkingDiv)) {
-            chatBox.removeChild(thinkingDiv);
-          }
-          return;
-        }
-        
-        // Handle other errors
-        console.error('Generation error:', error);
-        if (chatBox.contains(thinkingDiv)) {
-          chatBox.removeChild(thinkingDiv);
-        }
-        
-        let errorMsg = 'Error generating response';
-        if (error.message?.includes('device.lost')) {
-          errorMsg = 'GPU error. Refresh page to continue.';
-          // Reset engine state
-          engine = null;
-          setTimeout(() => {
-            loadingScreen.classList.remove('hidden');
-            chatInterface.classList.remove('visible');
-            initBtn.innerHTML = '<i class="fas fa-redo mr-2"></i>Reload Model';
-            initBtn.disabled = false;
-            initBtn.classList.add('pulse');
-            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> GPU error occurred';
-            statusEl.className = 'status error';
-          }, 1000);
-        } else if (error.message) {
-          errorMsg = error.message.substring(0, 60);
-        }
-        
-        addMessage(`❌ ${errorMsg}`, false);
-      } finally {
-        isGenerating = false;
-        sendBtn.disabled = false;
-        userInput.disabled = false;
-        clearBtn.disabled = false;
-        abortController = null;
-      }
-    }
-    
-    // Event Listeners for chat
-    if (sendBtn) {
-      sendBtn.addEventListener('click', sendMessage);
-    }
-    
-    if (userInput) {
-      userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-      
-      userInput.addEventListener('input', () => {
-        if (sendBtn) {
-          sendBtn.disabled = !userInput.value.trim() || isGenerating;
-        }
-      });
-    }
-    
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        if (confirm('Clear all messages? The AI model will stay loaded.')) {
-          // Clear chat UI
-          chatBox.innerHTML = `
-            <div class="ai-message glass-effect">
-              <div class="welcome-title">Hello.</div>
-              <div class="welcome-subtitle">I'm trapsite, your private AI assistant. How can I help you today?</div>
+    <div id="chat-container">
+        <div id="welcome-screen" class="my-auto text-center space-y-4">
+            <div class="bg-blue-100 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center">
+                <i class="fa-solid fa-shield-halved text-blue-600 text-2xl"></i>
             </div>
-          `;
-          
-          // Reset history (keep system prompt)
-          messageHistory = [
-            { 
-              role: "system", 
-              content: "You are trapsite, a helpful AI assistant running locally in the user's browser. Be concise, friendly, and informative. All processing happens on the user's device privately." 
-            },
-            {
-              role: "assistant",
-              content: "I'm trapsite ✨ Your private AI assistant running entirely on your device. How can I help you today?"
+            <h2 class="text-xl font-bold">Privacy-First AI</h2>
+            <p class="text-gray-500 text-sm px-10">This AI downloads locally to your browser. No data ever leaves your device.</p>
+            <button id="init-btn" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg btn-ios">
+                Download & Run Locally
+            </button>
+            <div id="progress-box" class="hidden px-10">
+                <div class="w-full bg-gray-300 rounded-full h-1.5 mb-2">
+                    <div id="progress-bar" class="bg-blue-600 h-1.5 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-xs text-gray-400">0%</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass fixed bottom-0 w-full p-3 pb-8">
+        <div id="input-area" class="hidden flex items-center gap-2 max-w-2xl mx-auto">
+            <input id="user-input" type="text" placeholder="iMessage" class="flex-1 bg-gray-100 border-none rounded-full px-4 py-2 focus:outline-none text-md">
+            <button id="send-btn" class="bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center btn-ios">
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+        const modelId = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+        let engine;
+        let chatHistory = [];
+
+        // DOM Elements
+        const initBtn = document.getElementById('init-btn');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const progressBox = document.getElementById('progress-box');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const status = document.getElementById('status');
+        const chatContainer = document.getElementById('chat-container');
+        const inputArea = document.getElementById('input-area');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const clearBtn = document.getElementById('clear-btn');
+
+        async function initialize() {
+            initBtn.classList.add('hidden');
+            progressBox.classList.remove('hidden');
+            
+            try {
+                engine = await webllm.CreateMLCEngine(modelId, {
+                    initProgressCallback: (report) => {
+                        const progress = Math.round(report.progress * 100);
+                        progressBar.style.width = progress + "%";
+                        progressText.innerText = `Downloading Model: ${progress}%`;
+                        status.innerText = "Downloading...";
+                    }
+                });
+                
+                status.innerText = "Online (Local)";
+                welcomeScreen.classList.add('hidden');
+                inputArea.classList.remove('hidden');
+            } catch (err) {
+                status.innerText = "WebGPU not supported";
+                alert("Your device/browser doesn't support WebGPU. Try Chrome on Android or iOS 18+");
             }
-          ];
         }
-      });
-    }
-    
-    // Touch effects
-    [sendBtn, clearBtn, initBtn, copyInstructionsBtn].forEach(btn => {
-      if (!btn) return;
-      btn.addEventListener('touchstart', function() {
-        this.style.transform = 'scale(0.95)';
-      });
-      
-      btn.addEventListener('touchend', function() {
-        this.style.transform = 'scale(1)';
-      });
-      
-      btn.addEventListener('touchcancel', function() {
-        this.style.transform = 'scale(1)';
-      });
-    });
-  </script>
+
+        function appendMessage(role, content) {
+            const msg = document.createElement('div');
+            msg.className = `chat-bubble ${role === 'user' ? 'user' : 'ai'}`;
+            msg.innerText = content;
+            chatContainer.appendChild(msg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return msg;
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text || !engine) return;
+
+            userInput.value = "";
+            chatHistory.push({ role: "user", content: text });
+            appendMessage("user", text);
+
+            const aiMsg = appendMessage("ai", "...");
+            let fullAiText = "";
+
+            const chunks = await engine.chat.completions.create({
+                messages: chatHistory,
+                stream: true
+            });
+
+            for await (const chunk of chunks) {
+                const delta = chunk.choices[0]?.delta?.content || "";
+                fullAiText += delta;
+                aiMsg.innerText = fullAiText;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            chatHistory.push({ role: "assistant", content: fullAiText });
+        }
+
+        // Memory Management: Clear Chat
+        clearBtn.onclick = () => {
+            chatHistory = [];
+            const bubbles = document.querySelectorAll('.chat-bubble');
+            bubbles.forEach(b => b.remove());
+            if(engine) engine.resetChat(); // Resets model KV cache to free memory
+        };
+
+        initBtn.onclick = initialize;
+        sendBtn.onclick = sendMessage;
+        userInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+    </script>
 </body>
 </html>
-
