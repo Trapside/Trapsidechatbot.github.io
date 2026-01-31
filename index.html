@@ -2,35 +2,149 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Music</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplier Horde Runner</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; font-size: 24px; font-weight: bold; pointer-events: none; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <h1>Library</h1>
-            <button id="btnOpen">Add Folder</button>
-            <input type="text" id="searchBar" placeholder="Search your music...">
-        </header>
+    <div id="ui">Units: <span id="count">1</span></div>
+    
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
 
-        <main id="songList">
-            <div class="empty-state">No songs loaded yet.</div>
-        </main>
+    <script type="module">
+        import * as THREE from 'three';
 
-        <section class="player-bar">
-            <div class="now-playing-info">
-                <div id="trackName">Not Playing</div>
-                <div id="trackArtist">Select a song</div>
-            </div>
-            <div class="controls">
-                <button id="prevBtn">⏮</button>
-                <button id="playBtn">▶️</button>
-                <button id="nextBtn">⏭</button>
-            </div>
-            <audio id="mainAudio"></audio>
-        </section>
-    </div>
-    <script src="script.js"></script>
+        // --- SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x222222);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7.5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // --- GAME VARIABLES ---
+        let units = [];
+        let gates = [];
+        const ROAD_WIDTH = 10;
+        let playerX = 0;
+        let score = 1;
+        let cameraShake = 0;
+
+        // --- PROCEDURAL MODEL GENERATOR ---
+        function createUnitModel(color) {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(
+                new THREE.CapsuleGeometry(0.2, 0.4, 4, 8),
+                new THREE.MeshStandardMaterial({ color: color })
+            );
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 8, 8),
+                new THREE.MeshStandardMaterial({ color: 0xffdbac })
+            );
+            head.position.y = 0.4;
+            group.add(body, head);
+            return group;
+        }
+
+        // --- SPAWN INITIAL PLAYER ---
+        function spawnUnit() {
+            const unit = createUnitModel(0x0077ff);
+            unit.position.set(playerX + (Math.random() - 0.5), 0.5, 0);
+            scene.add(unit);
+            units.push(unit);
+        }
+        spawnUnit();
+
+        // --- ROAD & GATES ---
+        const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(ROAD_WIDTH, 1000),
+            new THREE.MeshStandardMaterial({ color: 0x444444 })
+        );
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        function spawnGate(zPos) {
+            const isMultiplier = Math.random() > 0.5;
+            const value = isMultiplier ? 2 : 10;
+            
+            const gateGeo = new THREE.BoxGeometry(ROAD_WIDTH/2, 3, 0.5);
+            const gateMat = new THREE.MeshStandardMaterial({ color: 0x0055ff, transparent: true, opacity: 0.7 });
+            const gate = new THREE.Mesh(gateGeo, gateMat);
+            
+            gate.position.set(Math.random() > 0.5 ? 2.5 : -2.5, 1.5, zPos);
+            gate.userData = { value: value, isMultiplier: isMultiplier, active: true };
+            
+            scene.add(gate);
+            gates.push(gate);
+        }
+
+        for(let i = 1; i < 10; i++) spawnGate(-i * 40);
+
+        // --- INPUT ---
+        window.addEventListener('mousemove', (e) => {
+            playerX = ((e.clientX / window.innerWidth) - 0.5) * ROAD_WIDTH;
+        });
+
+        // --- GAME LOOP (PERFORMANCE & JUICE) ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Forward Movement
+            units.forEach(u => {
+                u.position.z -= 0.2;
+                // Soft follow logic
+                u.position.x += (playerX - u.position.x) * 0.05;
+            });
+
+            // Camera Follow + Shake
+            camera.position.set(0, 8, units[0].position.z + 12);
+            camera.lookAt(0, 0, units[0].position.z - 5);
+            
+            if (cameraShake > 0) {
+                camera.position.x += (Math.random() - 0.5) * cameraShake;
+                cameraShake *= 0.9;
+            }
+
+            // Collision Logic
+            gates.forEach(gate => {
+                if (gate.userData.active && Math.abs(units[0].position.z - gate.position.z) < 1) {
+                    if (Math.abs(playerX - gate.position.x) < 2.5) {
+                        gate.userData.active = false;
+                        gate.visible = false;
+                        cameraShake = 0.5; // JUICE: Screen Shake
+                        
+                        const amount = gate.userData.isMultiplier ? units.length : gate.userData.value;
+                        for(let i = 0; i < amount; i++) {
+                            if (units.length < 500) spawnUnit(); // PERFORMANCE: Cap units
+                        }
+                        document.getElementById('count').innerText = units.length;
+                    }
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
