@@ -6,14 +6,13 @@
     <title>Lite AI - Persistent</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
-        #chat-content { height: 70vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; word-wrap: break-word; }
+        #chat-content { height: 72vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { padding: 12px 16px; border-radius: 18px; font-size: 15px; max-width: 85%; word-wrap: break-word; line-height: 1.4; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .loading-ring { border: 2px solid #f3f3f3; border-top: 2px solid #007AFF; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #msg-input:focus { ring: 0; outline: none; }
     </style>
 </head>
 <body>
@@ -26,28 +25,28 @@
                 <span id="status-text" class="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">Disconnected</span>
             </div>
         </div>
-        <button id="clear-btn" class="text-blue-500 text-sm font-medium">Clear Chat</button>
+        <button id="clear-btn" class="text-blue-500 text-sm font-semibold">Reset</button>
     </nav>
 
     <div id="chat-content">
         <div id="setup-card" class="bg-white p-6 rounded-3xl shadow-sm text-center my-auto">
-            <h2 class="text-xl font-bold mb-2">Ready to Load?</h2>
-            <p class="text-gray-500 text-sm mb-6 text-pretty">Downloads ~400MB. Recommended for devices with 4GB+ RAM.</p>
-            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-transform">
-                Start Local Engine
+            <h2 class="text-xl font-bold mb-2">Local Engine</h2>
+            <p class="text-gray-500 text-sm mb-6">Small 360M model. Fits in browser memory.</p>
+            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">
+                Start Engine
             </button>
             <div id="progress-container" class="hidden mt-4">
                 <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
                     <div id="bar" class="bg-blue-500 h-1.5 rounded-full w-0 transition-all"></div>
                 </div>
-                <p id="percent" class="text-[10px] text-gray-400">Waiting...</p>
+                <p id="percent" class="text-[10px] text-gray-400 font-mono">Ready...</p>
             </div>
         </div>
     </div>
 
     <div class="fixed bottom-0 w-full p-4 glass border-t border-gray-200">
         <div id="input-ui" class="hidden flex gap-2">
-            <input id="msg-input" type="text" placeholder="Ask anything..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none">
+            <input id="msg-input" type="text" placeholder="Type a message..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none">
             <button id="send-btn" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
@@ -58,110 +57,108 @@
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
-        
         let engine;
-        // Keep track of history to allow multi-turn conversation
-        let chatHistory = [
-            { role: "system", content: "You are a helpful assistant. Keep answers brief and accurate." }
-        ];
+        let chatHistory = [{ role: "system", content: "You are a brief, helpful AI." }];
 
-        const loadBtn = document.getElementById('load-btn');
-        const bar = document.getElementById('bar');
-        const percent = document.getElementById('percent');
-        const statusText = document.getElementById('status-text');
-        const dot = document.getElementById('dot');
-        const chatContainer = document.getElementById('chat-content');
-        const msgInput = document.getElementById('msg-input');
+        const ui = {
+            loadBtn: document.getElementById('load-btn'),
+            bar: document.getElementById('bar'),
+            percent: document.getElementById('percent'),
+            statusText: document.getElementById('status-text'),
+            dot: document.getElementById('dot'),
+            chat: document.getElementById('chat-content'),
+            input: document.getElementById('msg-input'),
+            inputUI: document.getElementById('input-ui'),
+            setup: document.getElementById('setup-card'),
+            clear: document.getElementById('clear-btn')
+        };
 
         async function init() {
             document.getElementById('progress-container').classList.remove('hidden');
-            loadBtn.disabled = true;
-            loadBtn.innerText = "Loading Model...";
+            ui.loadBtn.disabled = true;
+            ui.loadBtn.innerText = "Loading...";
 
             try {
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (p) => {
-                        const val = Math.round(p.progress * 100);
-                        bar.style.width = val + "%";
-                        percent.innerText = p.text;
+                        ui.bar.style.width = (p.progress * 100) + "%";
+                        ui.percent.innerText = p.text;
                     }
                 });
-
-                dot.classList.replace('bg-red-500', 'bg-green-500');
-                statusText.innerText = "Local Engine Active";
-                document.getElementById('setup-card').classList.add('hidden');
-                document.getElementById('input-ui').classList.remove('hidden');
+                ui.dot.classList.replace('bg-red-500', 'bg-green-500');
+                ui.statusText.innerText = "Engine Online";
+                ui.setup.classList.add('hidden');
+                ui.inputUI.classList.remove('hidden');
             } catch (e) {
-                alert("WebGPU Error: Your device may not support local AI or memory is full.");
-                console.error(e);
+                alert("WebGPU not supported or memory low.");
             }
         }
 
         async function send() {
-            const val = msgInput.value.trim();
-            if (!val || !engine) return;
+            const text = ui.input.value.trim();
+            if (!text || !engine) return;
 
-            // 1. Update UI (User Message)
-            const userBox = document.createElement('div');
-            userBox.className = "bubble user";
-            userBox.innerText = val;
-            chatContainer.appendChild(userBox);
-            msgInput.value = "";
+            // Add user bubble
+            appendBubble(text, 'user');
+            ui.input.value = "";
+            chatHistory.push({ role: "user", content: text });
 
-            // 2. Add message to internal memory
-            chatHistory.push({ role: "user", content: val });
-
-            // 3. Update UI (AI Placeholder)
-            const aiBox = document.createElement('div');
-            aiBox.className = "bubble ai";
-            aiBox.innerText = "...";
-            chatContainer.appendChild(aiBox);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
+            // Add AI bubble
+            const aiBox = appendBubble("...", 'ai');
+            
             try {
-                let fullResponse = "";
-                const chunks = await engine.chat.completions.create({
-                    messages: chatHistory, 
-                    stream: true
+                let fullText = "";
+                const completion = await engine.chat.completions.create({
+                    messages: chatHistory,
+                    stream: true,
+                    // Limit max tokens to prevent context overflow
+                    max_tokens: 256 
                 });
 
-                for await (const chunk of chunks) {
+                for await (const chunk of completion) {
                     const content = chunk.choices[0]?.delta?.content || "";
-                    fullResponse += content;
-                    aiBox.innerText = fullResponse;
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    fullText += content;
+                    aiBox.innerText = fullText;
+                    ui.chat.scrollTop = ui.chat.scrollHeight;
                 }
 
-                // 4. Save AI response to history
-                chatHistory.push({ role: "assistant", content: fullResponse });
+                chatHistory.push({ role: "assistant", content: fullText });
 
-                // 5. SLIDING WINDOW: If history > 10 messages, remove the oldest pair
-                // This prevents the "3-reply crash" by keeping context small.
-                if (chatHistory.length > 10) {
-                    chatHistory.splice(1, 2); // Keeps system prompt at [0], removes [1] and [2]
+                // Memory Cleanup: Keep only last 4 messages (2 turns)
+                // This is very aggressive but keeps 360M models stable.
+                if (chatHistory.length > 5) {
+                    chatHistory = [
+                        chatHistory[0], // System prompt
+                        ...chatHistory.slice(-4) // Last 2 exchanges
+                    ];
                 }
 
             } catch (err) {
-                aiBox.innerText = "⚠️ Context full. Please use 'Clear Chat' to reset.";
-                console.error(err);
+                console.error("Context Error:", err);
+                // AUTO-HEAL: Reset the engine's conversation state
+                aiBox.innerText = "⚠️ Memory limit reached. Resetting...";
+                await engine.resetChat(); // This clears the internal KV cache
+                chatHistory = [chatHistory[0], {role: "user", content: text}]; 
+                aiBox.innerText = "Memory cleared. Please try asking that again!";
             }
         }
 
-        // Event Listeners
-        loadBtn.onclick = init;
-        document.getElementById('send-btn').onclick = send;
-        
-        msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') send();
-        });
+        function appendBubble(content, side) {
+            const div = document.createElement('div');
+            div.className = `bubble ${side}`;
+            div.innerText = content;
+            ui.chat.appendChild(div);
+            ui.chat.scrollTop = ui.chat.scrollHeight;
+            return div;
+        }
 
-        document.getElementById('clear-btn').onclick = () => {
-            chatHistory = [{ role: "system", content: "You are a helpful assistant." }];
-            chatContainer.innerHTML = "";
-            const info = document.createElement('p');
-            info.className = "text-[10px] text-center text-gray-400";
-            info.innerText = "Conversation History Reset";
-            chatContainer.appendChild(info);
+        ui.loadBtn.onclick = init;
+        document.getElementById('send-btn').onclick = send;
+        ui.input.onkeypress = (e) => { if(e.key === 'Enter') send() };
+        ui.clear.onclick = async () => {
+            if(engine) await engine.resetChat();
+            chatHistory = [{ role: "system", content: "You are a brief AI." }];
+            ui.chat.innerHTML = `<p class="text-[10px] text-center text-gray-400">Memory Purged</p>`;
         };
     </script>
 </body>
