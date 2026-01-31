@@ -3,59 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Lite AI Hardened</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Private AI Pro</title>
+    
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlByaXZhdGUgQUkiLAogICJzaG9ydF9uYW1lIjogIlBSSSIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjJmMmY3IiwKICAidGhlbWVfY29sb3IiOiAiIzAwN0FGRiIKfQ==">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; font-family: -apple-system, system-ui, sans-serif; height: 100dvh; display: flex; flex-direction: column; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        #chat-content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; max-width: 85%; line-height: 1.4; transition: opacity 0.2s; }
+        #chat-content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; padding-top: env(safe-area-inset-top); }
+        .bubble { padding: 12px 16px; border-radius: 18px; font-size: 14px; max-width: 85%; line-height: 1.4; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; white-space: pre-wrap; }
         .meter-bg { background: #e5e5ea; height: 4px; border-radius: 2px; }
-        .meter-fill { background: #34c759; height: 100%; transition: width 0.4s; }
+        .meter-fill { background: #34c759; height: 100%; transition: width 0.5s; }
     </style>
 </head>
 <body>
 
-    <nav class="glass p-4 border-b border-gray-200">
+    <nav class="glass p-4 pt-12 border-b border-gray-200">
         <div class="flex justify-between items-center mb-2">
             <div>
-                <h1 class="font-bold text-base leading-none">Private AI</h1>
-                <span id="status-text" class="text-[9px] text-gray-400 uppercase font-black">Offline</span>
+                <h1 class="font-bold text-lg leading-none">Standalone AI</h1>
+                <span id="status-text" class="text-[9px] text-green-500 uppercase font-black">PWA Mode</span>
             </div>
-            <div class="flex gap-3 items-center">
-                <label class="flex items-center gap-1">
-                    <input type="checkbox" id="low-power" checked class="w-3 h-3">
-                    <span class="text-[9px] font-bold text-gray-500 uppercase">Battery Save</span>
-                </label>
-                <button onclick="resetChat()" class="text-blue-500 font-bold text-xs uppercase">Reset</button>
-            </div>
+            <button onclick="resetChat()" class="text-blue-500 font-bold text-xs uppercase">Reset</button>
         </div>
-        <div class="meter-bg w-full">
-            <div id="memory-fill" class="meter-fill" style="width: 0%"></div>
-        </div>
+        <div class="meter-bg w-full"><div id="memory-fill" class="meter-fill" style="width: 0%"></div></div>
     </nav>
 
     <div id="chat-content">
-        <div id="setup-card" class="m-auto text-center max-w-[280px]">
-            <h2 class="font-bold text-lg mb-2">Initialize Engine</h2>
-            <p class="text-gray-400 text-xs mb-5">Downloads ~380MB. Use Wi-Fi and keep this tab active.</p>
-            <button id="load-btn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-blue-100">
-                Download Model
-            </button>
+        <div id="pwa-hint" class="bg-blue-600 text-white p-4 rounded-2xl mb-4 text-xs shadow-lg">
+            <strong>Tip:</strong> Tap the <span class="bg-white text-blue-600 px-1 rounded">Share</span> button and select <strong>"Add to Home Screen"</strong> to bypass browser memory limits.
+        </div>
+
+        <div id="setup-card" class="m-auto text-center p-6">
+            <h2 class="font-bold text-xl mb-2">Load Engine</h2>
+            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">Initialize WebGPU</button>
             <div id="progress-container" class="hidden mt-4">
                 <div class="meter-bg mb-2"><div id="bar" class="meter-fill w-0 bg-blue-500"></div></div>
-                <p id="percent" class="text-[9px] font-mono text-gray-400">Requesting WebGPU...</p>
+                <p id="percent" class="text-[9px] text-gray-400 font-mono">Loading local weights...</p>
             </div>
         </div>
     </div>
 
-    <div class="p-3 glass border-t border-gray-200">
+    <div class="p-4 glass border-t border-gray-200 pb-safe">
         <form id="chat-form" class="flex gap-2">
-            <input id="msg-input" type="text" placeholder="Message..." class="flex-1 bg-gray-100 rounded-xl px-4 py-2 text-sm outline-none disabled:opacity-50" disabled>
-            <button id="send-btn" type="submit" disabled class="bg-blue-600 disabled:bg-gray-300 text-white w-10 h-10 rounded-xl flex items-center justify-center">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></svg>
+            <input id="msg-input" type="text" placeholder="Message..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-30" disabled>
+            <button id="send-btn" type="submit" disabled class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center disabled:opacity-30">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></svg>
             </button>
         </form>
     </div>
@@ -64,56 +62,44 @@
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
-        const CONTEXT_WINDOW = 6; // Strict history for mobile
-        
         let engine;
-        let chatHistory = JSON.parse(localStorage.getItem('chat_history')) || [
-            { role: "system", content: "Short, factual answers." }
-        ];
+        let chatHistory = JSON.parse(localStorage.getItem('pwa_history')) || [{ role: "system", content: "Brief responses." }];
 
-        const memoryFill = document.getElementById('memory-fill');
-        const chatContainer = document.getElementById('chat-content');
-
-        function updateUI() {
-            const usage = Math.min(((chatHistory.length - 1) / CONTEXT_WINDOW) * 100, 100);
-            memoryFill.style.width = usage + "%";
-            memoryFill.style.backgroundColor = usage > 80 ? "#ff3b30" : usage > 50 ? "#ffcc00" : "#34c759";
+        // 1. WAKE LOCK: Keep screen from turning off (iOS Fix)
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
 
-        function append(role, text) {
+        const append = (role, text) => {
             const b = document.createElement('div');
             b.className = `bubble ${role}`;
             b.innerText = text;
-            chatContainer.appendChild(b);
-            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            document.getElementById('chat-content').appendChild(b);
+            document.getElementById('chat-content').scrollTop = document.getElementById('chat-content').scrollHeight;
             return b;
-        }
+        };
 
-        // Render history
+        // Render existing
+        if (window.navigator.standalone) document.getElementById('pwa-hint').remove();
         chatHistory.forEach(m => { if(m.role !== 'system') append(m.role === 'user' ? 'user' : 'ai', m.content); });
-        updateUI();
 
         document.getElementById('load-btn').onclick = async () => {
+            requestWakeLock();
             document.getElementById('progress-container').classList.remove('hidden');
-            document.getElementById('load-btn').style.display = 'none';
-
+            document.getElementById('load-btn').classList.add('hidden');
+            
             try {
-                // Hardened Config: lower log level and smaller KV cache to prevent timeouts
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (p) => {
                         document.getElementById('bar').style.width = (p.progress * 100) + "%";
                         document.getElementById('percent').innerText = p.text;
-                    },
-                    logLevel: "error" 
+                    }
                 });
-
-                document.getElementById('status-text').innerText = "Online";
-                document.getElementById('setup-card').style.display = 'none';
+                document.getElementById('setup-card').remove();
                 document.getElementById('msg-input').disabled = false;
                 document.getElementById('send-btn').disabled = false;
-            } catch (e) {
-                alert("WebGPU failed. Use Chrome on Android or Safari on iOS 17.4+");
-            }
+            } catch (e) { alert("WebGPU not available. Check iOS Settings > Safari > Advanced."); }
         };
 
         document.getElementById('chat-form').onsubmit = async (e) => {
@@ -130,43 +116,30 @@
             document.getElementById('send-btn').disabled = true;
 
             try {
-                const lp = document.getElementById('low-power').checked;
-                let full = "";
-
-                // GPU Optimization: Temperature and max length are keys to avoiding timeouts
+                let response = "";
                 const chunks = await engine.chat.completions.create({
                     messages: chatHistory,
                     stream: true,
-                    temperature: lp ? 0.2 : 0.6,
-                    max_gen_len: lp ? 64 : 128, // Small chunks keep GPU watchdog happy
+                    temperature: 0.5,
+                    max_gen_len: 120
                 });
 
                 for await (const chunk of chunks) {
-                    full += chunk.choices[0]?.delta?.content || "";
-                    aiBox.innerText = full;
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    response += chunk.choices[0]?.delta?.content || "";
+                    aiBox.innerText = response;
                 }
 
-                chatHistory.push({ role: "assistant", content: full });
-                if (chatHistory.length > CONTEXT_WINDOW) chatHistory.splice(1, 2);
-                
-                localStorage.setItem('chat_history', JSON.stringify(chatHistory));
-                updateUI();
+                chatHistory.push({ role: "assistant", content: response });
+                if (chatHistory.length > 8) chatHistory.splice(1, 2);
+                localStorage.setItem('pwa_history', JSON.stringify(chatHistory));
             } catch (err) {
-                aiBox.innerText = "GPU Throttled. Clearing memory and retrying is recommended.";
-                aiBox.style.color = "#ff3b30";
-                console.error(err);
+                aiBox.innerText = "GPU reset required. Tap Reset.";
             } finally {
                 document.getElementById('send-btn').disabled = false;
             }
         };
 
-        window.resetChat = () => {
-            if(confirm("Wipe all data?")) {
-                localStorage.removeItem('chat_history');
-                location.reload();
-            }
-        };
+        window.resetChat = () => { localStorage.clear(); location.reload(); };
     </script>
 </body>
 </html>
