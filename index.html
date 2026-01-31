@@ -3,33 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Horde Shooter: Evolution</title>
+    <title>Horde Shooter: Zoomed & Optimized</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; color: white; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; }
-        #stats { font-size: 24px; text-shadow: 2px 2px #000; }
-        #gold-count { color: #ffd700; }
-        #boss-ui { width: 80%; height: 20px; background: #333; margin: 10px auto; display: none; border: 2px solid white; }
-        #boss-bar { width: 100%; height: 100%; background: #ff0000; }
-        #menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
-        .upgrade-btn { background: #444; color: white; padding: 15px; margin: 10px; border: 2px solid #00ff88; width: 250px; cursor: pointer; text-align: left; }
-        .upgrade-btn:hover { background: #555; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; font-size: 28px; pointer-events: none; z-index: 5; }
+        #menu { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        .btn { background: #00ff88; color: #000; padding: 20px 40px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 20px; }
         canvas { display: block; touch-action: none; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div id="stats">ARMY: <span id="count">1</span> | <span id="gold-count">GOLD: 0</span></div>
-        <div id="boss-ui"><div id="boss-bar"></div></div>
+    <div id="ui">ARMY: <span id="count">1</span> | GOLD: <span id="gold">0</span></div>
+    <div id="menu">
+        <h1 style="color:#00ff88">READY?</h1>
+        <button class="btn" onclick="startGame()">START RUN</button>
     </div>
 
-    <div id="menu">
-        <h1>BASE CAMP</h1>
-        <button class="upgrade-btn" onclick="upgrade('startSize')">START SIZE (Cost: <span id="cost0">10</span>)<br>Current: <span id="val0">1</span></button>
-        <button class="upgrade-btn" onclick="upgrade('fireRate')">FIRE RATE (Cost: <span id="cost1">20</span>)<br>Current: <span id="val1">1</span></button>
-        <button class="upgrade-btn" onclick="startLevel()" style="background:#00ff88; color:black; font-size:24px; text-align:center;">DEPLOY ARMY</button>
-    </div>
-    
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
     </script>
@@ -37,215 +26,142 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- GAME DATA ---
-        let saveData = JSON.parse(localStorage.getItem('hordeSave')) || { gold: 0, startSize: 1, fireRate: 1 };
-        let goldSession = 0;
-        let gameActive = false;
-        let isBossActive = false;
-        let bossHealth = 100;
-        let units = [], enemies = [], bullets = [], gates = [], obstacles = [];
-
-        // --- THREE.JS SETUP ---
+        // --- CORE SETTINGS ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        scene.background = new THREE.Color(0x050510);
+        // ZOOM FIX: Lower FOV (50) makes it look closer/zoomed in
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 500);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const ROAD_WIDTH = 10;
+        // --- LIGHTS & ENVIRONMENT ---
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const pLight = new THREE.PointLight(0x00ff88, 1, 50);
+        scene.add(pLight);
+
+        // Grid floor for visual speed reference
+        const grid = new THREE.GridHelper(1000, 100, 0x444444, 0x222222);
+        grid.position.y = 0.01;
+        scene.add(grid);
+
+        // --- GAME STATE ---
+        let gameActive = false;
+        let gold = 0;
+        let units = [], enemies = [], bullets = [], gates = [];
         let playerX = 0;
-        let cameraShake = 0;
+        let lastZ = 0;
 
-        // Lighting
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(5, 20, 10);
-        scene.add(sun);
+        // Shared Geometry (Optimization)
+        const unitGeo = new THREE.CapsuleGeometry(0.18, 0.4, 4, 6);
+        const allyMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x002244 });
+        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+        const bulletGeo = new THREE.SphereGeometry(0.08, 4, 4);
+        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 
-        // Assets
-        const allyGeo = new THREE.CapsuleGeometry(0.2, 0.4, 4, 8);
-        const allyMat = new THREE.MeshStandardMaterial({ color: 0x00ccff });
-        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff4444 });
-        const bossMat = new THREE.MeshStandardMaterial({ color: 0xaa0000 });
-
-        // --- FUNCTIONS ---
-        window.startLevel = () => {
+        window.startGame = () => {
             document.getElementById('menu').style.display = 'none';
-            resetGame();
             gameActive = true;
+            spawnAlly(0);
         };
 
-        window.upgrade = (type) => {
-            let cost = type === 'startSize' ? saveData.startSize * 20 : saveData.fireRate * 30;
-            if(saveData.gold >= cost) {
-                saveData.gold -= cost;
-                saveData[type]++;
-                localStorage.setItem('hordeSave', JSON.stringify(saveData));
-                updateUI();
-            }
-        };
-
-        function updateUI() {
-            document.getElementById('gold-count').innerText = `GOLD: ${saveData.gold}`;
-            document.getElementById('val0').innerText = saveData.startSize;
-            document.getElementById('cost0').innerText = saveData.startSize * 20;
-            document.getElementById('val1').innerText = saveData.fireRate;
-            document.getElementById('cost1').innerText = saveData.fireRate * 30;
-        }
-        updateUI();
-
-        function resetGame() {
-            units.forEach(u => scene.remove(u));
-            enemies.forEach(e => scene.remove(e));
-            gates.forEach(g => scene.remove(g));
-            obstacles.forEach(o => scene.remove(o));
-            units = []; enemies = []; gates = []; obstacles = [];
-            
-            for(let i=0; i<saveData.startSize; i++) spawnUnit(0, true);
-            generateLevel();
-        }
-
-        function spawnUnit(z, isAlly) {
-            const m = new THREE.Mesh(allyGeo, isAlly ? allyMat : enemyMat);
-            m.position.set((Math.random()-0.5)*5, 0.5, z);
+        function spawnAlly(z) {
+            const m = new THREE.Mesh(unitGeo, allyMat);
+            m.position.set(playerX, 0.5, z);
             scene.add(m);
-            if(isAlly) units.push(m); else enemies.push(m);
+            units.push(m);
         }
 
-        function generateLevel() {
-            for(let i=1; i<40; i++) {
-                let z = -i * 30;
-                if(i % 4 === 0) spawnGate(z);
-                else if(i % 7 === 0) spawnSaw(z);
-                else spawnEnemyWave(z);
-            }
-            // Spawn Boss at end
-            spawnBoss(-1250);
+        function createEnemy(z) {
+            const m = new THREE.Mesh(unitGeo, enemyMat);
+            m.position.set((Math.random()-0.5)*8, 0.5, z);
+            scene.add(m);
+            enemies.push(m);
         }
 
-        function spawnGate(z) {
-            const g = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 0.1), new THREE.MeshStandardMaterial({color: 0x00ff88, transparent:true, opacity:0.6}));
-            g.position.set(Math.random()>0.5?2.5:-2.5, 1.5, z);
-            g.userData = { val: 5 + Math.floor(Math.random()*10), active: true };
-            scene.add(g);
-            gates.push(g);
-        }
-
-        function spawnSaw(z) {
-            const s = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.2, 16), new THREE.MeshStandardMaterial({color: 0x555555}));
-            s.rotation.x = Math.PI/2;
-            s.position.set(0, 0.5, z);
-            scene.add(s);
-            obstacles.push(s);
-        }
-
-        function spawnEnemyWave(z) {
-            for(let i=0; i<5; i++) spawnUnit(z - (Math.random()*5), false);
-        }
-
-        function spawnBoss(z) {
-            const b = new THREE.Mesh(new THREE.BoxGeometry(6, 10, 6), bossMat);
-            b.position.set(0, 5, z);
-            b.userData = { isBoss: true };
-            scene.add(b);
-            enemies.push(b);
-        }
-
-        // --- CONTROLS ---
-        const handleInput = (x) => { playerX = ((x/window.innerWidth)-0.5) * ROAD_WIDTH * 1.5; };
+        // --- INPUT ---
+        const handleInput = (clientX) => {
+            playerX = ((clientX / window.innerWidth) - 0.5) * 12;
+            playerX = Math.max(-4.5, Math.min(4.5, playerX));
+        };
         window.addEventListener('mousemove', e => handleInput(e.clientX));
         window.addEventListener('touchmove', e => handleInput(e.touches[0].clientX));
 
-        // --- LOOP ---
-        let frame = 0;
+        // --- MAIN LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            if(!gameActive) return;
-            frame++;
+            if (!gameActive || units.length === 0) return;
 
-            const speed = isBossActive ? 0 : 0.4;
-            
+            const speed = 0.45;
+            const leadZ = units[0].position.z;
+
+            // Generate Content ahead
+            if (leadZ < lastZ - 30) {
+                lastZ = leadZ;
+                createEnemy(leadZ - 60);
+                if (Math.random() > 0.7) spawnGate(leadZ - 60);
+            }
+
+            // Move Units
             units.forEach((u, i) => {
                 u.position.z -= speed;
-                u.position.x += (playerX + (i%5-2)*0.5 - u.position.x) * 0.1;
+                const offset = (i % 5 - 2) * 0.4;
+                u.position.x += (playerX + offset - u.position.x) * 0.12;
 
-                // Shooting
-                if(frame % Math.max(5, 40 - saveData.fireRate*5) === 0) {
-                    const b = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color:0xffff00}));
+                // Fire Bullets
+                if (Math.random() > 0.96) {
+                    const b = new THREE.Mesh(bulletGeo, bulletMat);
                     b.position.copy(u.position);
                     scene.add(b);
                     bullets.push(b);
                 }
             });
 
-            // Bullet Logic
-            bullets.forEach((b, bi) => {
-                b.position.z -= 1;
-                if(b.position.z < units[0]?.position.z - 50) { scene.remove(b); bullets.splice(bi, 1); }
-                
+            // Camera Follow (ZOOMED IN POSITION)
+            // Lower Y (5) and closer Z (10) for that zoomed action look
+            camera.position.set(0, 5, leadZ + 10);
+            camera.lookAt(0, 1, leadZ - 5);
+            pLight.position.set(playerX, 5, leadZ);
+
+            // Bullet Physics & cleanup
+            bullets.forEach((b, i) => {
+                b.position.z -= 1.2;
+                if (b.position.z < leadZ - 50) {
+                    scene.remove(b);
+                    bullets.splice(i, 1);
+                }
                 enemies.forEach((en, ei) => {
-                    if(b.position.distanceTo(en.position) < 2) {
-                        if(en.userData.isBoss) {
-                            bossHealth -= 0.5;
-                            document.getElementById('boss-bar').style.width = bossHealth + "%";
-                            if(bossHealth <= 0) { 
-                                saveData.gold += 500; 
-                                endGame(true); 
-                            }
-                        } else {
-                            scene.remove(en);
-                            enemies.splice(ei, 1);
-                            saveData.gold += 1;
-                        }
-                        scene.remove(b);
-                        bullets.splice(bi, 1);
+                    if (b.position.distanceTo(en.position) < 0.8) {
+                        scene.remove(en); enemies.splice(ei, 1);
+                        scene.remove(b); bullets.splice(i, 1);
+                        gold += 10;
                     }
                 });
             });
 
-            // Gate Collision
-            gates.forEach(g => {
-                if(g.userData.active && units[0] && Math.abs(units[0].position.z - g.position.z) < 0.5) {
-                    if(Math.abs(playerX - g.position.x) < 2.5) {
-                        g.userData.active = false; g.visible = false;
-                        for(let i=0; i<g.userData.val; i++) spawnUnit(units[0].position.z, true);
-                    }
-                }
-            });
-
-            // Boss Trigger
-            if(units[0] && units[0].position.z < -1200 && !isBossActive) {
-                isBossActive = true;
-                document.getElementById('boss-ui').style.display = 'block';
-            }
-
-            // Death Check
-            if(units.length === 0) endGame(false);
-
             // UI
             document.getElementById('count').innerText = units.length;
-            document.getElementById('gold-count').innerText = `GOLD: ${saveData.gold}`;
-
-            // Camera
-            if(units[0]) {
-                camera.position.set(0, 15, units[0].position.z + 20);
-                camera.lookAt(0, 0, units[0].position.z);
-            }
+            document.getElementById('gold').innerText = gold;
 
             renderer.render(scene, camera);
         }
 
-        function endGame(victory) {
-            gameActive = false;
-            isBossActive = false;
-            localStorage.setItem('hordeSave', JSON.stringify(saveData));
-            document.getElementById('menu').style.display = 'flex';
-            document.getElementById('menu').querySelector('h1').innerText = victory ? "VICTORY!" : "ARMY WIPED OUT";
-            document.getElementById('boss-ui').style.display = 'none';
-            updateUI();
+        function spawnGate(z) {
+            const g = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 0.2), new THREE.MeshStandardMaterial({color: 0x00ff88, transparent:true, opacity:0.5}));
+            g.position.set(Math.random()>0.5?2.5:-2.5, 1.5, z);
+            g.userData = { val: 5, active: true };
+            scene.add(g);
+            gates.push(g);
         }
 
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
