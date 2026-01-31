@@ -8,137 +8,148 @@
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        :root { --ios-blue: #007AFF; }
         body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.1); }
-        #chat-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 120px; }
-        .chat-bubble { max-width: 85%; border-radius: 20px; padding: 12px 16px; font-size: 15px; line-height: 1.4; position: relative; }
-        .user { background: var(--ios-blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        #chat-container { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-bubble { max-width: 85%; border-radius: 18px; padding: 10px 14px; font-size: 15px; line-height: 1.4; }
+        .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: black; align-self: flex-start; border-bottom-left-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <nav class="glass sticky top-0 z-50 px-4 py-3 pt-12">
-        <div class="flex justify-between items-center mb-2">
+    <nav class="glass sticky top-0 z-50 px-4 py-3 pt-12 flex justify-between items-center">
+        <div>
             <h1 class="text-lg font-bold">Private AI</h1>
-            <button id="menu-btn" class="text-blue-600 font-semibold text-sm">Options</button>
+            <div id="status" class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Checking Hardware...</div>
         </div>
-        <div id="loader-ui" class="hidden space-y-1">
-            <div class="flex justify-between text-[8px] uppercase font-black text-gray-400">
-                <span id="load-status">Downloading Model...</span>
-                <span id="load-percent">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-                <div id="load-bar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+        <div class="text-right">
+            <div id="mem-text" class="text-[10px] text-gray-400 font-mono">RAM: 0%</div>
+            <div class="w-16 bg-gray-200 h-1 rounded-full overflow-hidden mt-1">
+                <div id="mem-bar" class="bg-green-500 h-full w-0 transition-all"></div>
             </div>
         </div>
     </nav>
 
     <div id="chat-container">
-        <div id="welcome-screen" class="m-auto text-center p-8 space-y-4">
-            <div class="text-4xl">🤖</div>
-            <h2 class="text-xl font-black">Ready to Start?</h2>
-            <p class="text-xs text-gray-500">This will download the 135M model (~360MB).</p>
-            <button id="start-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg">Initialize Engine</button>
+        <div id="intro" class="m-auto text-center space-y-4 p-6">
+            <div class="text-4xl">⚡</div>
+            <p class="text-xs text-gray-500">Local SmolLM-135M (~360MB). Offline & Private.</p>
+            <button id="init-btn" class="bg-black text-white px-8 py-3 rounded-xl font-bold active:scale-95 transition-all">Initialize Engine</button>
+            <div id="progress-container" class="hidden space-y-2">
+                <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden"><div id="load-bar" class="bg-blue-600 h-full w-0 transition-all"></div></div>
+                <p id="load-text" class="text-[10px] text-blue-600 font-mono">Starting...</p>
+            </div>
         </div>
     </div>
 
-    <div class="glass fixed bottom-0 w-full p-4 pb-10">
-        <div id="input-ui" class="hidden flex gap-2 max-w-xl mx-auto">
-            <input id="user-input" type="text" placeholder="Message" class="flex-1 bg-gray-100 rounded-full px-5 py-3 outline-none">
-            <button id="send-btn" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center">
-                <i class="fa-solid fa-arrow-up"></i>
-            </button>
-        </div>
+    <div class="glass fixed bottom-0 w-full p-4 pb-8 flex gap-2">
+        <input id="user-input" type="text" placeholder="Type message..." class="hidden flex-1 bg-gray-100 rounded-full px-4 py-2 outline-none">
+        <button id="send-btn" class="hidden bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
     </div>
 
     <script type="module">
-        // Import the Class instead of the factory function
         import { MLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
         const MODEL_ID = "SmolLM2-135M-Instruct-q4f16_1-MLC";
-        
-        // Manual Config to ensure the path is correct
         const appConfig = {
             model_list: [{
                 "model_id": MODEL_ID,
                 "model": "https://huggingface.co/mlc-ai/SmolLM2-135M-Instruct-q4f16_1-MLC",
-                "lib_url": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/smollm/SmolLM2-135M-Instruct-q4f16_1-ctx2k-webgpu.wasm"
+                "model_lib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/smollm/SmolLM2-135M-Instruct-q4f16_1-ctx2k-webgpu.wasm"
             }]
         };
 
         const $ = id => document.getElementById(id);
-        const chatBox = $('chat-container');
-        let engine;
-        let chatHistory = [];
+        const db = new Dexie("ChatDB");
+        db.version(1).stores({ logs: "++id, role, text" });
 
-        // START ENGINE (The "Method that worked" - Manual Reload)
-        $('start-btn').onclick = async () => {
-            if (!navigator.gpu) return alert("WebGPU not supported");
+        let engine, history = [];
 
-            $('welcome-screen').classList.add('hidden');
-            $('loader-ui').classList.remove('hidden');
-
-            try {
-                // Step 1: Initialize the class (Empty Engine)
-                engine = new MLCEngine({
-                    appConfig: appConfig,
-                    initProgressCallback: (p) => {
-                        $('load-bar').style.width = (p.progress * 100) + "%";
-                        $('load-percent').innerText = Math.round(p.progress * 100) + "%";
-                        $('load-status').innerText = p.text.split(']')[1] || "Loading...";
-                    }
-                });
-
-                // Step 2: Manually reload the specific model (More stable for GPU)
-                await engine.reload(MODEL_ID);
-
-                $('loader-ui').classList.add('hidden');
-                $('input-ui').classList.remove('hidden');
-            } catch (e) {
-                console.error(e);
-                alert("GPU Error: " + e.message);
+        // Check Hardware
+        window.onload = () => {
+            if (!navigator.gpu) {
+                $('status').innerText = "Incompatible Device";
+                $('init-btn').disabled = true;
+                $('init-btn').className = "bg-gray-300 text-white px-8 py-3 rounded-xl";
+            } else {
+                $('status').innerText = "Hardware Ready";
             }
         };
 
-        async function send() {
-            const val = $('user-input').value.trim();
-            if (!val || !engine) return;
-
-            $('user-input').value = "";
-            const uB = document.createElement('div');
-            uB.className = 'chat-bubble user';
-            uB.innerText = val;
-            chatBox.appendChild(uB);
-
-            const aiB = document.createElement('div');
-            aiB.className = 'chat-bubble ai';
-            aiB.innerText = "...";
-            chatBox.appendChild(aiB);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            chatHistory.push({ role: "user", content: val });
-            if (chatHistory.length > 4) chatHistory = chatHistory.slice(-4);
+        // Initialize Engine
+        $('init-btn').onclick = async () => {
+            $('init-btn').remove();
+            $('progress-container').classList.remove('hidden');
 
             try {
-                let full = "";
-                const chunks = await engine.chat.completions.create({ messages: chatHistory, stream: true });
-                for await (const chunk of chunks) {
-                    full += chunk.choices[0]?.delta?.content || "";
-                    aiB.innerText = full;
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-                chatHistory.push({ role: "assistant", content: full });
+                engine = new MLCEngine({
+                    appConfig,
+                    initProgressCallback: (p) => {
+                        $('load-bar').style.width = (p.progress * 100) + "%";
+                        $('load-text').innerText = Math.round(p.progress * 100) + "% Loaded";
+                    }
+                });
+                await engine.reload(MODEL_ID);
+                $('intro').remove();
+                $('user-input').classList.remove('hidden');
+                $('send-btn').classList.remove('hidden');
+                $('status').innerText = "Online";
             } catch (e) {
-                aiB.innerText = "[Resetting GPU Cache...]";
+                $('load-text').innerText = "GPU Memory Locked. Reload Tab.";
+            }
+        };
+
+        // UI Helpers
+        function bubble(role, text) {
+            const b = document.createElement('div');
+            b.className = `chat-bubble ${role}`;
+            b.innerText = text;
+            $('chat-container').appendChild(b);
+            $('chat-container').scrollTop = $('chat-container').scrollHeight;
+            return b;
+        }
+
+        async function updateMemory() {
+            const stats = await engine.runtimeStats();
+            const fill = Math.round((stats.kv_cache_fill_percent || 0) * 100);
+            $('mem-bar').style.width = fill + "%";
+            $('mem-text').innerText = `RAM: ${fill}%`;
+            $('mem-bar').className = `h-full transition-all ${fill > 80 ? 'bg-red-500' : 'bg-green-500'}`;
+        }
+
+        // Chat Logic
+        async function run() {
+            const val = $('user-input').value.trim();
+            if (!val || !engine) return;
+            $('user-input').value = "";
+
+            bubble('user', val);
+            const ai = bubble('ai', "...");
+            history.push({ role: "user", content: val });
+            if (history.length > 4) history.shift();
+
+            try {
+                let out = "";
+                const stream = await engine.chat.completions.create({ messages: history, stream: true, max_tokens: 150 });
+                for await (const chunk of stream) {
+                    out += chunk.choices[0]?.delta?.content || "";
+                    ai.innerText = out;
+                    $('chat-container').scrollTop = $('chat-container').scrollHeight;
+                    if (out.length % 5 === 0) updateMemory();
+                }
+                history.push({ role: "assistant", content: out });
+                db.logs.add({ role: 'ai', text: out });
+                updateMemory();
+            } catch (e) {
                 await engine.resetChat();
-                chatHistory = [];
+                history = [];
+                ai.innerText = "[Memory Reset]";
             }
         }
 
-        $('send-btn').onclick = send;
-        $('user-input').onkeypress = (e) => e.key === 'Enter' && send();
+        $('send-btn').onclick = run;
+        $('user-input').onkeypress = (e) => e.key === 'Enter' && run();
     </script>
 </body>
 </html>
