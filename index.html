@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Horde Shooter - Mobile</title>
+    <title>Horde Shooter Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; font-size: 30px; text-shadow: 2px 2px #000; pointer-events: none; }
-        #instructions { position: absolute; bottom: 20%; width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; font-size: 32px; font-weight: 900; pointer-events: none; -webkit-text-stroke: 1px black; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.7); color: white; display: none; flex-direction: column; }
         canvas { display: block; touch-action: none; }
+        button { padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 10px; border: none; background: #00ff88; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="ui">ARMY: <span id="count">1</span></div>
-    <div id="instructions">DRAG TO MOVE</div>
+    <div id="ui">UNITS: <span id="count">1</span></div>
+    <div id="overlay" id="gameOver">
+        <h1>GAME OVER</h1>
+        <button onclick="location.reload()">RETRY</button>
+    </div>
     
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -22,146 +26,183 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- ENGINE SETUP ---
+        // --- CONFIG & SCENE ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
+        scene.background = new THREE.Color(0x0a0a12);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // --- LIGHTING ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(5, 15, 10);
-        scene.add(ambient, sun);
-
-        // --- GAME STATE ---
-        let units = [];
-        let gates = [];
-        let enemies = [];
+        const ROAD_WIDTH = 10;
         let playerX = 0;
-        let isTouching = false;
+        let gameActive = true;
+        let frame = 0;
         let cameraShake = 0;
-        const ROAD_WIDTH = 8;
 
-        // --- MODELS ---
-        const unitGeo = new THREE.CapsuleGeometry(0.15, 0.3, 4, 8);
-        const allyMat = new THREE.MeshStandardMaterial({ color: 0x00aaff });
-        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+        // --- LIGHTS ---
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 15, 5);
+        scene.add(dirLight);
 
-        function createModel(isAlly) {
-            const mesh = new THREE.Mesh(unitGeo, isAlly ? allyMat : enemyMat);
-            mesh.position.y = 0.4;
-            return mesh;
+        // --- POOLS & GROUPS ---
+        const units = [];
+        const enemies = [];
+        const bullets = [];
+        const gates = [];
+        const obstacles = [];
+
+        // --- MODELS & ASSETS ---
+        const boxGeo = new THREE.CapsuleGeometry(0.2, 0.4, 4, 8);
+        const allyMat = new THREE.MeshStandardMaterial({ color: 0x00ccff });
+        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff4444 });
+        const bulletGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
+        // --- SPAWNERS ---
+        function createUnit(z, isAlly = true) {
+            const mesh = new THREE.Mesh(boxGeo, isAlly ? allyMat : enemyMat);
+            mesh.position.set(isAlly ? playerX : (Math.random()-0.5)*ROAD_WIDTH, 0.4, z);
+            scene.add(mesh);
+            if(isAlly) units.push(mesh); else enemies.push(mesh);
         }
 
-        function spawnAlly(z) {
-            const u = createModel(true);
-            u.position.set(playerX + (Math.random()-0.5)*2, 0.4, z || units[0]?.position.z || 0);
-            scene.add(u);
-            units.push(u);
-            document.getElementById('count').innerText = units.length;
+        function createBullet(pos) {
+            const b = new THREE.Mesh(bulletGeo, bulletMat);
+            b.position.copy(pos);
+            scene.add(b);
+            bullets.push(b);
         }
 
-        function spawnEnemyMob(z) {
-            for(let i=0; i<10; i++) {
-                const e = createModel(false);
-                e.position.set((Math.random()-0.5)*ROAD_WIDTH, 0.4, z);
-                scene.add(e);
-                enemies.push(e);
-            }
-        }
-
-        // --- THE ROAD ---
-        const floorGeo = new THREE.PlaneGeometry(ROAD_WIDTH, 2000);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
-
-        // --- GATES ---
         function createGate(z) {
-            const isMult = Math.random() > 0.5;
-            const val = isMult ? 2 : Math.floor(Math.random()*20)+5;
-            const gateG = new THREE.BoxGeometry(ROAD_WIDTH/2 - 0.5, 3, 0.2);
-            const gateM = new THREE.MeshStandardMaterial({ 
-                color: isMult ? 0x00ff88 : 0x0088ff, 
-                transparent: true, opacity: 0.6 
-            });
-            const gate = new THREE.Mesh(gateG, gateM);
-            gate.position.set(Math.random() > 0.5 ? 2 : -2, 1.5, z);
+            const isMult = Math.random() > 0.4;
+            const val = isMult ? 2 : Math.floor(Math.random()*15)+5;
+            const gGeo = new THREE.BoxGeometry(4.5, 3, 0.2);
+            const gMat = new THREE.MeshStandardMaterial({ color: isMult ? 0x00ffaa : 0x00aaff, transparent: true, opacity: 0.5 });
+            const gate = new THREE.Mesh(gGeo, gMat);
+            gate.position.set(Math.random() > 0.5 ? 2.5 : -2.5, 1.5, z);
             gate.userData = { val, isMult, active: true };
             scene.add(gate);
             gates.push(gate);
         }
 
-        // Initial Spawns
-        spawnAlly(0);
-        for(let i=1; i<20; i++) {
-            createGate(-i * 30);
-            if(i % 2 === 0) spawnEnemyMob(-i * 30 - 15);
+        function createSaw(z) {
+            const saw = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.2, 16), new THREE.MeshStandardMaterial({color: 0x777777}));
+            saw.rotation.x = Math.PI/2;
+            saw.position.set((Math.random()-0.5)*6, 0.2, z);
+            scene.add(saw);
+            obstacles.push(saw);
         }
 
-        // --- TOUCH/MOUSE CONTROLS ---
-        const handleMove = (x) => {
-            const normX = (x / window.innerWidth) - 0.5;
-            playerX = normX * ROAD_WIDTH * 1.5;
-            playerX = Math.max(-ROAD_WIDTH/2, Math.min(ROAD_WIDTH/2, playerX));
+        // --- INIT ---
+        createUnit(0);
+        for(let i=1; i<50; i++) {
+            const z = -i * 25;
+            if(i % 3 === 0) createGate(z);
+            else if(i % 5 === 0) createSaw(z);
+            else {
+                for(let j=0; j<8; j++) createUnit(z - (Math.random()*5), false);
+            }
+        }
+
+        // --- CONTROLS ---
+        const move = (clientX) => {
+            playerX = ((clientX / window.innerWidth) - 0.5) * ROAD_WIDTH * 1.5;
+            playerX = Math.max(-4.5, Math.min(4.5, playerX));
         };
+        window.addEventListener('mousemove', (e) => move(e.clientX));
+        window.addEventListener('touchmove', (e) => move(e.touches[0].clientX));
 
-        window.addEventListener('mousedown', () => isTouching = true);
-        window.addEventListener('mouseup', () => isTouching = false);
-        window.addEventListener('mousemove', (e) => handleMove(e.clientX));
-        window.addEventListener('touchstart', (e) => isTouching = true);
-        window.addEventListener('touchmove', (e) => handleMove(e.touches[0].clientX));
-
-        // --- GAME LOOP ---
+        // --- CORE LOOP ---
         function update() {
-            const speed = 0.25;
-            
-            // Move Allies
+            if(!gameActive) return;
+            frame++;
+            const speed = 0.3;
+
+            // Move & Group Units
             units.forEach((u, i) => {
                 u.position.z -= speed;
-                const targetX = playerX + (i % 5 - 2) * 0.4;
+                const targetX = playerX + (i % 6 - 3) * 0.4;
                 u.position.x += (targetX - u.position.x) * 0.1;
-                
-                // Combat Check
+
+                // Shoot
+                if(frame % 30 === 0 && enemies.length > 0) {
+                    createBullet(u.position);
+                }
+
+                // Obstacle Collision
+                obstacles.forEach(saw => {
+                    if(u.position.distanceTo(saw.position) < 1.2) {
+                        scene.remove(u);
+                        units.splice(i, 1);
+                    }
+                });
+            });
+
+            // Bullets logic
+            bullets.forEach((b, bi) => {
+                b.position.z -= 0.8;
+                if(b.position.z < units[0].position.z - 40) {
+                    scene.remove(b);
+                    bullets.splice(bi, 1);
+                }
                 enemies.forEach((en, ei) => {
-                    if(u.position.distanceTo(en.position) < 3) {
-                        // "Shoot" logic: enemies disappear when close
+                    if(b.position.distanceTo(en.position) < 0.8) {
                         scene.remove(en);
                         enemies.splice(ei, 1);
+                        scene.remove(b);
+                        bullets.splice(bi, 1);
                         cameraShake = 0.1;
                     }
                 });
             });
 
-            // Camera
-            camera.position.set(0, 10, units[0].position.z + 12);
-            camera.lookAt(0, 0, units[0].position.z - 5);
-            if(cameraShake > 0) {
-                camera.position.x += (Math.random()-0.5) * cameraShake;
-                cameraShake *= 0.9;
-            }
+            // Enemy Collision (Game Over check)
+            enemies.forEach((en, ei) => {
+                units.forEach((u, ui) => {
+                    if(u.position.distanceTo(en.position) < 0.5) {
+                        scene.remove(u);
+                        units.splice(ui, 1);
+                        scene.remove(en);
+                        enemies.splice(ei, 1);
+                    }
+                });
+            });
 
             // Gate Collision
             gates.forEach(g => {
-                if(g.userData.active && Math.abs(units[0].position.z - g.position.z) < 0.5) {
-                    if(Math.abs(playerX - g.position.x) < 2) {
-                        g.userData.active = false;
-                        g.visible = false;
-                        cameraShake = 0.4;
-                        const spawnCount = g.userData.isMult ? units.length : g.userData.val;
-                        for(let i=0; i<Math.min(spawnCount, 100); i++) spawnAlly();
+                if(g.userData.active && Math.abs(units[0]?.position.z - g.position.z) < 0.5) {
+                    if(Math.abs(playerX - g.position.x) < 2.5) {
+                        g.userData.active = false; g.visible = false;
+                        cameraShake = 0.5;
+                        const add = g.userData.isMult ? units.length : g.userData.val;
+                        for(let i=0; i<Math.min(add, 50); i++) createUnit(units[0].position.z);
                     }
                 }
             });
+
+            // Camera & UI
+            if(units.length === 0) {
+                gameActive = false;
+                document.getElementById('overlay').style.display = 'flex';
+            } else {
+                camera.position.set(0, 12, units[0].position.z + 15);
+                camera.lookAt(0, 0, units[0].position.z - 5);
+                if(cameraShake > 0) {
+                    camera.position.x += (Math.random()-0.5)*cameraShake;
+                    cameraShake *= 0.9;
+                }
+                document.getElementById('count').innerText = units.length;
+            }
+            
+            // Spin Saws
+            obstacles.forEach(s => s.rotation.z += 0.1);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            if(units.length > 0) update();
+            update();
             renderer.render(scene, camera);
         }
         animate();
