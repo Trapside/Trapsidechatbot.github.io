@@ -108,15 +108,16 @@
                 document.getElementById('setup-card').classList.add('hidden');
                 document.getElementById('input-ui').classList.remove('hidden');
 
-                // Initial system prompt and welcome message
+                // System prompt only (no welcome in context to save tokens)
                 chatHistory = [
-                    { role: "system", content: "You are a helpful, friendly, and concise AI assistant." }
+                    { role: "system", content: "You are a helpful, friendly, and concise AI assistant running completely locally on the user's device. No data leaves the phone." }
                 ];
+
+                // Welcome message (displayed but NOT added to history/context)
                 const welcome = "Hi! I'm running completely locally on your device — no data ever leaves your phone. Ask me anything!";
                 addMessage('ai', welcome);
-                chatHistory.push({ role: "assistant", content: welcome });
 
-                // Enable input and focus
+                // Enable input
                 input.focus();
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -142,15 +143,21 @@
             addMessage('user', val);
             input.value = '';
 
+            // Add user message to history
+            chatHistory.push({ role: "user", content: val });
+
+            // Trim old context aggressively to stay well within limits of a tiny model
+            // Keep system prompt + maximum ~5-6 recent turns
+            while (chatHistory.length > 13) {
+                chatHistory.splice(1, 1); // remove oldest non-system message
+            }
+
             // Loading indicator
             const loadingBubble = document.createElement('div');
             loadingBubble.className = "bubble ai flex items-center gap-3";
             loadingBubble.innerHTML = `<div class="loading-ring"></div><span>Thinking...</span>`;
             chat.appendChild(loadingBubble);
             chat.scrollTop = chat.scrollHeight;
-
-            // Add user message to history
-            chatHistory.push({ role: "user", content: val });
 
             let fullResponse = "";
 
@@ -159,7 +166,8 @@
                     messages: chatHistory,
                     stream: true,
                     temperature: 0.7,
-                    top_p: 0.95
+                    top_p: 0.95,
+                    max_tokens: 512
                 });
 
                 // Remove loading and create response bubble
@@ -177,18 +185,17 @@
                     chat.scrollTop = chat.scrollHeight;
                 }
 
-                // Save assistant response
-                chatHistory.push({ role: "assistant", content: fullResponse });
-
-                // Simple context management to avoid overflow (keeps system + recent messages)
-                if (chatHistory.length > 30) {
-                    chatHistory = [chatHistory[0], ...chatHistory.slice(-28)];
+                // Only add non-empty assistant responses to history
+                if (fullResponse.trim()) {
+                    chatHistory.push({ role: "assistant", content: fullResponse });
                 }
 
             } catch (e) {
                 console.error(e);
-                chat.removeChild(loadingBubble);
-                addMessage('ai', "Sorry, an error occurred. Try again.");
+                if (document.body.contains(loadingBubble)) {
+                    chat.removeChild(loadingBubble);
+                }
+                addMessage('ai', "Sorry, something went wrong. Try again.");
             } finally {
                 generating = false;
                 input.disabled = false;
