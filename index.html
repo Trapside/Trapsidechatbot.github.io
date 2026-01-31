@@ -10,10 +10,12 @@
     <style>
         body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.1); }
-        #chat-container { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; display: flex; flex-direction: column; gap: 10px; }
+        #chat-container { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 120px; display: flex; flex-direction: column; gap: 10px; }
         .chat-bubble { max-width: 85%; border-radius: 18px; padding: 10px 14px; font-size: 15px; line-height: 1.4; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: black; align-self: flex-start; border-bottom-left-radius: 4px; }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .error-pulse { animation: pulse-red 2s infinite; }
     </style>
 </head>
 <body>
@@ -21,31 +23,45 @@
     <nav class="glass sticky top-0 z-50 px-4 py-3 pt-12 flex justify-between items-center">
         <div>
             <h1 class="text-lg font-bold">Private AI</h1>
-            <div id="status" class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Checking Hardware...</div>
+            <div id="status" class="text-[9px] font-mono text-gray-400 uppercase tracking-widest">Hardware Ready</div>
         </div>
         <div class="text-right">
-            <div id="mem-text" class="text-[10px] text-gray-400 font-mono">RAM: 0%</div>
+            <span id="mem-percent" class="text-[9px] font-mono text-gray-500">GPU: 0%</span>
             <div class="w-16 bg-gray-200 h-1 rounded-full overflow-hidden mt-1">
-                <div id="mem-bar" class="bg-green-500 h-full w-0 transition-all"></div>
+                <div id="mem-bar" class="h-full w-0 transition-all bg-green-500"></div>
             </div>
         </div>
     </nav>
 
     <div id="chat-container">
         <div id="intro" class="m-auto text-center space-y-4 p-6">
-            <div class="text-4xl">⚡</div>
-            <p class="text-xs text-gray-500">Local SmolLM-135M (~360MB). Offline & Private.</p>
-            <button id="init-btn" class="bg-black text-white px-8 py-3 rounded-xl font-bold active:scale-95 transition-all">Initialize Engine</button>
-            <div id="progress-container" class="hidden space-y-2">
+            <div class="text-4xl">💎</div>
+            <h2 class="text-xl font-black">Private AI</h2>
+            <p class="text-xs text-gray-500">SmolLM2 (135M) • Offline • Optimized</p>
+            <button id="init-btn" class="bg-black text-white px-10 py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Initialize Engine</button>
+            
+            <div id="loader" class="hidden space-y-2">
                 <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden"><div id="load-bar" class="bg-blue-600 h-full w-0 transition-all"></div></div>
-                <p id="load-text" class="text-[10px] text-blue-600 font-mono">Starting...</p>
+                <p id="load-text" class="text-[10px] text-blue-600 font-mono">Preparing GPU...</p>
+            </div>
+
+            <div id="reset-zone" class="hidden pt-4 border-t border-gray-200">
+                <p class="text-[10px] text-red-500 font-bold mb-2 uppercase tracking-tighter error-pulse">GPU Memory Locked</p>
+                <button id="hard-reset-btn" class="bg-red-50 text-red-600 border border-red-200 px-6 py-2 rounded-xl text-xs font-black shadow-sm active:bg-red-600 active:text-white transition-all">
+                    FORCE HARD RESET
+                </button>
+                <p class="text-[9px] text-gray-400 mt-2 px-6 italic">Clears cache & resets hardware connection.</p>
             </div>
         </div>
     </div>
 
-    <div class="glass fixed bottom-0 w-full p-4 pb-8 flex gap-2">
-        <input id="user-input" type="text" placeholder="Type message..." class="hidden flex-1 bg-gray-100 rounded-full px-4 py-2 outline-none">
-        <button id="send-btn" class="hidden bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
+    <div class="glass fixed bottom-0 w-full p-4 pb-10">
+        <div id="input-ui" class="hidden flex gap-2 max-w-xl mx-auto">
+            <input id="user-input" type="text" placeholder="Message" class="flex-1 bg-gray-100 rounded-full px-5 py-3 outline-none">
+            <button id="send-btn" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center active:scale-90 shadow-md">
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+        </div>
     </div>
 
     <script type="module">
@@ -61,28 +77,40 @@
         };
 
         const $ = id => document.getElementById(id);
-        const db = new Dexie("ChatDB");
-        db.version(1).stores({ logs: "++id, role, text" });
+        const db = new Dexie("ChatMemory");
+        db.version(1).stores({ logs: "++id, role, text, timestamp" });
 
-        let engine, history = [];
+        let engine = null, history = [];
 
-        // Check Hardware
-        window.onload = () => {
-            if (!navigator.gpu) {
-                $('status').innerText = "Incompatible Device";
-                $('init-btn').disabled = true;
-                $('init-btn').className = "bg-gray-300 text-white px-8 py-3 rounded-xl";
-            } else {
-                $('status').innerText = "Hardware Ready";
+        // --- HARD RESET LOGIC ---
+        $('hard-reset-btn').onclick = async () => {
+            if (!confirm("This will clear the 360MB model and restart. Continue?")) return;
+            
+            // 1. Unregister Service Workers
+            if (navigator.serviceWorker) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let r of registrations) await r.unregister();
             }
+            // 2. Clear Caches
+            if (window.caches) {
+                const keys = await caches.keys();
+                for (let k of keys) await caches.delete(k);
+            }
+            // 3. Delete Database
+            await db.delete();
+            
+            // 4. Force Reload
+            location.reload(true);
         };
 
-        // Initialize Engine
+        // --- INIT ENGINE ---
         $('init-btn').onclick = async () => {
-            $('init-btn').remove();
-            $('progress-container').classList.remove('hidden');
+            $('init-btn').classList.add('hidden');
+            $('loader').classList.remove('hidden');
 
             try {
+                if (!navigator.gpu) throw new Error("WebGPU Missing");
+
                 engine = new MLCEngine({
                     appConfig,
                     initProgressCallback: (p) => {
@@ -90,61 +118,48 @@
                         $('load-text').innerText = Math.round(p.progress * 100) + "% Loaded";
                     }
                 });
+
                 await engine.reload(MODEL_ID);
                 $('intro').remove();
-                $('user-input').classList.remove('hidden');
-                $('send-btn').classList.remove('hidden');
+                $('input-ui').classList.remove('hidden');
                 $('status').innerText = "Online";
             } catch (e) {
-                $('load-text').innerText = "GPU Memory Locked. Reload Tab.";
+                console.error(e);
+                $('load-text').innerText = "FATAL: GPU LOCK";
+                $('load-text').classList.add('text-red-600');
+                $('reset-zone').classList.remove('hidden');
             }
         };
 
-        // UI Helpers
-        function bubble(role, text) {
-            const b = document.createElement('div');
-            b.className = `chat-bubble ${role}`;
-            b.innerText = text;
-            $('chat-container').appendChild(b);
-            $('chat-container').scrollTop = $('chat-container').scrollHeight;
-            return b;
-        }
-
-        async function updateMemory() {
-            const stats = await engine.runtimeStats();
-            const fill = Math.round((stats.kv_cache_fill_percent || 0) * 100);
-            $('mem-bar').style.width = fill + "%";
-            $('mem-text').innerText = `RAM: ${fill}%`;
-            $('mem-bar').className = `h-full transition-all ${fill > 80 ? 'bg-red-500' : 'bg-green-500'}`;
-        }
-
-        // Chat Logic
         async function run() {
             const val = $('user-input').value.trim();
             if (!val || !engine) return;
             $('user-input').value = "";
+            
+            const uB = document.createElement('div');
+            uB.className = 'chat-bubble user'; uB.innerText = val;
+            $('chat-container').appendChild(uB);
+            
+            const aiB = document.createElement('div');
+            aiB.className = 'chat-bubble ai'; aiB.innerText = "...";
+            $('chat-container').appendChild(aiB);
+            $('chat-container').scrollTop = $('chat-container').scrollHeight;
 
-            bubble('user', val);
-            const ai = bubble('ai', "...");
             history.push({ role: "user", content: val });
             if (history.length > 4) history.shift();
 
             try {
-                let out = "";
+                let full = "";
                 const stream = await engine.chat.completions.create({ messages: history, stream: true, max_tokens: 150 });
                 for await (const chunk of stream) {
-                    out += chunk.choices[0]?.delta?.content || "";
-                    ai.innerText = out;
+                    full += chunk.choices[0]?.delta?.content || "";
+                    aiB.innerText = full;
                     $('chat-container').scrollTop = $('chat-container').scrollHeight;
-                    if (out.length % 5 === 0) updateMemory();
                 }
-                history.push({ role: "assistant", content: out });
-                db.logs.add({ role: 'ai', text: out });
-                updateMemory();
+                history.push({ role: "assistant", content: full });
             } catch (e) {
-                await engine.resetChat();
-                history = [];
-                ai.innerText = "[Memory Reset]";
+                aiB.innerText = "[Memory Locked. Please Refresh]";
+                $('status').innerText = "Memory Locked";
             }
         }
 
