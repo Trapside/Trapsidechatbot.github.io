@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ultra-Lite 135M AI</title>
+    <title>SmolLM2-135M Stable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; }
+        body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        #chat-content { height: 75vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .bubble { padding: 10px 16px; border-radius: 20px; font-size: 14px; max-width: 85%; line-height: 1.4; }
+        #chat-content { height: 72vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 14px; max-width: 85%; word-wrap: break-word; line-height: 1.4; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #ffffff; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e5e5ea; }
+        .status-pill { font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
         #msg-input:focus { outline: none; }
     </style>
 </head>
@@ -19,131 +20,147 @@
 
     <nav class="glass sticky top-0 z-50 p-4 border-b border-gray-200 flex justify-between items-center">
         <div>
-            <h1 class="font-bold text-lg">SmolLM2-135M</h1>
-            <div class="flex items-center gap-1">
-                <div id="dot" class="w-2 h-2 rounded-full bg-red-500"></div>
-                <span id="status" class="text-[9px] text-gray-400 uppercase font-black">Disconnected</span>
+            <h1 class="font-bold text-lg">Smol AI (135M)</h1>
+            <div class="flex items-center gap-2">
+                <span id="dot" class="w-2 h-2 rounded-full bg-red-500"></span>
+                <span id="status-text" class="status-pill bg-gray-100 text-gray-500">Engine Offline</span>
             </div>
         </div>
-        <button onclick="location.reload()" class="text-blue-600 text-xs font-bold">Reset</button>
+        <button id="clear-btn" class="text-blue-600 text-xs font-bold">New Chat</button>
     </nav>
 
     <div id="chat-content">
-        <div id="setup" class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center my-auto mx-4">
-            <h2 class="text-xl font-bold mb-2">Featherweight AI</h2>
-            <p class="text-gray-500 text-xs mb-6">Downloading ~130MB. Perfect for low-RAM phones.</p>
-            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">
-                Start 135M Engine
+        <div id="setup-card" class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center my-auto mx-4 transition-all">
+            <h2 class="text-xl font-bold mb-2">135M Lightweight</h2>
+            <p class="text-gray-500 text-sm mb-6">Tiny model (~130MB). Fast, private, and runs on almost any device.</p>
+            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-lg">
+                Start Engine
             </button>
-            <div id="progress-area" class="hidden mt-6">
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                    <div id="bar" class="bg-blue-600 h-1.5 rounded-full w-0 transition-all"></div>
+            <div id="progress-area" class="hidden mt-6 text-center">
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                    <div id="bar" class="bg-blue-600 h-2 rounded-full w-0 transition-all duration-300"></div>
                 </div>
-                <p id="percent" class="text-[10px] text-gray-400 font-mono text-center">Initialising...</p>
+                <p id="percent" class="text-[10px] text-gray-400 font-mono italic">Waiting for GPU...</p>
             </div>
         </div>
     </div>
 
     <div class="fixed bottom-0 w-full p-4 glass border-t border-gray-200">
-        <div id="ui" class="hidden flex gap-2 max-w-2xl mx-auto">
-            <input id="input" type="text" placeholder="Ask tiny AI..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 text-sm">
-            <button id="send" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">↑</button>
+        <div id="input-ui" class="hidden flex gap-2 max-w-2xl mx-auto">
+            <input id="msg-input" type="text" placeholder="Ask tiny AI..." 
+                   class="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-blue-500 shadow-sm">
+            <button id="send-btn" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+            </button>
         </div>
     </div>
 
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
-        // THE 135M MODEL ID
+        // THE 135M MODEL RECORD
         const MODEL_ID = "SmolLM2-135M-Instruct-q4f16_1-MLC";
-        
         let engine;
-        let history = [{ role: "system", content: "You are a tiny, concise AI." }];
+        let chatHistory = [{ role: "system", content: "You are a very brief and helpful AI." }];
 
         const dom = {
-            btn: document.getElementById('load-btn'),
+            loadBtn: document.getElementById('load-btn'),
             bar: document.getElementById('bar'),
-            pct: document.getElementById('percent'),
-            status: document.getElementById('status'),
+            percent: document.getElementById('percent'),
+            status: document.getElementById('status-text'),
             dot: document.getElementById('dot'),
             chat: document.getElementById('chat-content'),
-            input: document.getElementById('input'),
-            ui: document.getElementById('ui'),
-            setup: document.getElementById('setup')
+            input: document.getElementById('msg-input'),
+            inputUI: document.getElementById('input-ui'),
+            setup: document.getElementById('setup-card'),
+            send: document.getElementById('send-btn'),
+            clear: document.getElementById('clear-btn')
         };
 
         async function init() {
-            dom.btn.disabled = true;
+            dom.loadBtn.disabled = true;
             document.getElementById('progress-area').classList.remove('hidden');
-            
+            dom.percent.innerText = "Initialising WebGPU...";
+
+            // FORCE WAIT: Give browser time to release previous GPU context
+            await new Promise(r => setTimeout(r, 800));
+
             try {
-                // Optimized for 135M: Very small context window to save VRAM
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (p) => {
                         dom.bar.style.width = (p.progress * 100) + "%";
-                        dom.pct.innerText = p.text;
+                        dom.percent.innerText = p.text;
                     }
                 });
-                
+
                 dom.dot.classList.replace('bg-red-500', 'bg-green-500');
-                dom.status.innerText = "135M Online";
+                dom.status.innerText = "135M Ready";
+                dom.status.className = "status-pill bg-green-100 text-green-600";
                 dom.setup.classList.add('hidden');
-                dom.ui.classList.remove('hidden');
-            } catch (e) {
-                dom.pct.innerText = "WebGPU not supported on this browser.";
+                dom.inputUI.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                dom.percent.innerText = "Error: Retrying in 2 seconds...";
+                setTimeout(init, 2000); // Auto-retry if handshake fails
             }
         }
 
-        async function talk() {
+        async function send() {
             const val = dom.input.value.trim();
             if (!val || !engine) return;
 
+            appendBubble(val, 'user');
             dom.input.value = "";
-            addBubble(val, 'user');
-            history.push({ role: "user", content: val });
+            chatHistory.push({ role: "user", content: val });
 
-            const aiBox = addBubble("...", 'ai');
+            const aiBubble = appendBubble("Thinking...", 'ai');
 
             try {
-                // Aggressive memory cleaning for 135M
-                if (history.length > 4) {
+                // STABILITY: 135M is tiny, clear cache every 4 messages
+                if (chatHistory.length > 5) {
                     await engine.resetChat();
-                    history = [history[0], { role: "user", content: val }];
+                    chatHistory = [chatHistory[0], { role: "user", content: val }];
                 }
 
-                let response = "";
+                let fullText = "";
                 const stream = await engine.chat.completions.create({
-                    messages: history,
+                    messages: chatHistory,
                     stream: true,
-                    max_tokens: 150
+                    max_tokens: 200
                 });
 
+                aiBubble.innerText = "";
                 for await (const chunk of stream) {
-                    response += chunk.choices[0]?.delta?.content || "";
-                    aiBox.innerText = response;
+                    fullText += chunk.choices[0]?.delta?.content || "";
+                    aiBubble.innerText = fullText;
                     dom.chat.scrollTop = dom.chat.scrollHeight;
                 }
-                history.push({ role: "assistant", content: response });
+                chatHistory.push({ role: "assistant", content: fullText });
 
             } catch (err) {
                 await engine.resetChat();
-                aiBox.innerText = "Memory reset. Can you repeat that?";
-                history = [history[0]];
+                aiBubble.innerText = "⚠️ Context limit reached. Memory cleared. Let's try again!";
+                chatHistory = [chatHistory[0]];
             }
         }
 
-        function addBubble(txt, side) {
-            const d = document.createElement('div');
-            d.className = `bubble ${side}`;
-            d.innerText = txt;
-            dom.chat.appendChild(d);
+        function appendBubble(text, side) {
+            const b = document.createElement('div');
+            b.className = `bubble ${side}`;
+            b.innerText = text;
+            dom.chat.appendChild(b);
             dom.chat.scrollTop = dom.chat.scrollHeight;
-            return d;
+            return b;
         }
 
-        dom.btn.onclick = init;
-        document.getElementById('send').onclick = talk;
-        dom.input.onkeypress = (e) => e.key === 'Enter' && talk();
+        dom.loadBtn.onclick = init;
+        dom.send.onclick = send;
+        dom.input.onkeypress = (e) => e.key === 'Enter' && send();
+        dom.clear.onclick = async () => {
+            if(engine) await engine.resetChat();
+            chatHistory = [chatHistory[0]];
+            dom.chat.innerHTML = `<p class="text-[10px] text-center text-gray-400 py-4 uppercase font-bold tracking-widest">Memory Purged</p>`;
+        };
     </script>
 </body>
 </html>
