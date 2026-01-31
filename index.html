@@ -3,56 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lite AI - 100% Stable</title>
+    <title>SmolLM2 Local AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f2f2f7; font-family: -apple-system, system-ui, sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        #chat-content { height: 72vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; word-wrap: break-word; position: relative; }
+        #chat-content { height: 75vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; line-height: 1.5; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #ddd; }
-        .system-msg { font-size: 10px; color: #8e8e93; text-align: center; margin: 8px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ai { background: #ffffff; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e5e5ea; }
+        .sys-info { font-size: 10px; color: #a1a1a6; text-align: center; margin-top: 5px; font-weight: 600; }
         #msg-input:focus { outline: none; }
-        .loading { display: inline-block; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
 
     <nav class="glass sticky top-0 z-50 p-4 border-b border-gray-200 flex justify-between items-center">
         <div>
-            <h1 class="font-bold text-lg text-gray-800">Private AI</h1>
+            <h1 class="font-bold text-lg text-gray-800">SmolLM2</h1>
             <div class="flex items-center gap-1.5">
                 <div id="dot" class="w-2 h-2 rounded-full bg-red-500"></div>
-                <span id="status-text" class="text-[10px] text-gray-500 uppercase font-bold">Engine Offline</span>
+                <span id="status-text" class="text-[10px] text-gray-500 uppercase font-bold">Offline</span>
             </div>
         </div>
-        <button id="reset-btn" class="text-blue-600 text-sm font-semibold active:opacity-50">Clear Chat</button>
+        <button id="reset-btn" class="text-blue-600 text-sm font-semibold">Refresh Memory</button>
     </nav>
 
     <div id="chat-content">
         <div id="setup-card" class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center my-auto mx-4">
-            <div class="mb-4 text-4xl">🤖</div>
-            <h2 class="text-xl font-bold mb-2">Initialize Engine</h2>
-            <p class="text-gray-500 text-sm mb-6">Runs locally on your GPU. Private & Offline.</p>
-            <button id="load-btn" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-blue-200">
-                Load AI (~400MB)
+            <h2 class="text-xl font-bold mb-2">SmolLM2-360M</h2>
+            <p class="text-gray-500 text-sm mb-6">Ultra-lightweight AI optimized for mobile browsers.</p>
+            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">
+                Initialise WebGPU
             </button>
             <div id="progress-container" class="hidden mt-6">
-                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
-                    <div id="bar" class="bg-blue-600 h-2 rounded-full w-0 transition-all duration-300"></div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                    <div id="bar" class="bg-blue-600 h-1.5 rounded-full w-0 transition-all"></div>
                 </div>
-                <p id="percent" class="text-[10px] text-gray-400 font-mono italic">Waiting for WebGPU...</p>
+                <p id="percent" class="text-[10px] text-gray-400 font-mono">Loading Shards...</p>
             </div>
         </div>
     </div>
 
     <div class="fixed bottom-0 w-full p-4 glass border-t border-gray-200">
         <div id="input-ui" class="hidden flex gap-2 max-w-2xl mx-auto">
-            <input id="msg-input" type="text" placeholder="Ask a question..." 
-                   class="flex-1 bg-white border border-gray-300 rounded-2xl px-4 py-3 shadow-sm transition-all focus:border-blue-500">
-            <button id="send-btn" class="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-md">
+            <input id="msg-input" type="text" placeholder="Ask SmolLM2..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3">
+            <button id="send-btn" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
         </div>
@@ -61,10 +57,11 @@
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
+        // Current Smallest Stable Model
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
-        let engine = null;
-        let chatHistory = [{ role: "system", content: "You are a concise assistant." }];
-        let messageCount = 0;
+        
+        let engine;
+        let history = [{ role: "system", content: "You are SmolLM2, a tiny but smart AI. Be concise." }];
 
         const dom = {
             loadBtn: document.getElementById('load-btn'),
@@ -81,101 +78,86 @@
         };
 
         async function init() {
-            document.getElementById('progress-container').classList.remove('hidden');
             dom.loadBtn.disabled = true;
-            dom.loadBtn.innerText = "Downloading...";
-
+            document.getElementById('progress-container').classList.remove('hidden');
+            
             try {
+                // Optimized configuration for 360M model
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (p) => {
                         dom.bar.style.width = (p.progress * 100) + "%";
-                        dom.percent.innerText = p.text.split('] ')[1] || p.text;
+                        dom.percent.innerText = Math.floor(p.progress * 100) + "% Loaded";
                     }
                 });
                 
                 dom.dot.classList.replace('bg-red-500', 'bg-green-500');
-                dom.status.innerText = "Engine Ready";
+                dom.status.innerText = "SmolLM2 Ready";
                 dom.setup.classList.add('hidden');
                 dom.inputUI.classList.remove('hidden');
             } catch (e) {
-                dom.percent.innerText = "Error: WebGPU not available.";
-                console.error(e);
+                alert("WebGPU failed. Use Chrome/Edge on Desktop or recent iOS/Android.");
             }
         }
 
-        async function handleSend() {
-            const val = dom.input.value.trim();
-            if (!val || !engine) return;
+        async function sendMessage() {
+            const text = dom.input.value.trim();
+            if (!text || !engine) return;
 
-            messageCount++;
             dom.input.value = "";
-            appendBubble(val, 'user');
-            chatHistory.push({ role: "user", content: val });
+            appendBubble(text, 'user');
+            history.push({ role: "user", content: text });
 
-            const aiBubble = appendBubble("Thinking...", 'ai');
-            aiBubble.classList.add('loading');
+            const aiBox = appendBubble("...", 'ai');
 
             try {
-                // STABILITY ENGINE: Every 3 user messages, purge engine memory
-                if (messageCount % 3 === 0) {
+                // 100% Stability Logic: Clear cache if history is deep
+                if (history.length > 5) {
                     await engine.resetChat(); 
-                    // Keep only the current turn to ensure 100% success rate
-                    chatHistory = [chatHistory[0], { role: "user", content: val }];
-                    addSystemMsg("Memory Optimized");
+                    // Keep System Prompt + Current Question for maximum stability
+                    history = [history[0], { role: "user", content: text }];
+                    console.log("KV Cache Flushed for Stability");
                 }
 
-                let fullText = "";
-                const stream = await engine.chat.completions.create({
-                    messages: chatHistory,
+                let response = "";
+                const chunks = await engine.chat.completions.create({
+                    messages: history,
                     stream: true,
-                    max_tokens: 300 // Prevent context overflow crashes
+                    max_tokens: 250,
+                    temperature: 0.6
                 });
 
-                aiBubble.innerText = "";
-                aiBubble.classList.remove('loading');
-
-                for await (const chunk of stream) {
-                    fullText += chunk.choices[0]?.delta?.content || "";
-                    aiBubble.innerText = fullText;
+                for await (const chunk of chunks) {
+                    response += chunk.choices[0]?.delta?.content || "";
+                    aiBox.innerText = response;
                     dom.chat.scrollTop = dom.chat.scrollHeight;
                 }
 
-                chatHistory.push({ role: "assistant", content: fullText });
+                history.push({ role: "assistant", content: response });
 
             } catch (err) {
-                console.warn("Recovering from engine error...", err);
+                console.error("Engine crash prevented:", err);
                 await engine.resetChat();
-                aiBubble.innerText = "⚠️ Context limit reached. I've refreshed my memory. Please try asking that again!";
-                chatHistory = [chatHistory[0]];
-                messageCount = 0;
+                aiBox.innerText = "Memory full. I have cleared my context. Let's start fresh!";
+                history = [history[0]];
             }
         }
 
         function appendBubble(text, side) {
-            const b = document.createElement('div');
-            b.className = `bubble ${side}`;
-            b.innerText = text;
-            dom.chat.appendChild(b);
+            const div = document.createElement('div');
+            div.className = `bubble ${side}`;
+            div.innerText = text;
+            dom.chat.appendChild(div);
             dom.chat.scrollTop = dom.chat.scrollHeight;
-            return b;
-        }
-
-        function addSystemMsg(text) {
-            const s = document.createElement('div');
-            s.className = "system-msg";
-            s.innerText = `— ${text} —`;
-            dom.chat.appendChild(s);
+            return div;
         }
 
         dom.loadBtn.onclick = init;
-        dom.send.onclick = handleSend;
-        dom.input.onkeypress = (e) => e.key === 'Enter' && handleSend();
+        dom.send.onclick = sendMessage;
+        dom.input.onkeypress = (e) => e.key === 'Enter' && sendMessage();
         dom.reset.onclick = async () => {
             if(engine) await engine.resetChat();
-            chatHistory = [chatHistory[0]];
-            dom.chat.innerHTML = "";
-            messageCount = 0;
-            addSystemMsg("Conversation Reset");
+            history = [history[0]];
+            dom.chat.innerHTML = `<div class="sys-info">Memory Purged</div>`;
         };
     </script>
 </body>
