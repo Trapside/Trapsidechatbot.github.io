@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplier Horde Runner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Horde Shooter - Mobile</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
-        #ui { position: absolute; top: 20px; left: 20px; color: white; font-size: 24px; font-weight: bold; pointer-events: none; }
-        canvas { display: block; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; font-size: 30px; text-shadow: 2px 2px #000; pointer-events: none; }
+        #instructions { position: absolute; bottom: 20%; width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; }
+        canvas { display: block; touch-action: none; }
     </style>
 </head>
 <body>
-    <div id="ui">Units: <span id="count">1</span></div>
+    <div id="ui">ARMY: <span id="count">1</span></div>
+    <div id="instructions">DRAG TO MOVE</div>
     
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -20,126 +22,150 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- SETUP ---
+        // --- ENGINE SETUP ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x222222);
+        scene.background = new THREE.Color(0x1a1a2e);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         // --- LIGHTING ---
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 10, 7.5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 15, 10);
+        scene.add(ambient, sun);
 
-        // --- GAME VARIABLES ---
+        // --- GAME STATE ---
         let units = [];
         let gates = [];
-        const ROAD_WIDTH = 10;
+        let enemies = [];
         let playerX = 0;
-        let score = 1;
+        let isTouching = false;
         let cameraShake = 0;
+        const ROAD_WIDTH = 8;
 
-        // --- PROCEDURAL MODEL GENERATOR ---
-        function createUnitModel(color) {
-            const group = new THREE.Group();
-            const body = new THREE.Mesh(
-                new THREE.CapsuleGeometry(0.2, 0.4, 4, 8),
-                new THREE.MeshStandardMaterial({ color: color })
-            );
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.15, 8, 8),
-                new THREE.MeshStandardMaterial({ color: 0xffdbac })
-            );
-            head.position.y = 0.4;
-            group.add(body, head);
-            return group;
+        // --- MODELS ---
+        const unitGeo = new THREE.CapsuleGeometry(0.15, 0.3, 4, 8);
+        const allyMat = new THREE.MeshStandardMaterial({ color: 0x00aaff });
+        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+
+        function createModel(isAlly) {
+            const mesh = new THREE.Mesh(unitGeo, isAlly ? allyMat : enemyMat);
+            mesh.position.y = 0.4;
+            return mesh;
         }
 
-        // --- SPAWN INITIAL PLAYER ---
-        function spawnUnit() {
-            const unit = createUnitModel(0x0077ff);
-            unit.position.set(playerX + (Math.random() - 0.5), 0.5, 0);
-            scene.add(unit);
-            units.push(unit);
+        function spawnAlly(z) {
+            const u = createModel(true);
+            u.position.set(playerX + (Math.random()-0.5)*2, 0.4, z || units[0]?.position.z || 0);
+            scene.add(u);
+            units.push(u);
+            document.getElementById('count').innerText = units.length;
         }
-        spawnUnit();
 
-        // --- ROAD & GATES ---
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(ROAD_WIDTH, 1000),
-            new THREE.MeshStandardMaterial({ color: 0x444444 })
-        );
+        function spawnEnemyMob(z) {
+            for(let i=0; i<10; i++) {
+                const e = createModel(false);
+                e.position.set((Math.random()-0.5)*ROAD_WIDTH, 0.4, z);
+                scene.add(e);
+                enemies.push(e);
+            }
+        }
+
+        // --- THE ROAD ---
+        const floorGeo = new THREE.PlaneGeometry(ROAD_WIDTH, 2000);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        function spawnGate(zPos) {
-            const isMultiplier = Math.random() > 0.5;
-            const value = isMultiplier ? 2 : 10;
-            
-            const gateGeo = new THREE.BoxGeometry(ROAD_WIDTH/2, 3, 0.5);
-            const gateMat = new THREE.MeshStandardMaterial({ color: 0x0055ff, transparent: true, opacity: 0.7 });
-            const gate = new THREE.Mesh(gateGeo, gateMat);
-            
-            gate.position.set(Math.random() > 0.5 ? 2.5 : -2.5, 1.5, zPos);
-            gate.userData = { value: value, isMultiplier: isMultiplier, active: true };
-            
+        // --- GATES ---
+        function createGate(z) {
+            const isMult = Math.random() > 0.5;
+            const val = isMult ? 2 : Math.floor(Math.random()*20)+5;
+            const gateG = new THREE.BoxGeometry(ROAD_WIDTH/2 - 0.5, 3, 0.2);
+            const gateM = new THREE.MeshStandardMaterial({ 
+                color: isMult ? 0x00ff88 : 0x0088ff, 
+                transparent: true, opacity: 0.6 
+            });
+            const gate = new THREE.Mesh(gateG, gateM);
+            gate.position.set(Math.random() > 0.5 ? 2 : -2, 1.5, z);
+            gate.userData = { val, isMult, active: true };
             scene.add(gate);
             gates.push(gate);
         }
 
-        for(let i = 1; i < 10; i++) spawnGate(-i * 40);
+        // Initial Spawns
+        spawnAlly(0);
+        for(let i=1; i<20; i++) {
+            createGate(-i * 30);
+            if(i % 2 === 0) spawnEnemyMob(-i * 30 - 15);
+        }
 
-        // --- INPUT ---
-        window.addEventListener('mousemove', (e) => {
-            playerX = ((e.clientX / window.innerWidth) - 0.5) * ROAD_WIDTH;
-        });
+        // --- TOUCH/MOUSE CONTROLS ---
+        const handleMove = (x) => {
+            const normX = (x / window.innerWidth) - 0.5;
+            playerX = normX * ROAD_WIDTH * 1.5;
+            playerX = Math.max(-ROAD_WIDTH/2, Math.min(ROAD_WIDTH/2, playerX));
+        };
 
-        // --- GAME LOOP (PERFORMANCE & JUICE) ---
-        function animate() {
-            requestAnimationFrame(animate);
+        window.addEventListener('mousedown', () => isTouching = true);
+        window.addEventListener('mouseup', () => isTouching = false);
+        window.addEventListener('mousemove', (e) => handleMove(e.clientX));
+        window.addEventListener('touchstart', (e) => isTouching = true);
+        window.addEventListener('touchmove', (e) => handleMove(e.touches[0].clientX));
 
-            // Forward Movement
-            units.forEach(u => {
-                u.position.z -= 0.2;
-                // Soft follow logic
-                u.position.x += (playerX - u.position.x) * 0.05;
+        // --- GAME LOOP ---
+        function update() {
+            const speed = 0.25;
+            
+            // Move Allies
+            units.forEach((u, i) => {
+                u.position.z -= speed;
+                const targetX = playerX + (i % 5 - 2) * 0.4;
+                u.position.x += (targetX - u.position.x) * 0.1;
+                
+                // Combat Check
+                enemies.forEach((en, ei) => {
+                    if(u.position.distanceTo(en.position) < 3) {
+                        // "Shoot" logic: enemies disappear when close
+                        scene.remove(en);
+                        enemies.splice(ei, 1);
+                        cameraShake = 0.1;
+                    }
+                });
             });
 
-            // Camera Follow + Shake
-            camera.position.set(0, 8, units[0].position.z + 12);
+            // Camera
+            camera.position.set(0, 10, units[0].position.z + 12);
             camera.lookAt(0, 0, units[0].position.z - 5);
-            
-            if (cameraShake > 0) {
-                camera.position.x += (Math.random() - 0.5) * cameraShake;
+            if(cameraShake > 0) {
+                camera.position.x += (Math.random()-0.5) * cameraShake;
                 cameraShake *= 0.9;
             }
 
-            // Collision Logic
-            gates.forEach(gate => {
-                if (gate.userData.active && Math.abs(units[0].position.z - gate.position.z) < 1) {
-                    if (Math.abs(playerX - gate.position.x) < 2.5) {
-                        gate.userData.active = false;
-                        gate.visible = false;
-                        cameraShake = 0.5; // JUICE: Screen Shake
-                        
-                        const amount = gate.userData.isMultiplier ? units.length : gate.userData.value;
-                        for(let i = 0; i < amount; i++) {
-                            if (units.length < 500) spawnUnit(); // PERFORMANCE: Cap units
-                        }
-                        document.getElementById('count').innerText = units.length;
+            // Gate Collision
+            gates.forEach(g => {
+                if(g.userData.active && Math.abs(units[0].position.z - g.position.z) < 0.5) {
+                    if(Math.abs(playerX - g.position.x) < 2) {
+                        g.userData.active = false;
+                        g.visible = false;
+                        cameraShake = 0.4;
+                        const spawnCount = g.userData.isMult ? units.length : g.userData.val;
+                        for(let i=0; i<Math.min(spawnCount, 100); i++) spawnAlly();
                     }
                 }
             });
-
-            renderer.render(scene, camera);
         }
 
+        function animate() {
+            requestAnimationFrame(animate);
+            if(units.length > 0) update();
+            renderer.render(scene, camera);
+        }
         animate();
 
-        // Handle Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
