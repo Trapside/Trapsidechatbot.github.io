@@ -3,229 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#007AFF">
-    <title>Private AI</title>
+    <title>Lite AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * { -webkit-tap-highlight-color: transparent; }
-        body { 
-            background-color: #f2f2f7; 
-            overscroll-behavior: none;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        .glass { 
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px); 
-        }
-        #chat-content { 
-            height: calc(100vh - 140px);
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            -webkit-overflow-scrolling: touch;
-        }
-        .bubble { 
-            padding: 11px 14px; 
-            border-radius: 18px; 
-            font-size: 15px;
-            line-height: 1.4;
-            max-width: 80%;
-            word-wrap: break-word;
-            animation: slideIn 0.2s ease-out;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .user { 
-            background: #007AFF; 
-            color: white; 
-            align-self: flex-end; 
-            border-bottom-right-radius: 4px;
-            margin-left: auto;
-        }
-        .ai { 
-            background: #e9e9eb; 
-            color: #000; 
-            align-self: flex-start; 
-            border-bottom-left-radius: 4px;
-            margin-right: auto;
-        }
-        .loading-dots {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-        .loading-dots span {
-            width: 8px;
-            height: 8px;
-            background: #666;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-        .btn-active { 
-            transform: scale(0.96); 
-            transition: transform 0.1s ease;
-        }
-        #send-btn:disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .input-container {
-            position: relative;
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-        }
-        #msg-input {
-            flex: 1;
-            background: #f0f0f5;
-            border-radius: 20px;
-            padding: 10px 16px;
-            outline: none;
-            border: 1px solid transparent;
-            font-size: 16px;
-            min-height: 40px;
-            max-height: 120px;
-            resize: none;
-            overflow-y: auto;
-        }
-        #msg-input:focus {
-            border-color: #007AFF;
-            background: white;
-        }
-        .progress-bar {
-            height: 3px;
-            background: linear-gradient(90deg, #007AFF, #5AC8FA);
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .status-online { background: #e8f5e9; color: #2e7d32; }
-        .status-offline { background: #ffebee; color: #c62828; }
-        .status-loading { background: #fff8e1; color: #f57f17; }
-        
-        /* Better scrollbar for webkit */
-        #chat-content::-webkit-scrollbar { width: 4px; }
-        #chat-content::-webkit-scrollbar-thumb { 
-            background: rgba(0,0,0,0.2); 
-            border-radius: 2px; 
-        }
-        
-        /* Prevent zoom on iOS when focusing input */
-        input, textarea {
-            font-size: 16px !important;
-        }
-        
-        /* Memory warning badge */
-        .warning-badge {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-            padding: 8px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin: 8px 0;
-            display: none;
-        }
+        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        #chat-content { height: 70vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
+        .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; white-space: pre-wrap; }
+        /* Fix for mobile keyboard height issues */
+        .input-area { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body>
 
-    <!-- Navigation Bar -->
-    <nav class="glass sticky top-0 z-50 border-b border-gray-200" style="padding: max(env(safe-area-inset-top), 12px) 16px 12px 16px;">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="font-bold text-lg">Private AI</h1>
-                <div id="status-badge" class="status-badge status-offline mt-1">
-                    <div class="w-2 h-2 rounded-full bg-current"></div>
-                    <span id="status-text">Offline</span>
-                </div>
+    <nav class="glass sticky top-0 z-50 p-4 border-b border-gray-200 flex justify-between items-center">
+        <div>
+            <h1 class="font-bold text-lg text-gray-800">Private AI</h1>
+            <div id="status-dot" class="flex items-center gap-1.5">
+                <div class="w-2 h-2 rounded-full bg-red-500" id="dot"></div>
+                <span id="status-text" class="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">Disconnected</span>
             </div>
-            <button id="reset-btn" class="text-blue-600 text-sm font-semibold px-3 py-2 rounded-lg active:bg-gray-100">
-                Clear
-            </button>
         </div>
+        <button onclick="location.reload()" class="text-blue-500 font-medium text-sm">Reset Chat</button>
     </nav>
 
-    <!-- Chat Container -->
     <div id="chat-content">
-        <!-- Setup Card -->
-        <div id="setup-card" class="bg-white p-6 rounded-3xl shadow-sm text-center my-auto mx-auto max-w-sm">
-            <div class="text-5xl mb-4">🧠</div>
-            <h2 class="text-xl font-bold mb-2">100% Private AI</h2>
-            <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                Runs entirely on your device. No servers, no tracking, no data collection.
-            </p>
-            
-            <!-- Memory Check -->
-            <div id="memory-info" class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-left">
-                <div class="text-xs font-semibold text-blue-900 mb-1">System Requirements</div>
-                <div class="text-xs text-blue-700">
-                    • Download: ~400MB<br>
-                    • RAM: 4GB+ recommended<br>
-                    • Works offline after loading
-                </div>
-            </div>
-            
-            <button id="load-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">
-                Start Private Engine
+        <div id="setup-card" class="bg-white p-6 rounded-3xl shadow-sm text-center my-auto">
+            <h2 class="text-xl font-bold mb-2">Ready to Load?</h2>
+            <p class="text-gray-500 text-sm mb-6">SmolLM2 (360M) is optimized for mobile. Downloads ~380MB to your browser cache.</p>
+            <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-transform">
+                Start Local Engine
             </button>
-            
-            <!-- Progress Section -->
             <div id="progress-container" class="hidden mt-4">
-                <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
-                    <div id="bar" class="progress-bar w-0"></div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                    <div id="bar" class="bg-blue-500 h-1.5 rounded-full w-0 transition-all duration-300"></div>
                 </div>
-                <p id="percent" class="text-xs text-gray-500 text-center">Initializing...</p>
+                <p id="percent" class="text-[10px] text-gray-400 font-mono">Initializing...</p>
             </div>
         </div>
     </div>
 
-    <!-- Input Area -->
-    <div class="fixed bottom-0 w-full glass border-t border-gray-200" style="padding: 12px 16px max(env(safe-area-inset-bottom), 12px) 16px;">
-        <div id="memory-warning" class="warning-badge">
-            ⚠️ Low memory detected. Close other apps for better performance.
-        </div>
-        <div id="input-ui" class="hidden input-container">
-            <textarea 
-                id="msg-input" 
-                placeholder="Ask anything..." 
-                rows="1"
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="sentences"
-            ></textarea>
-            <button id="send-btn" class="bg-blue-600 text-white w-11 h-11 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform flex-shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m5 12 7-7 7 7"/>
-                    <path d="M12 19V5"/>
-                </svg>
+    <div class="fixed bottom-0 w-full glass border-t border-gray-200 input-area">
+        <form id="chat-form" class="p-4 flex gap-2">
+            <input id="msg-input" type="text" placeholder="Ask anything..." 
+                class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400 transition-all" 
+                autocomplete="off" disabled>
+            <button id="send-btn" type="submit" disabled class="bg-blue-600 disabled:bg-gray-300 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
-        </div>
+        </form>
     </div>
 
     <script type="module">
@@ -234,220 +62,103 @@
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
         
         let engine;
-        let chatHistory = [];
-        let generating = false;
+        // This array stores our conversation history
+        let chatHistory = [
+            { role: "system", content: "You are a helpful, concise AI assistant running locally on a mobile device." }
+        ];
 
-        // DOM Elements
-        const chat = document.getElementById('chat-content');
         const loadBtn = document.getElementById('load-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const bar = document.getElementById('bar');
-        const percent = document.getElementById('percent');
-        const statusBadge = document.getElementById('status-badge');
-        const statusText = document.getElementById('status-text');
-        const input = document.getElementById('msg-input');
+        const chatForm = document.getElementById('chat-form');
+        const msgInput = document.getElementById('msg-input');
         const sendBtn = document.getElementById('send-btn');
-        const memoryWarning = document.getElementById('memory-warning');
+        const chatContainer = document.getElementById('chat-content');
 
-        // Check device memory
-        function checkMemory() {
-            if ('deviceMemory' in navigator) {
-                const memoryGB = navigator.deviceMemory;
-                if (memoryGB < 4) {
-                    memoryWarning.style.display = 'block';
-                }
-            }
-        }
-
-        // Update status
-        function setStatus(state) {
-            statusBadge.className = 'status-badge';
-            switch(state) {
-                case 'online':
-                    statusBadge.classList.add('status-online');
-                    statusText.textContent = 'Private & Active';
-                    break;
-                case 'loading':
-                    statusBadge.classList.add('status-loading');
-                    statusText.textContent = 'Loading...';
-                    break;
-                default:
-                    statusBadge.classList.add('status-offline');
-                    statusText.textContent = 'Offline';
-            }
-        }
-
-        // Add message to chat
-        function addMessage(role, content) {
-            const bubble = document.createElement('div');
-            bubble.className = `bubble ${role === 'user' ? 'user' : 'ai'}`;
-            bubble.textContent = content;
-            chat.appendChild(bubble);
-            
-            // Smooth scroll to bottom
-            requestAnimationFrame(() => {
-                chat.scrollTop = chat.scrollHeight;
-            });
-        }
-
-        // Auto-resize textarea
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-        }
-
-        // Initialize engine
         async function init() {
-            if (generating) return;
-            
-            checkMemory();
-            setStatus('loading');
-            
             document.getElementById('progress-container').classList.remove('hidden');
             loadBtn.disabled = true;
-            loadBtn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+            loadBtn.innerText = "Downloading...";
 
             try {
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (p) => {
                         const val = Math.round(p.progress * 100);
-                        bar.style.width = val + "%";
-                        percent.textContent = p.text || `Loading... ${val}%`;
+                        document.getElementById('bar').style.width = val + "%";
+                        document.getElementById('percent').innerText = p.text;
                     }
                 });
 
-                setStatus('online');
+                document.getElementById('dot').classList.replace('bg-red-500', 'bg-green-500');
+                document.getElementById('status-text').innerText = "Local Engine Active";
                 document.getElementById('setup-card').classList.add('hidden');
-                document.getElementById('input-ui').classList.remove('hidden');
-
-                // Initialize chat
-                chatHistory = [
-                    { role: "system", content: "You are a helpful, friendly, and concise AI assistant. Keep responses brief and mobile-friendly." }
-                ];
                 
-                const welcome = "👋 Hi! I'm running 100% locally on your device. Your conversations are completely private and never leave your phone. What can I help you with?";
-                addMessage('ai', welcome);
-                chatHistory.push({ role: "assistant", content: welcome });
-
-                // Focus input
-                setTimeout(() => input.focus(), 100);
-
+                // Enable inputs
+                msgInput.disabled = false;
+                sendBtn.disabled = false;
             } catch (e) {
-                setStatus('offline');
-                alert("Unable to load AI engine. Please:\n• Close other apps\n• Refresh the page\n• Try on WiFi\n• Use a device with 4GB+ RAM");
+                alert("Error: " + e.message);
                 console.error(e);
-                loadBtn.disabled = false;
-                loadBtn.textContent = "Retry";
             }
         }
 
-        // Send message
-        async function send() {
-            const val = input.value.trim();
-            if (!val || generating) return;
+        async function handleSend(e) {
+            e.preventDefault();
+            const val = msgInput.value.trim();
+            if (!val || sendBtn.disabled) return;
 
-            generating = true;
-            input.disabled = true;
+            // 1. Update UI (User)
+            const userBox = document.createElement('div');
+            userBox.className = "bubble user";
+            userBox.innerText = val;
+            chatContainer.appendChild(userBox);
+            
+            // 2. Add to History
+            chatHistory.push({ role: "user", content: val });
+            msgInput.value = "";
+            
+            // 3. Prepare AI UI
+            const aiBox = document.createElement('div');
+            aiBox.className = "bubble ai";
+            aiBox.innerText = "● ● ●";
+            chatContainer.appendChild(aiBox);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Disable button while thinking
             sendBtn.disabled = true;
 
-            addMessage('user', val);
-            input.value = '';
-            input.style.height = 'auto';
-
-            // Loading indicator
-            const loadingBubble = document.createElement('div');
-            loadingBubble.className = "bubble ai";
-            loadingBubble.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-            chat.appendChild(loadingBubble);
-            chat.scrollTop = chat.scrollHeight;
-
-            chatHistory.push({ role: "user", content: val });
-
-            let fullResponse = "";
-
             try {
-                const stream = await engine.chat.completions.create({
-                    messages: chatHistory,
-                    stream: true,
-                    temperature: 0.7,
-                    top_p: 0.95,
-                    max_tokens: 512 // Limit for mobile performance
+                let fullAiResponse = "";
+                const chunks = await engine.chat.completions.create({
+                    messages: chatHistory, // Send the WHOLE history
+                    stream: true
                 });
 
-                chat.removeChild(loadingBubble);
-                const aiBubble = document.createElement('div');
-                aiBubble.className = "bubble ai";
-                aiBubble.textContent = "";
-                chat.appendChild(aiBubble);
-
-                for await (const chunk of stream) {
-                    const delta = chunk.choices[0]?.delta?.content || "";
-                    fullResponse += delta;
-                    aiBubble.textContent += delta;
-                    
-                    // Throttle scroll for performance
-                    if (fullResponse.length % 20 === 0) {
-                        chat.scrollTop = chat.scrollHeight;
-                    }
+                for await (const chunk of chunks) {
+                    const content = chunk.choices[0]?.delta?.content || "";
+                    fullAiResponse += content;
+                    aiBox.innerText = fullAiResponse;
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
 
-                chat.scrollTop = chat.scrollHeight;
-                chatHistory.push({ role: "assistant", content: fullResponse });
+                // 4. Save AI response to history
+                chatHistory.push({ role: "assistant", content: fullAiResponse });
 
-                // Aggressive context management for mobile
-                if (chatHistory.length > 20) {
-                    chatHistory = [chatHistory[0], ...chatHistory.slice(-18)];
+                // 5. Memory Management: If history is too long (e.g., > 10 messages), 
+                // remove oldest messages but keep the system prompt.
+                if (chatHistory.length > 12) {
+                    chatHistory.splice(1, 2); // Remove oldest user/ai pair
                 }
 
-            } catch (e) {
-                console.error(e);
-                if (loadingBubble.parentNode) {
-                    chat.removeChild(loadingBubble);
-                }
-                addMessage('ai', "⚠️ Error occurred. Please try again or restart the engine.");
+            } catch (err) {
+                aiBox.innerText = "Error: Engine lost connection. Please reset.";
+                aiBox.classList.add('text-red-500');
             } finally {
-                generating = false;
-                input.disabled = false;
                 sendBtn.disabled = false;
-                input.focus();
+                msgInput.focus();
             }
         }
 
-        // Event listeners
         loadBtn.onclick = init;
-        sendBtn.onclick = send;
-        
-        resetBtn.onclick = () => {
-            if (confirm('Clear all messages and restart?')) {
-                location.reload();
-            }
-        };
-
-        input.addEventListener('input', (e) => autoResize(e.target));
-        
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-            }
-        });
-
-        // Prevent page refresh on pull-to-refresh
-        document.body.addEventListener('touchmove', (e) => {
-            if (chat.scrollTop === 0 && e.touches[0].clientY > 0) {
-                // Allow natural scroll
-            }
-        }, { passive: true });
-
-        // Handle orientation changes
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                chat.scrollTop = chat.scrollHeight;
-            }, 200);
-        });
-
-        // Check memory on load
-        checkMemory();
+        chatForm.onsubmit = handleSend;
     </script>
 </body>
 </html>
