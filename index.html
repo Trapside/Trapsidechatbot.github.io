@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lite AI</title>
+    <title>Private AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; }
@@ -12,7 +12,16 @@
         .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .loading-ring { border: 2px solid #f3f3f3; border-top: 2px solid #007AFF; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        .loading-ring { 
+            border: 2px solid #f3f3f3; 
+            border-top: 2px solid #007AFF; 
+            border-radius: 50%; 
+            width: 16px; 
+            height: 16px; 
+            animation: spin 1s linear infinite; 
+            display: inline-block;
+            vertical-align: middle;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -47,7 +56,7 @@
 
     <div class="fixed bottom-0 w-full p-4 glass border-t border-gray-200">
         <div id="input-ui" class="hidden flex gap-2">
-            <input id="msg-input" type="text" placeholder="Ask anything..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none" onkeydown="handleEnter(event)">
+            <input id="msg-input" type="text" placeholder="Ask anything..." class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none">
             <button id="send-btn" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
@@ -57,18 +66,28 @@
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
-        // This model is MUCH smaller (roughly 360M params) and safer for mobile
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
         
         let engine;
-        let conversationHistory = []; // Store conversation history
+        let chatHistory = [];
+        let generating = false;
+
+        const chat = document.getElementById('chat-content');
         const loadBtn = document.getElementById('load-btn');
         const bar = document.getElementById('bar');
         const percent = document.getElementById('percent');
         const statusText = document.getElementById('status-text');
         const dot = document.getElementById('dot');
-        const msgInput = document.getElementById('msg-input');
+        const input = document.getElementById('msg-input');
         const sendBtn = document.getElementById('send-btn');
+
+        function addMessage(role, content) {
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${role === 'user' ? 'user' : 'ai'}`;
+            bubble.textContent = content;
+            chat.appendChild(bubble);
+            chat.scrollTop = chat.scrollHeight;
+        }
 
         async function init() {
             document.getElementById('progress-container').classList.remove('hidden');
@@ -88,110 +107,98 @@
                 statusText.innerText = "Local Engine Active";
                 document.getElementById('setup-card').classList.add('hidden');
                 document.getElementById('input-ui').classList.remove('hidden');
-                
-                // Add welcome message
-                addMessage("assistant", "Hello! I'm your local AI assistant. How can I help you today?");
+
+                // Initial system prompt and welcome message
+                chatHistory = [
+                    { role: "system", content: "You are a helpful, friendly, and concise AI assistant." }
+                ];
+                const welcome = "Hi! I'm running completely locally on your device — no data ever leaves your phone. Ask me anything!";
+                addMessage('ai', welcome);
+                chatHistory.push({ role: "assistant", content: welcome });
+
+                // Enable input and focus
+                input.focus();
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        send();
+                    }
+                });
+
             } catch (e) {
                 alert("Crash prevented. Your browser denied memory access. Try closing other tabs.");
                 console.error(e);
             }
         }
 
-        function addMessage(role, content) {
-            if (role === "user" || role === "assistant") {
-                conversationHistory.push({ role, content });
-            }
-            
-            // Update UI
-            const chat = document.getElementById('chat-content');
-            const messageBox = document.createElement('div');
-            messageBox.className = `bubble ${role === "user" ? "user" : "ai"}`;
-            messageBox.innerText = content;
-            chat.appendChild(messageBox);
-            chat.scrollTop = chat.scrollHeight;
-        }
-
         async function send() {
-            const val = msgInput.value.trim();
-            if (!val || !engine) return;
+            const val = input.value.trim();
+            if (!val || generating) return;
 
-            // Disable input during processing
-            msgInput.disabled = true;
+            generating = true;
+            input.disabled = true;
             sendBtn.disabled = true;
 
-            // Add user message
-            addMessage("user", val);
-            msgInput.value = "";
+            addMessage('user', val);
+            input.value = '';
 
-            // Add loading indicator
-            const chat = document.getElementById('chat-content');
-            const loadingBox = document.createElement('div');
-            loadingBox.className = "bubble ai flex items-center gap-2";
-            loadingBox.innerHTML = `<div class="loading-ring"></div><span>Thinking...</span>`;
-            chat.appendChild(loadingBox);
+            // Loading indicator
+            const loadingBubble = document.createElement('div');
+            loadingBubble.className = "bubble ai flex items-center gap-3";
+            loadingBubble.innerHTML = `<div class="loading-ring"></div><span>Thinking...</span>`;
+            chat.appendChild(loadingBubble);
             chat.scrollTop = chat.scrollHeight;
 
+            // Add user message to history
+            chatHistory.push({ role: "user", content: val });
+
+            let fullResponse = "";
+
             try {
-                let response = "";
-                const chunks = await engine.chat.completions.create({
-                    messages: conversationHistory,
-                    stream: true
+                const stream = await engine.chat.completions.create({
+                    messages: chatHistory,
+                    stream: true,
+                    temperature: 0.7,
+                    top_p: 0.95
                 });
 
-                // Remove loading indicator
-                loadingBox.remove();
+                // Remove loading and create response bubble
+                chat.removeChild(loadingBubble);
+                const aiBubble = document.createElement('div');
+                aiBubble.className = "bubble ai";
+                aiBubble.textContent = "";
+                chat.appendChild(aiBubble);
+                chat.scrollTop = chat.scrollHeight;
 
-                // Create AI response box
-                const aiBox = document.createElement('div');
-                aiBox.className = "bubble ai";
-                aiBox.innerText = "";
-                chat.appendChild(aiBox);
-
-                for await (const chunk of chunks) {
-                    const content = chunk.choices[0]?.delta?.content || "";
-                    response += content;
-                    aiBox.innerText = response;
+                for await (const chunk of stream) {
+                    const delta = chunk.choices[0]?.delta?.content || "";
+                    fullResponse += delta;
+                    aiBubble.textContent += delta;
                     chat.scrollTop = chat.scrollHeight;
                 }
 
-                // Add assistant response to history
-                if (response) {
-                    conversationHistory.push({ role: "assistant", content: response });
+                // Save assistant response
+                chatHistory.push({ role: "assistant", content: fullResponse });
+
+                // Simple context management to avoid overflow (keeps system + recent messages)
+                if (chatHistory.length > 30) {
+                    chatHistory = [chatHistory[0], ...chatHistory.slice(-28)];
                 }
 
-            } catch (error) {
-                console.error("Error generating response:", error);
-                addMessage("assistant", "Sorry, I encountered an error. Please try again.");
-                
-                // If there's an error, remove the last user message from history
-                // to avoid inconsistency
-                conversationHistory = conversationHistory.filter(msg => msg.role !== "user" || msg.content !== val);
+            } catch (e) {
+                console.error(e);
+                chat.removeChild(loadingBubble);
+                addMessage('ai', "Sorry, an error occurred. Try again.");
             } finally {
-                // Re-enable input
-                msgInput.disabled = false;
+                generating = false;
+                input.disabled = false;
                 sendBtn.disabled = false;
-                msgInput.focus();
-            }
-        }
-
-        function handleEnter(event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                send();
+                input.focus();
             }
         }
 
         loadBtn.onclick = init;
         sendBtn.onclick = send;
-        
-        // Add event listener for input focus
-        msgInput.addEventListener('focus', function() {
-            // Scroll to bottom when input is focused
-            setTimeout(() => {
-                const chat = document.getElementById('chat-content');
-                chat.scrollTop = chat.scrollHeight;
-            }, 100);
-        });
     </script>
 </body>
 </html>
