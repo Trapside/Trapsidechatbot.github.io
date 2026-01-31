@@ -3,59 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lite AI | Context Monitor</title>
+    <title>Lite AI Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; font-family: -apple-system, system-ui, sans-serif; }
+        body { background-color: #f2f2f7; -webkit-tap-highlight-color: transparent; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        #chat-content { height: 65vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; line-height: 1.4; }
+        #chat-content { height: calc(100vh - 180px); overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px; }
+        .bubble { padding: 12px 16px; border-radius: 20px; font-size: 15px; max-width: 85%; line-height: 1.4; position: relative; }
         .user { background: #007AFF; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; white-space: pre-wrap; }
-        .meter-bg { background: #e5e5ea; height: 4px; border-radius: 2px; overflow: hidden; }
-        .meter-fill { background: #34c759; height: 100%; transition: width 0.5s ease, background-color 0.5s ease; }
+        .meter-bg { background: #e5e5ea; height: 6px; border-radius: 3px; overflow: hidden; }
+        .meter-fill { background: #34c759; height: 100%; transition: width 0.5s ease; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body>
 
     <nav class="glass sticky top-0 z-50 p-4 border-b border-gray-200">
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center mb-3">
             <div>
                 <h1 class="font-bold text-lg leading-none">Private AI</h1>
-                <span id="status-text" class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Idle</span>
+                <span id="status-text" class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Disconnected</span>
             </div>
-            <button onclick="resetChat()" class="text-blue-500 font-semibold text-sm active:opacity-50">Clear Chat</button>
+            <div class="flex gap-4 items-center">
+                <label class="flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" id="low-power" class="w-4 h-4">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase">Low Power</span>
+                </label>
+                <button onclick="resetChat()" class="text-blue-500 font-semibold text-sm">Reset</button>
+            </div>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="text-[9px] font-bold text-gray-400 uppercase">Context Memory</span>
-            <div class="meter-bg flex-1">
+        
+        <div class="space-y-1">
+            <div class="flex justify-between text-[9px] font-bold text-gray-400 uppercase">
+                <span>Context Memory</span>
+                <span id="memory-percent">0%</span>
+            </div>
+            <div class="meter-bg">
                 <div id="memory-fill" class="meter-fill" style="width: 0%"></div>
             </div>
-            <span id="memory-percent" class="text-[9px] font-mono text-gray-500">0%</span>
         </div>
     </nav>
 
     <div id="chat-content">
-        <div id="setup-card" class="bg-white p-6 rounded-3xl shadow-sm text-center my-auto">
-            <h2 class="text-xl font-bold mb-1">Local Engine</h2>
-            <p class="text-gray-500 text-sm mb-6">Runs entirely on your phone's hardware.</p>
+        <div id="setup-card" class="bg-white p-8 rounded-3xl shadow-sm text-center my-auto">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="text-blue-500" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold mb-2">Ready to Load?</h2>
+            <p class="text-gray-500 text-sm mb-6">SmolLM2-360M is optimized for mobile browser performance.</p>
             <button id="load-btn" class="w-full bg-black text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">
-                Initialize 360M Model
+                Start Local Engine
             </button>
-            <div id="progress-container" class="hidden mt-4">
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                    <div id="bar" class="bg-blue-500 h-1.5 rounded-full w-0 transition-all"></div>
+            <div id="progress-container" class="hidden mt-6">
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                    <div id="bar" class="bg-blue-500 h-2 rounded-full w-0 transition-all"></div>
                 </div>
-                <p id="percent" class="text-[10px] text-gray-400">Loading weights...</p>
+                <p id="percent" class="text-[10px] text-gray-400 font-mono italic">Waiting for WebGPU...</p>
             </div>
         </div>
     </div>
 
     <div class="fixed bottom-0 w-full glass border-t border-gray-200 pb-safe">
         <form id="chat-form" class="p-4 flex gap-2">
-            <input id="msg-input" type="text" placeholder="Message..." 
-                class="flex-1 bg-gray-100 rounded-xl px-4 py-3 outline-none focus:bg-white transition-all disabled:opacity-50" disabled>
-            <button id="send-btn" type="submit" disabled class="bg-blue-600 disabled:bg-gray-300 text-white w-12 h-12 rounded-xl flex items-center justify-center">
+            <input id="msg-input" type="text" placeholder="Type a message..." 
+                class="flex-1 bg-gray-100 rounded-2xl px-5 py-3 outline-none focus:bg-white border border-transparent focus:border-blue-200 transition-all disabled:opacity-50" disabled>
+            <button id="send-btn" type="submit" disabled class="bg-blue-600 disabled:bg-gray-300 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 transition-all">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
         </form>
@@ -65,35 +78,23 @@
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
-        const MAX_MESSAGES = 14; // Limit to ~7 exchanges for mobile stability
+        const MAX_MESSAGES = 12; // Mobile safety cap
         
         let engine;
         let chatHistory = JSON.parse(localStorage.getItem('chat_history')) || [
-            { role: "system", content: "Short, helpful responses." }
+            { role: "system", content: "You are a concise, helpful assistant. Keep answers brief." }
         ];
 
         const memoryFill = document.getElementById('memory-fill');
         const memoryPercent = document.getElementById('memory-percent');
         const chatContainer = document.getElementById('chat-content');
+        const lowPowerMode = document.getElementById('low-power');
 
-        // Update the visual memory meter
         function updateMemoryMeter() {
             const usage = Math.min(((chatHistory.length - 1) / MAX_MESSAGES) * 100, 100);
             memoryFill.style.width = usage + "%";
             memoryPercent.innerText = Math.round(usage) + "%";
-            
-            // Color feedback
-            if (usage > 80) memoryFill.style.backgroundColor = "#ff3b30"; // Red
-            else if (usage > 50) memoryFill.style.backgroundColor = "#ffcc00"; // Yellow
-            else memoryFill.style.backgroundColor = "#34c759"; // Green
-        }
-
-        function renderStoredChat() {
-            chatHistory.forEach(msg => {
-                if (msg.role === 'system') return;
-                appendBubble(msg.role === 'user' ? 'user' : 'ai', msg.content);
-            });
-            updateMemoryMeter();
+            memoryFill.style.backgroundColor = usage > 80 ? "#ff3b30" : usage > 50 ? "#ffcc00" : "#34c759";
         }
 
         function appendBubble(role, text) {
@@ -101,15 +102,17 @@
             box.className = `bubble ${role}`;
             box.innerText = text;
             chatContainer.appendChild(box);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
             return box;
         }
 
-        renderStoredChat();
+        // Initial Load
+        chatHistory.forEach(msg => { if (msg.role !== 'system') appendBubble(msg.role === 'user' ? 'user' : 'ai', msg.content); });
+        updateMemoryMeter();
 
         document.getElementById('load-btn').onclick = async () => {
             document.getElementById('progress-container').classList.remove('hidden');
-            document.getElementById('load-btn').disabled = true;
+            document.getElementById('load-btn').style.display = 'none';
 
             try {
                 engine = await webllm.CreateMLCEngine(MODEL_ID, {
@@ -120,20 +123,22 @@
                 });
 
                 document.getElementById('status-text').innerText = "Online";
+                document.getElementById('status-text').classList.replace('text-gray-400', 'text-green-500');
                 document.getElementById('setup-card').classList.add('hidden');
                 document.getElementById('msg-input').disabled = false;
                 document.getElementById('send-btn').disabled = false;
             } catch (e) {
-                alert("Mobile Error: WebGPU might be disabled or memory is full.");
+                alert("WebGPU not detected. Use Chrome/Edge on Android or Safari on iOS 17.4+");
             }
         };
 
         document.getElementById('chat-form').onsubmit = async (e) => {
             e.preventDefault();
-            const val = document.getElementById('msg-input').value.trim();
+            const input = document.getElementById('msg-input');
+            const val = input.value.trim();
             if (!val || document.getElementById('send-btn').disabled) return;
 
-            document.getElementById('msg-input').value = "";
+            input.value = "";
             appendBubble('user', val);
             chatHistory.push({ role: "user", content: val });
 
@@ -142,10 +147,14 @@
 
             try {
                 let response = "";
-                const chunks = await engine.chat.completions.create({
+                const config = {
                     messages: chatHistory,
-                    stream: true
-                });
+                    stream: true,
+                    temperature: lowPowerMode.checked ? 0.4 : 0.7,
+                    max_gen_len: lowPowerMode.checked ? 128 : 256 // Shortens work for GPU
+                };
+
+                const chunks = await engine.chat.completions.create(config);
 
                 for await (const chunk of chunks) {
                     response += chunk.choices[0]?.delta?.content || "";
@@ -155,23 +164,23 @@
 
                 chatHistory.push({ role: "assistant", content: response });
                 
-                // Keep history within mobile-safe limits
-                if (chatHistory.length > MAX_MESSAGES) {
-                    chatHistory.splice(1, 2); 
-                }
+                // Memory Cleanup
+                if (chatHistory.length > MAX_MESSAGES) chatHistory.splice(1, 2);
                 
                 localStorage.setItem('chat_history', JSON.stringify(chatHistory));
                 updateMemoryMeter();
 
             } catch (err) {
-                aiBox.innerText = "Error: Model timed out.";
+                aiBox.innerText = "Timeout: Phone GPU throttled. Try Low Power mode.";
+                aiBox.style.color = "#ff3b30";
+                console.error(err);
             } finally {
                 document.getElementById('send-btn').disabled = false;
             }
         };
 
         window.resetChat = () => {
-            if(confirm("Wipe memory?")) {
+            if(confirm("Delete all history?")) {
                 localStorage.removeItem('chat_history');
                 location.reload();
             }
