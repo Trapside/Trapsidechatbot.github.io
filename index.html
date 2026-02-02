@@ -8,7 +8,7 @@
     <style>
         :root { 
             --apple-blue: #007AFF; --apple-red: #FF3B30; 
-            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.85); 
+            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.82); 
             --text: #1d1d1f; --ai-bubble: #ffffff; --border: rgba(0,0,0,0.1);
             --safe-top: env(safe-area-inset-top);
             --safe-bottom: env(safe-area-inset-bottom);
@@ -20,26 +20,33 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; backdrop-filter: blur(15px); }
         .profile-modal { background: var(--card-bg); z-index: 150; align-items: stretch; display: none; padding-top: calc(var(--safe-top) + 20px); }
         
-        header { padding: calc(var(--safe-top) + 10px) 20px 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5); }
+        header { padding: calc(var(--safe-top) + 10px) 20px 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5); z-index: 10; }
         .header-btn { background: rgba(0,0,0,0.06); border: none; padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); }
 
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 120px; }
-        .msg { padding: 14px 18px; border-radius: 22px; font-size: 16px; line-height: 1.4; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .ai { background: var(--ai-bubble); border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-self: flex-start; max-width: 88%; }
-        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 5px; align-self: flex-end; max-width: 88%; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 140px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .msg { padding: 14px 18px; border-radius: 22px; font-size: 16px; line-height: 1.4; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); word-wrap: break-word; }
+        .ai { background: var(--ai-bubble); border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-self: flex-start; max-width: 85%; }
+        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 5px; align-self: flex-end; max-width: 85%; }
 
-        /* Profile Tags */
+        /* Pulsing Scroll Button */
+        #scrollBtn { position: absolute; bottom: 110px; right: 20px; width: 44px; height: 44px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 0.5px solid var(--border); z-index: 50; cursor: pointer; font-size: 18px; transition: transform 0.2s; }
+        #scrollBtn.pulse { animation: alertPulse 1.5s infinite; border-color: var(--apple-blue); color: var(--apple-blue); }
+
         .tag-container { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
         .tag { background: white; border: 1px solid var(--apple-blue); color: var(--apple-blue); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
-        .tag span { cursor: pointer; font-weight: bold; }
+        
+        .input-bar-container { position: absolute; bottom: 0; width: 100%; padding-bottom: calc(var(--safe-bottom) + 15px); background: linear-gradient(transparent, var(--card-bg) 40%); z-index: 10; }
+        .input-bar { margin: 0 20px; display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; border: none; padding: 14px 20px; border-radius: 28px; background: white; font-size: 16px; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        #actionBtn { background: var(--apple-blue); color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #actionBtn.stop { background: var(--apple-red); border-radius: 12px; }
 
-        .code-vault { background: #1c1c1e; border-radius: 16px; margin: 12px 0; position: relative; cursor: pointer; max-height: 120px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .code-vault pre { margin: 0; padding: 18px; font-family: monospace; font-size: 13px; color: #5ad4ff; }
-        
-        .input-bar-container { position: absolute; bottom: 0; width: 100%; padding-bottom: calc(var(--safe-bottom) + 15px); background: linear-gradient(transparent, var(--card-bg) 20%); }
-        .input-bar { margin: 0 20px; display: flex; gap: 10px; }
-        input { flex: 1; border: none; padding: 14px 20px; border-radius: 28px; background: white; font-size: 16px; outline: none; }
-        
+        @keyframes alertPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+        }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes spring { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -48,38 +55,36 @@
 
 <div id="profile-modal" class="overlay profile-modal">
     <div style="width: 100%; max-width: 400px;">
-        <h2 style="margin: 0; font-size: 24px;">Profile Vault</h2>
-        <p style="color: #666; font-size: 14px;">Topics Trapside has identified as your favorites:</p>
+        <h2 style="margin: 0;">Profile Vault</h2>
+        <p style="color: #666; font-size: 14px;">Last 7 learned traits:</p>
         <div id="tag-list" class="tag-container"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="new-tag-input" placeholder="Add interest manually..." style="border: 1px solid #ddd;">
-            <button class="header-btn" onclick="addManualTag()" style="background:var(--apple-blue); color:white;">+</button>
-        </div>
-        <button class="header-btn" onclick="toggleProfile()" style="width:100%; margin-top:30px; height:45px; background:#000; color:white;">Return to Systems</button>
+        <button class="header-btn" onclick="toggleProfile()" style="width:100%; margin-top:20px; height:45px; background:#000; color:white;">Close</button>
     </div>
 </div>
 
 <div id="download-overlay" class="overlay">
     <div style="width:35px; height:35px; border:3px solid #eee; border-top-color:var(--apple-blue); border-radius:50%; animation: spin 1s linear infinite;"></div>
-    <p id="status-txt" style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">SYNCING CORE...</p>
+    <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">PURGING VRAM & SYNCING...</p>
     <div style="width:140px; height:3px; background:#eee; margin-top:10px; border-radius:2px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
 </div>
 
 <div class="app-card">
     <header>
         <button class="header-btn" onclick="location.reload()">Reset</button>
-        <span style="font-weight: 800; font-size: 14px; color: var(--apple-blue);">TRAPSIDE PRO</span>
+        <span style="font-weight: 800; font-size: 13px; color: var(--apple-blue);">TRAPSIDE PRO</span>
         <button class="header-btn" onclick="toggleProfile()">Profile</button>
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Systems nominal, sir. I'm calibrated to your personal profile.</div>
+        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile.</div>
     </div>
+
+    <div id="scrollBtn" onclick="scrollToBottom()">↓</div>
 
     <div class="input-bar-container">
         <div class="input-bar">
             <input type="text" id="userInput" placeholder="Command...">
-            <button id="actionBtn" style="background:var(--apple-blue); color:white; border:none; width:42px; height:42px; border-radius:50%; font-size:20px;">↑</button>
+            <button id="actionBtn">↑</button>
         </div>
     </div>
 </div>
@@ -92,64 +97,76 @@
     const actionBtn = document.getElementById('actionBtn');
     const progressFill = document.getElementById('progress-fill');
     const overlay = document.getElementById('download-overlay');
-    const profileModal = document.getElementById('profile-modal');
+    const scrollBtn = document.getElementById('scrollBtn');
     
     let engine = null;
     let isGenerating = false;
     let sessionHistory = [];
-    
-    // Load Persistent Profile from LocalStorage
-    let userProfile = JSON.parse(localStorage.getItem('trapside_vault')) || { interests: ["Tech", "Efficiency"] };
+    let userProfile = JSON.parse(localStorage.getItem('trapside_vault')) || { interests: ["Tech"] };
 
-    window.toggleProfile = () => {
-        const isOpening = profileModal.style.display !== 'flex';
-        profileModal.style.display = isOpening ? 'flex' : 'none';
-        if(isOpening) renderTags();
-    };
+    // Detection for scrolling
+    const isUserAtBottom = () => chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
 
-    function renderTags() {
-        const list = document.getElementById('tag-list');
-        list.innerHTML = userProfile.interests.map((t, i) => `
-            <div class="tag">${t} <span onclick="removeTag(${i})">×</span></div>
-        `).join('');
-    }
-
-    window.removeTag = (idx) => {
-        userProfile.interests.splice(idx, 1);
-        saveProfile();
-        renderTags();
-    };
-
-    window.addManualTag = () => {
-        const val = document.getElementById('new-tag-input').value.trim();
-        if(val) {
-            userProfile.interests.push(val);
-            document.getElementById('new-tag-input').value = '';
-            saveProfile();
-            renderTags();
+    chatBox.onscroll = () => {
+        if (isUserAtBottom()) {
+            scrollBtn.style.display = 'none';
+            scrollBtn.classList.remove('pulse');
+        } else {
+            scrollBtn.style.display = 'flex';
         }
     };
 
-    function saveProfile() { localStorage.setItem('trapside_vault', JSON.stringify(userProfile)); }
+    window.scrollToBottom = () => {
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        scrollBtn.classList.remove('pulse');
+    };
+
+    window.toggleProfile = () => {
+        const modal = document.getElementById('profile-modal');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        renderTags();
+    };
+
+    function renderTags() {
+        document.getElementById('tag-list').innerHTML = userProfile.interests.map((t, i) => `
+            <div class="tag">${t} <span style="cursor:pointer" onclick="removeTag(${i})">×</span></div>
+        `).join('');
+    }
+
+    window.removeTag = (i) => {
+        userProfile.interests.splice(i, 1);
+        localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
+        renderTags();
+    };
 
     function appendMessage(role, text) {
         const bubble = document.createElement('div');
         bubble.className = `msg ${role}`;
         bubble.innerText = text;
         chatBox.appendChild(bubble);
-        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        
+        // Pulse logic: if we add a message and user isn't looking at it
+        if (!isUserAtBottom()) {
+            scrollBtn.style.display = 'flex';
+            scrollBtn.classList.add('pulse');
+        } else {
+            scrollToBottom();
+        }
         return bubble;
     }
 
     async function handleAction() {
-        if (isGenerating) return;
+        if (isGenerating) { isGenerating = false; return; }
         const val = input.value.trim();
         if (!val) return;
 
         isGenerating = true;
+        actionBtn.innerText = '■';
+        actionBtn.classList.add('stop');
         input.value = '';
         appendMessage('user', val);
-        await new Promise(r => requestAnimationFrame(() => r()));
+
+        await new Promise(r => requestAnimationFrame(r));
 
         try {
             engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
@@ -161,41 +178,49 @@
                 }
             });
 
-            // Injection of Profile into System Prompt
-            const sysPrompt = `You are Trapside, a professional AI assistant. Call user 'sir'. 
-                              Known user interests: ${userProfile.interests.join(", ")}. 
-                              Cater responses to these topics if relevant.`;
-
+            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
             const chunks = await engine.chat.completions.create({
-                messages: [{role: "system", content: sysPrompt}, ...sessionHistory, {role: "user", content: val}],
+                messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}],
                 stream: true
             });
 
             const aiBubble = appendMessage('ai', '...');
-            let fullReply = "";
+            let full = "";
             for await (const chunk of chunks) {
-                fullReply += chunk.choices[0]?.delta?.content || "";
-                aiBubble.innerText = fullReply;
+                if (!isGenerating) break;
+                full += chunk.choices[0]?.delta?.content || "";
+                aiBubble.innerText = full;
+                
+                // If user scrolls up while AI is typing, start the pulse
+                if (!isUserAtBottom()) {
+                    scrollBtn.style.display = 'flex';
+                    scrollBtn.classList.add('pulse');
+                }
             }
 
-            // Learning Routine: Extract preferences before Method 4 Purge
+            // Learning Routine
             const learn = await engine.chat.completions.create({
-                messages: [{role: "user", content: `Based on "${val}", identify a new specific interest. Reply with 1 word or 'none'.`}],
+                messages: [{role: "user", content: `Extract 1 specific interest from "${val}". 1 word or 'none'.`}],
                 stream: false
             });
-            const newInterest = learn.choices[0].message.content.trim().replace(/[^\w]/g, '');
-            if(newInterest.length > 2 && newInterest.toLowerCase() !== 'none' && !userProfile.interests.includes(newInterest)) {
-                userProfile.interests.push(newInterest);
-                saveProfile();
+            const fresh = learn.choices[0].message.content.trim().replace(/[^\w]/g, '');
+            if (fresh.length > 2 && fresh.toLowerCase() !== 'none' && !userProfile.interests.includes(fresh)) {
+                userProfile.interests.push(fresh);
+                if(userProfile.interests.length > 7) userProfile.interests.shift();
+                localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
             }
 
-            sessionHistory.push({role:"user", content:val}, {role:"assistant", content:fullReply});
-            if(sessionHistory.length > 4) sessionHistory.shift();
+            sessionHistory.push({role: "user", content: val}, {role: "assistant", content: full});
+            if (sessionHistory.length > 4) sessionHistory.shift();
 
-            // METHOD 4 PURGE
             await engine.unload();
             engine = null;
-        } finally { isGenerating = false; }
+        } catch(e) { console.error(e); }
+        finally { 
+            isGenerating = false; 
+            actionBtn.innerText = '↑'; 
+            actionBtn.classList.remove('stop');
+        }
     }
 
     actionBtn.onclick = handleAction;
