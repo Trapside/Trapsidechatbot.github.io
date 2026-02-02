@@ -8,46 +8,68 @@
     <style>
         :root { 
             --apple-blue: #007AFF; --apple-red: #FF3B30; 
-            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.75); 
+            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.85); 
             --text: #1d1d1f; --ai-bubble: #ffffff; --border: rgba(0,0,0,0.1);
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
         }
-        body { margin: 0; padding: 0; height: 100vh; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        body { 
+            margin: 0; padding: 0; height: 100vh; background: var(--bg); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; overflow: hidden;
+        }
         
-        .app-card { width: 95%; max-width: 450px; height: 94vh; background: var(--card-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid var(--border); border-radius: 40px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.08); position: relative; }
+        .app-card { 
+            width: 100%; max-width: 500px; height: 100vh; 
+            background: var(--card-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+            display: flex; flex-direction: column; position: relative;
+        }
         
-        /* Glass Loading Overlay */
-        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; }
-        .spinner { width: 40px; height: 40px; border: 3px solid #eee; border-top: 3px solid var(--apple-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        /* Loading Overlay */
+        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; }
+        .spinner { width: 35px; height: 35px; border: 3px solid #eee; border-top: 3px solid var(--apple-blue); border-radius: 50%; animation: spin 1s linear infinite; }
         
-        header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); }
-        .header-btn { background: rgba(0,0,0,0.05); border: none; padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; }
+        /* Notch-Optimized Header */
+        header { 
+            padding: calc(var(--safe-top) + 10px) 20px 10px 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5);
+        }
+        .header-btn { background: rgba(0,0,0,0.06); border: none; padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); }
 
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
-        .msg-container { display: flex; flex-direction: column; gap: 5px; max-width: 85%; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 100px; }
+        .msg-container { display: flex; flex-direction: column; gap: 5px; max-width: 88%; }
         .ai-container { align-self: flex-start; }
         .user-container { align-self: flex-end; }
         
-        .msg { padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.45; animation: spring 0.4s ease-out; color: var(--text); }
-        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
-        .ai { background: var(--ai-bubble); border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .msg { padding: 14px 18px; border-radius: 22px; font-size: 16px; line-height: 1.4; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); word-wrap: break-word; }
+        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 5px; box-shadow: 0 4px 10px rgba(0,122,255,0.2); }
+        .ai { background: var(--ai-bubble); border-bottom-left-radius: 5px; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        /* Code Vault UI */
-        .code-vault { background: #1e1e1e; border-radius: 14px; margin: 10px 0; position: relative; cursor: pointer; max-height: 120px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); }
-        .code-vault pre { margin: 0; padding: 15px; font-family: 'SF Mono', monospace; font-size: 12px; color: #9cdcfe; overflow-x: auto; }
-        .copy-code-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 6px; font-size: 9px; padding: 4px 8px; cursor: pointer; z-index: 5; }
+        /* Modern Code Vault */
+        .code-vault { background: #1c1c1e; border-radius: 16px; margin: 12px 0; position: relative; cursor: pointer; max-height: 150px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .code-vault pre { margin: 0; padding: 18px; font-family: "SF Mono", "Menlo", monospace; font-size: 13px; color: #5ad4ff; overflow-x: auto; }
+        .copy-code-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px; font-size: 10px; padding: 5px 10px; font-weight: bold; z-index: 5; }
 
-        /* Modal Overlay */
-        #code-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 200; display: none; flex-direction: column; padding: 50px 20px; }
-        .modal-content { background: #1e1e1e; border-radius: 20px; flex: 1; overflow-y: auto; padding: 20px; position: relative; border: 1px solid rgba(255,255,255,0.1); }
-        .close-modal { position: absolute; top: 15px; right: 15px; color: white; font-size: 24px; border: none; background: transparent; }
+        /* Full Screen Modal */
+        #code-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); z-index: 200; display: none; flex-direction: column; padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 20px) 20px; box-sizing: border-box; }
+        .modal-content { background: #000; border-radius: 24px; flex: 1; overflow-y: auto; padding: 20px; position: relative; border: 1px solid rgba(255,255,255,0.2); }
+        .close-modal { position: absolute; top: 15px; right: 15px; color: white; font-size: 28px; border: none; background: transparent; padding: 10px; }
 
-        .input-bar { padding: 15px 20px; background: rgba(255,255,255,0.7); display: flex; gap: 10px; border-top: 0.5px solid var(--border); align-items: center; }
-        input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: white; font-size: 16px; outline: none; }
-        #actionBtn { background: var(--apple-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
-        #actionBtn.stop { background: var(--apple-red); border-radius: 12px; }
+        /* Safe-Bottom Input Bar */
+        .input-bar-container { 
+            position: absolute; bottom: 0; width: 100%; 
+            padding-bottom: calc(var(--safe-bottom) + 15px); 
+            background: linear-gradient(transparent, var(--card-bg) 20%);
+        }
+        .input-bar { margin: 0 20px; display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; border: none; padding: 14px 20px; border-radius: 28px; background: white; font-size: 16px; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        #actionBtn { background: var(--apple-blue); color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        #actionBtn.stop { background: var(--apple-red); border-radius: 14px; transform: scale(0.9); }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spring { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -55,30 +77,32 @@
 <div id="code-modal">
     <div class="modal-content">
         <button class="close-modal" onclick="closeModal()">×</button>
-        <pre id="modal-code-text" style="color:#9cdcfe; font-family:monospace; white-space:pre-wrap;"></pre>
+        <pre id="modal-code-text" style="color:#5ad4ff; font-family:monospace; white-space:pre-wrap;"></pre>
     </div>
 </div>
 
 <div class="app-card">
     <div id="download-overlay">
         <div class="spinner"></div>
-        <p style="font-size: 12px; color: #8e8e93; margin-top: 15px;">INITIALIZING TRAPSIDE OS...</p>
-        <div style="width:100px; height:2px; background:#eee; margin-top:10px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
+        <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 500;">SYNCHRONIZING TRAPSIDE CORE...</p>
+        <div style="width:140px; height:3px; background:#eee; margin-top:10px; border-radius:2px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
     </div>
 
     <header>
-        <button class="header-btn" onclick="location.reload()">Reset System</button>
-        <span style="font-weight: 700; font-size: 13px; letter-spacing: -0.2px;">Trapside Pro</span>
+        <button class="header-btn" onclick="location.reload()">Reset</button>
+        <span style="font-weight: 800; font-size: 14px; letter-spacing: 1px; color: var(--apple-blue);">TRAPSIDE PRO</span>
         <button class="header-btn" onclick="document.getElementById('chat-box').scrollTo(0, 1000000)">↓ End</button>
     </header>
 
     <div id="chat-box">
-        <div class="ai-container msg-container"><div class="msg ai">Systems online, sir. Trapside at your service.</div></div>
+        <div class="ai-container msg-container"><div class="msg ai">Systems nominal, sir. I'm holding current session memory for you.</div></div>
     </div>
 
-    <div class="input-bar">
-        <input type="text" id="userInput" placeholder="Upload command...">
-        <button id="actionBtn">↑</button>
+    <div class="input-bar-container">
+        <div class="input-bar">
+            <input type="text" id="userInput" placeholder="Command...">
+            <button id="actionBtn">↑</button>
+        </div>
     </div>
 </div>
 
@@ -93,6 +117,8 @@
 
     let engine = null;
     let isGenerating = false;
+    // Persist memory in an array that stays alive between 'unload' calls
+    let sessionHistory = []; 
 
     window.closeModal = () => document.getElementById('code-modal').style.display = 'none';
     window.openModal = (code) => {
@@ -109,7 +135,7 @@
         if (role === 'ai' && text.includes('```')) {
             const parts = text.split(/```/);
             parts.forEach((part, i) => {
-                if (i % 2 === 1) { // Code block
+                if (i % 2 === 1) { // Code block logic
                     const vault = document.createElement('div');
                     vault.className = 'code-vault';
                     vault.onclick = () => openModal(part.trim());
@@ -163,14 +189,19 @@
                 });
             }
 
-            const persona = "You are Trapside, an AI assistant like JARVIS. Be polite and call the user 'sir'. Keep answers efficient.";
+            const persona = "You are Trapside, a professional AI like JARVIS. Call the user 'sir'. You have memory of the last few exchanges. Be concise.";
+            
+            // Build Context: Keep the last 3 turns (User/AI pairs)
+            const messages = [
+                { role: "system", content: persona },
+                ...sessionHistory.slice(-4), // Last 2-3 exchanges
+                { role: "user", content: val }
+            ];
+
             const aiBubble = appendMessage('ai', '...');
             let fullReply = "";
 
-            const chunks = await engine.chat.completions.create({
-                messages: [{ role: "system", content: persona }, { role: "user", content: val }],
-                stream: true
-            });
+            const chunks = await engine.chat.completions.create({ messages, stream: true });
 
             for await (const chunk of chunks) {
                 if (!isGenerating) break;
@@ -178,9 +209,16 @@
                 aiBubble.innerText = fullReply;
             }
             
-            aiBubble.innerHTML = ''; 
-            const finalDiv = appendMessage('ai', fullReply); 
-            aiBubble.remove(); 
+            // Re-render to Vault if code was generated
+            if (fullReply.includes('```')) {
+                aiBubble.innerHTML = ''; 
+                const finalDiv = appendMessage('ai', fullReply); 
+                aiBubble.remove();
+            }
+
+            // Save to memory before unloading
+            sessionHistory.push({ role: "user", content: val }, { role: "assistant", content: fullReply });
+            if (sessionHistory.length > 6) sessionHistory = sessionHistory.slice(-6);
 
             await engine.unload();
             engine = null;
