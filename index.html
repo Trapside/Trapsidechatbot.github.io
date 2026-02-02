@@ -10,6 +10,7 @@
             --apple-blue: #007AFF; --apple-red: #FF3B30; 
             --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.82); 
             --text: #1d1d1f; --ai-bubble: #ffffff; --border: rgba(0,0,0,0.1);
+            /* FIX: Defined safe areas for notch/dynamic island */
             --safe-top: env(safe-area-inset-top, 20px);
             --safe-bottom: env(safe-area-inset-bottom, 20px);
         }
@@ -17,8 +18,8 @@
         .app-card { width: 100%; max-width: 500px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); display: flex; flex-direction: column; position: relative; }
         
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; backdrop-filter: blur(15px); }
-        .profile-modal { background: var(--card-bg); z-index: 150; align-items: stretch; display: none; padding-top: calc(var(--safe-top) + 20px); }
         
+        /* FIX: Header padding to clear the notch */
         header { padding: calc(var(--safe-top) + 15px) 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5); z-index: 10; }
         .header-btn { background: rgba(0,0,0,0.06); border: none; padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); }
 
@@ -30,9 +31,7 @@
         #scrollBtn { position: absolute; bottom: 110px; right: 20px; width: 44px; height: 44px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 0.5px solid var(--border); z-index: 50; cursor: pointer; font-size: 18px; transition: transform 0.2s; }
         #scrollBtn.pulse { animation: alertPulse 1.5s infinite; border-color: var(--apple-blue); color: var(--apple-blue); }
 
-        .tag-container { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
-        .tag { background: white; border: 1px solid var(--apple-blue); color: var(--apple-blue); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
-        
+        /* FIX: Adjusted input bar for safe areas */
         .input-bar-container { position: absolute; bottom: 0; width: 100%; padding-bottom: calc(var(--safe-bottom) + 15px); background: linear-gradient(transparent, var(--card-bg) 40%); z-index: 10; }
         .input-bar { margin: 0 20px; display: flex; gap: 10px; align-items: center; }
         input { flex: 1; border: none; padding: 14px 20px; border-radius: 28px; background: white; font-size: 16px; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -51,18 +50,9 @@
 </head>
 <body>
 
-<div id="profile-modal" class="overlay profile-modal">
-    <div style="width: 100%; max-width: 400px;">
-        <h2 style="margin: 0;">Profile Vault</h2>
-        <p style="color: #666; font-size: 14px;">Last 7 learned traits:</p>
-        <div id="tag-list" class="tag-container"></div>
-        <button class="header-btn" onclick="toggleProfile()" style="width:100%; margin-top:20px; height:45px; background:#000; color:white;">Close</button>
-    </div>
-</div>
-
 <div id="download-overlay" class="overlay">
     <div style="width:35px; height:35px; border:3px solid #eee; border-top-color:var(--apple-blue); border-radius:50%; animation: spin 1s linear infinite;"></div>
-    <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">PURGING VRAM & SYNCING...</p>
+    <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">CALIBRATING ENGINE...</p>
     <div style="width:140px; height:3px; background:#eee; margin-top:10px; border-radius:2px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
 </div>
 
@@ -70,11 +60,11 @@
     <header>
         <button class="header-btn" onclick="location.reload()">Reset</button>
         <span style="font-weight: 800; font-size: 13px; color: var(--apple-blue);">TRAPSIDE PRO</span>
-        <button class="header-btn" onclick="toggleProfile()">Profile</button>
+        <button class="header-btn" onclick="location.reload()">Profile</button>
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile.</div>
+        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile. Memory will be purged after every thought for stability.</div>
     </div>
 
     <div id="scrollBtn" onclick="scrollToBottom()">↓</div>
@@ -100,7 +90,6 @@
     let engine = null;
     let isGenerating = false;
     let sessionHistory = [];
-    let userProfile = JSON.parse(localStorage.getItem('trapside_vault')) || { interests: ["Tech"] };
 
     const isUserAtBottom = () => chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
 
@@ -118,24 +107,6 @@
         scrollBtn.classList.remove('pulse');
     };
 
-    window.toggleProfile = () => {
-        const modal = document.getElementById('profile-modal');
-        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-        renderTags();
-    };
-
-    function renderTags() {
-        document.getElementById('tag-list').innerHTML = userProfile.interests.map((t, i) => `
-            <div class="tag">${t} <span style="cursor:pointer" onclick="removeTag(${i})">×</span></div>
-        `).join('');
-    }
-
-    window.removeTag = (i) => {
-        userProfile.interests.splice(i, 1);
-        localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
-        renderTags();
-    };
-
     function appendMessage(role, text) {
         const bubble = document.createElement('div');
         bubble.className = `msg ${role}`;
@@ -151,6 +122,7 @@
     }
 
     async function handleAction() {
+        // FIX: Strict check to prevent multiple engine instances from crashing the app
         if (isGenerating) return; 
         const val = input.value.trim();
         if (!val) return;
@@ -161,19 +133,23 @@
         input.value = '';
         appendMessage('user', val);
 
+        // FIX: The skeleton-pillar: UI Repaint before heavy engine boot
         await new Promise(r => requestAnimationFrame(r));
 
         try {
+            // Ensure no old engine is lingering
+            if (engine) { await engine.unload(); engine = null; }
+
             engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (p) => {
-                    if (p.progress < 1 && p.text.includes("Fetching")) {
+                    if (p.progress < 1) {
                         overlay.style.display = 'flex';
                         progressFill.style.width = (p.progress * 100) + '%';
                     } else if (p.progress >= 1) overlay.style.display = 'none';
                 }
             });
 
-            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
+            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Be extremely concise.`;
             const chunks = await engine.chat.completions.create({
                 messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}],
                 stream: true
@@ -185,22 +161,20 @@
                 if (!isGenerating) break;
                 full += chunk.choices[0]?.delta?.content || "";
                 aiBubble.innerText = full;
-                if (!isUserAtBottom()) {
-                    scrollBtn.style.display = 'flex';
-                    scrollBtn.classList.add('pulse');
-                }
             }
 
+            // FIX: Update history but keep it short for mobile memory
             sessionHistory.push({role: "user", content: val}, {role: "assistant", content: full});
-            if (sessionHistory.length > 4) sessionHistory.shift();
+            if (sessionHistory.length > 4) sessionHistory.splice(0, 2);
 
-            // DIRECT PURGE: No learning, no extra calls.
-            await new Promise(r => setTimeout(r, 200));
+            // FIX: THE PURGE - Cleans everything including hidden learning code
+            await new Promise(r => setTimeout(r, 250)); // Cooldown for GPU stability
             await engine.unload();
             engine = null;
         } catch(e) { 
             console.error(e);
             if (engine) await engine.unload();
+            engine = null;
         }
         finally { 
             isGenerating = false; 
