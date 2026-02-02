@@ -16,7 +16,6 @@
         body { margin: 0; padding: 0; height: 100vh; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; overflow: hidden; }
         .app-card { width: 100%; max-width: 500px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); display: flex; flex-direction: column; position: relative; }
         
-        /* Overlays */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; backdrop-filter: blur(15px); }
         .profile-modal { background: var(--card-bg); z-index: 150; align-items: stretch; display: none; padding-top: calc(var(--safe-top) + 20px); }
         
@@ -27,10 +26,7 @@
         .msg { padding: 14px 18px; border-radius: 22px; font-size: 16px; line-height: 1.4; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); word-wrap: break-word; }
         .ai { background: var(--ai-bubble); border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-self: flex-start; max-width: 85%; }
         .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 5px; align-self: flex-end; max-width: 85%; }
-
-        /* Pulsing Scroll Button */
-        #scrollBtn { position: absolute; bottom: 110px; right: 20px; width: 44px; height: 44px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 0.5px solid var(--border); z-index: 50; cursor: pointer; font-size: 18px; transition: transform 0.2s; }
-        #scrollBtn.pulse { animation: alertPulse 1.5s infinite; border-color: var(--apple-blue); color: var(--apple-blue); }
+        .status-pill { font-size: 11px; color: #888; margin-top: -10px; margin-left: 10px; display: flex; align-items: center; gap: 5px; }
 
         .tag-container { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
         .tag { background: white; border: 1px solid var(--apple-blue); color: var(--apple-blue); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
@@ -42,29 +38,23 @@
         #actionBtn { background: var(--apple-blue); color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #actionBtn.stop { background: var(--apple-red); border-radius: 12px; }
 
-        @keyframes alertPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
-        }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes spring { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div id="profile-modal" class="overlay profile-modal">
     <div style="width: 100%; max-width: 400px;">
-        <h2 style="margin: 0;">Profile Vault</h2>
-        <p style="color: #666; font-size: 14px;">Last 7 learned traits:</p>
+        <h2>Profile Vault</h2>
         <div id="tag-list" class="tag-container"></div>
-        <button class="header-btn" onclick="toggleProfile()" style="width:100%; margin-top:20px; height:45px; background:#000; color:white;">Close</button>
+        <button class="header-btn" onclick="toggleProfile()" style="width:100%; height:45px; background:#000; color:white;">Close</button>
     </div>
 </div>
 
 <div id="download-overlay" class="overlay">
     <div style="width:35px; height:35px; border:3px solid #eee; border-top-color:var(--apple-blue); border-radius:50%; animation: spin 1s linear infinite;"></div>
-    <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">PURGING VRAM & SYNCING...</p>
+    <p id="loading-text" style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">CALIBRATING NEURAL CORES...</p>
     <div style="width:140px; height:3px; background:#eee; margin-top:10px; border-radius:2px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
 </div>
 
@@ -76,10 +66,8 @@
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile.</div>
+        <div class="msg ai">Systems nominal, sir. I'm connected to the grid.</div>
     </div>
-
-    <div id="scrollBtn" onclick="scrollToBottom()">↓</div>
 
     <div class="input-bar-container">
         <div class="input-bar">
@@ -97,61 +85,42 @@
     const actionBtn = document.getElementById('actionBtn');
     const progressFill = document.getElementById('progress-fill');
     const overlay = document.getElementById('download-overlay');
-    const scrollBtn = document.getElementById('scrollBtn');
     
     let engine = null;
     let isGenerating = false;
     let sessionHistory = [];
     let userProfile = JSON.parse(localStorage.getItem('trapside_vault')) || { interests: ["Tech"] };
 
-    // Detection for scrolling
-    const isUserAtBottom = () => chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
+    // --- REFINED SEARCH LOGIC (Method 4: DDG JSONP) ---
+    async function performSearch(query) {
+        return new Promise((resolve) => {
+            const callbackName = 'trapside_cb_' + Math.floor(Math.random() * 1000);
+            const script = document.createElement('script');
+            
+            window[callbackName] = (data) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                const result = data.AbstractText || (data.RelatedTopics?.[0]?.Text) || "No direct intelligence found, sir.";
+                resolve(result);
+            };
 
-    chatBox.onscroll = () => {
-        if (isUserAtBottom()) {
-            scrollBtn.style.display = 'none';
-            scrollBtn.classList.remove('pulse');
-        } else {
-            scrollBtn.style.display = 'flex';
-        }
-    };
-
-    window.scrollToBottom = () => {
-        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        scrollBtn.classList.remove('pulse');
-    };
-
-    window.toggleProfile = () => {
-        const modal = document.getElementById('profile-modal');
-        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-        renderTags();
-    };
-
-    function renderTags() {
-        document.getElementById('tag-list').innerHTML = userProfile.interests.map((t, i) => `
-            <div class="tag">${t} <span style="cursor:pointer" onclick="removeTag(${i})">×</span></div>
-        `).join('');
+            script.src = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&callback=${callbackName}&no_html=1`;
+            document.body.appendChild(script);
+            setTimeout(() => resolve("Uplink timeout."), 4000);
+        });
     }
 
-    window.removeTag = (i) => {
-        userProfile.interests.splice(i, 1);
-        localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
-        renderTags();
-    };
+    function checkSearchIntent(text) {
+        const triggers = [/who is/i, /what is/i, /weather/i, /search/i, /latest/i, /current/i, /news/i, /price/i];
+        return triggers.some(regex => regex.test(text));
+    }
 
     function appendMessage(role, text) {
         const bubble = document.createElement('div');
         bubble.className = `msg ${role}`;
         bubble.innerText = text;
         chatBox.appendChild(bubble);
-        
-        // Pulse logic: if we add a message and user isn't looking at it
-        if (!isUserAtBottom()) {
-            scrollBtn.style.display = 'flex';
-            scrollBtn.classList.add('pulse');
-        } else {
-            scrollToBottom();
-        }
+        chatBox.scrollTop = chatBox.scrollHeight;
         return bubble;
     }
 
@@ -166,21 +135,34 @@
         input.value = '';
         appendMessage('user', val);
 
-        await new Promise(r => requestAnimationFrame(r));
-
         try {
-            engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
-                initProgressCallback: (p) => {
-                    if (p.progress < 1 && p.text.includes("Fetching")) {
+            // Load Engine
+            if (!engine) {
+                engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
+                    initProgressCallback: (p) => {
                         overlay.style.display = 'flex';
                         progressFill.style.width = (p.progress * 100) + '%';
-                    } else if (p.progress >= 1) overlay.style.display = 'none';
-                }
-            });
+                        if (p.progress >= 1) overlay.style.display = 'none';
+                    }
+                });
+            }
 
-            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
+            // Refined Logic: Trigger Search
+            let contextAddon = "";
+            if (checkSearchIntent(val)) {
+                const status = document.createElement('div');
+                status.className = "status-pill";
+                status.innerHTML = "<span>⚡</span> Accessing satellites...";
+                chatBox.appendChild(status);
+                
+                const searchInfo = await performSearch(val);
+                contextAddon = `\n\n[Satellite Intelligence: ${searchInfo}]`;
+                status.innerHTML = "<span>✅</span> Data integrated.";
+            }
+
+            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}. Always prioritize search info if present.`;
             const chunks = await engine.chat.completions.create({
-                messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}],
+                messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val + contextAddon}],
                 stream: true
             });
 
@@ -190,31 +172,11 @@
                 if (!isGenerating) break;
                 full += chunk.choices[0]?.delta?.content || "";
                 aiBubble.innerText = full;
-                
-                // If user scrolls up while AI is typing, start the pulse
-                if (!isUserAtBottom()) {
-                    scrollBtn.style.display = 'flex';
-                    scrollBtn.classList.add('pulse');
-                }
-            }
-
-            // Learning Routine
-            const learn = await engine.chat.completions.create({
-                messages: [{role: "user", content: `Extract 1 specific interest from "${val}". 1 word or 'none'.`}],
-                stream: false
-            });
-            const fresh = learn.choices[0].message.content.trim().replace(/[^\w]/g, '');
-            if (fresh.length > 2 && fresh.toLowerCase() !== 'none' && !userProfile.interests.includes(fresh)) {
-                userProfile.interests.push(fresh);
-                if(userProfile.interests.length > 7) userProfile.interests.shift();
-                localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
             }
 
             sessionHistory.push({role: "user", content: val}, {role: "assistant", content: full});
-            if (sessionHistory.length > 4) sessionHistory.shift();
+            if (sessionHistory.length > 6) sessionHistory.splice(0, 2);
 
-            await engine.unload();
-            engine = null;
         } catch(e) { console.error(e); }
         finally { 
             isGenerating = false; 
@@ -222,6 +184,12 @@
             actionBtn.classList.remove('stop');
         }
     }
+
+    window.toggleProfile = () => {
+        const modal = document.getElementById('profile-modal');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        document.getElementById('tag-list').innerHTML = userProfile.interests.map(t => `<div class="tag">${t}</div>`).join('');
+    };
 
     actionBtn.onclick = handleAction;
     input.onkeypress = (e) => { if(e.key === 'Enter') handleAction(); };
