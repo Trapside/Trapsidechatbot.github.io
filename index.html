@@ -2,78 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Trapside Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qwen Air Pro</title>
     <script type="importmap"> { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } } </script>
     <style>
-        :root { 
-            --apple-blue: #007AFF; --apple-red: #FF3B30; 
-            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.82); 
-            --text: #1d1d1f; --ai-bubble: #ffffff; --border: rgba(0,0,0,0.1);
-            /* FIX: Defined safe areas for notch/dynamic island */
-            --safe-top: env(safe-area-inset-top, 20px);
-            --safe-bottom: env(safe-area-inset-bottom, 20px);
-        }
-        body { margin: 0; padding: 0; height: 100vh; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; overflow: hidden; }
-        .app-card { width: 100%; max-width: 500px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); display: flex; flex-direction: column; position: relative; }
+        :root { --apple-blue: #007AFF; --apple-red: #FF3B30; --glass: rgba(255, 255, 255, 0.7); }
+        body { margin: 0; padding: 0; height: 100vh; background: linear-gradient(160deg, #a2c2e6 0%, #d4e1f5 100%); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; backdrop-filter: blur(15px); }
+        .app-card { width: 95%; max-width: 450px; height: 92vh; background: var(--glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.4); border-radius: 38px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.1); position: relative; }
         
-        /* FIX: Header padding to clear the notch */
-        header { padding: calc(var(--safe-top) + 15px) 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5); z-index: 10; }
-        .header-btn { background: rgba(0,0,0,0.06); border: none; padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); }
-
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 140px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .msg { padding: 14px 18px; border-radius: 22px; font-size: 16px; line-height: 1.4; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); word-wrap: break-word; }
-        .ai { background: var(--ai-bubble); border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-self: flex-start; max-width: 85%; }
-        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 5px; align-self: flex-end; max-width: 85%; }
-
-        #scrollBtn { position: absolute; bottom: 110px; right: 20px; width: 44px; height: 44px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 0.5px solid var(--border); z-index: 50; cursor: pointer; font-size: 18px; transition: transform 0.2s; }
-        #scrollBtn.pulse { animation: alertPulse 1.5s infinite; border-color: var(--apple-blue); color: var(--apple-blue); }
-
-        /* FIX: Adjusted input bar for safe areas */
-        .input-bar-container { position: absolute; bottom: 0; width: 100%; padding-bottom: calc(var(--safe-bottom) + 15px); background: linear-gradient(transparent, var(--card-bg) 40%); z-index: 10; }
-        .input-bar { margin: 0 20px; display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; border: none; padding: 14px 20px; border-radius: 28px; background: white; font-size: 16px; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        /* Download Progress Overlay */
+        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
+        .progress-container { width: 100%; height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin: 20px 0; }
+        #progress-bar { width: 0%; height: 100%; background: var(--apple-blue); transition: width 0.3s ease; }
         
-        #actionBtn { background: var(--apple-blue); color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #actionBtn.stop { background: var(--apple-red); border-radius: 12px; }
+        header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.2); }
+        h1 { margin: 0; font-size: 16px; font-weight: 600; color: #1d1d1f; }
+        
+        /* Reset Button Style */
+        .reset-btn { font-size: 13px; font-weight: 500; color: var(--apple-red); background: rgba(255, 59, 48, 0.1); border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+        .reset-btn:active { background: rgba(255, 59, 48, 0.2); transform: scale(0.95); }
 
-        @keyframes alertPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes spring { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; line-height: 1.4; animation: spring 0.4s ease-out; word-wrap: break-word; }
+        .user { align-self: flex-end; background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
+        .ai { align-self: flex-start; background: white; color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        #thinking { display: none; padding: 10px 20px; }
+        .dots { display: flex; gap: 5px; }
+        .dot { width: 8px; height: 8px; background: #8e8e93; border-radius: 50%; animation: pulse 1.4s infinite; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .input-bar { padding: 15px; background: rgba(255,255,255,0.6); display: flex; gap: 10px; align-items: center; border-top: 0.5px solid rgba(0,0,0,0.05); }
+        input { flex: 1; border: none; padding: 12px 18px; border-radius: 25px; background: white; outline: none; font-size: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+        button#sendBtn { background: var(--apple-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div id="download-overlay" class="overlay">
-    <div style="width:35px; height:35px; border:3px solid #eee; border-top-color:var(--apple-blue); border-radius:50%; animation: spin 1s linear infinite;"></div>
-    <p style="font-size: 13px; color: #8e8e93; margin-top: 20px; font-weight: 600;">CALIBRATING ENGINE...</p>
-    <div style="width:140px; height:3px; background:#eee; margin-top:10px; border-radius:2px;"><div id="progress-fill" style="width:0%; height:100%; background:var(--apple-blue);"></div></div>
-</div>
-
 <div class="app-card">
+    <div id="download-overlay">
+        <h1>Setting Up</h1>
+        <p id="status-text" style="font-size: 13px; color: #8e8e93;">Optimizing for iPhone 11...</p>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+    </div>
+
     <header>
-        <button class="header-btn" onclick="location.reload()">Reset</button>
-        <span style="font-weight: 800; font-size: 13px; color: var(--apple-blue);">TRAPSIDE PRO</span>
-        <button class="header-btn" onclick="location.reload()">Profile</button>
+        <h1>Qwen 2.5 Air</h1>
+        <button class="reset-btn" id="resetBtn">Reset Chat</button>
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile. Memory will be purged after every thought for stability.</div>
+        <div class="msg ai">Memory cleared. I'm running fresh and cool.</div>
     </div>
+    
+    <div id="thinking"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
 
-    <div id="scrollBtn" onclick="scrollToBottom()">↓</div>
-
-    <div class="input-bar-container">
-        <div class="input-bar">
-            <input type="text" id="userInput" placeholder="Command...">
-            <button id="actionBtn">↑</button>
-        </div>
+    <div class="input-bar">
+        <input type="text" id="userInput" placeholder="Ask me anything...">
+        <button id="sendBtn">↑</button>
     </div>
 </div>
 
@@ -81,110 +73,105 @@
     import * as webllm from "@mlc-ai/web-llm";
 
     const chatBox = document.getElementById('chat-box');
+    const thinking = document.getElementById('thinking');
     const input = document.getElementById('userInput');
-    const actionBtn = document.getElementById('actionBtn');
-    const progressFill = document.getElementById('progress-fill');
+    const sendBtn = document.getElementById('sendBtn');
+    const resetBtn = document.getElementById('resetBtn');
     const overlay = document.getElementById('download-overlay');
-    const scrollBtn = document.getElementById('scrollBtn');
-    
+    const progressBar = document.getElementById('progress-bar');
+    const statusText = document.getElementById('status-text');
+
+    let history = []; 
+    const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
     let engine = null;
-    let isGenerating = false;
-    let sessionHistory = [];
 
-    const isUserAtBottom = () => chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
-
-    chatBox.onscroll = () => {
-        if (isUserAtBottom()) {
-            scrollBtn.style.display = 'none';
-            scrollBtn.classList.remove('pulse');
-        } else {
-            scrollBtn.style.display = 'flex';
+    // Reset Functionality
+    resetBtn.onclick = async () => {
+        history = [];
+        chatBox.innerHTML = '<div class="msg ai">Memory purged. GPU is resting.</div>';
+        if (engine) {
+            await engine.unload();
+            engine = null;
         }
-    };
-
-    window.scrollToBottom = () => {
-        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        scrollBtn.classList.remove('pulse');
+        input.value = '';
     };
 
     function appendMessage(role, text) {
-        const bubble = document.createElement('div');
-        bubble.className = `msg ${role}`;
-        bubble.innerText = text;
-        chatBox.appendChild(bubble);
-        if (!isUserAtBottom()) {
-            scrollBtn.style.display = 'flex';
-            scrollBtn.classList.add('pulse');
-        } else {
-            scrollToBottom();
-        }
-        return bubble;
+        const div = document.createElement('div');
+        div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
+        div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        return div;
     }
 
-    async function handleAction() {
-        // FIX: Strict check to prevent multiple engine instances from crashing the app
-        if (isGenerating) return; 
-        const val = input.value.trim();
-        if (!val) return;
-
-        isGenerating = true;
-        actionBtn.innerText = '■';
-        actionBtn.classList.add('stop');
+    async function runChat() {
+        const text = input.value.trim();
+        if (!text) return;
+        
         input.value = '';
-        appendMessage('user', val);
+        appendMessage('user', text);
+        thinking.style.display = 'block';
+        sendBtn.disabled = true;
 
-        // FIX: The skeleton-pillar: UI Repaint before heavy engine boot
-        await new Promise(r => requestAnimationFrame(r));
-
+        const vibeTimer = new Promise(r => setTimeout(r, 3000));
+        
         try {
-            // Ensure no old engine is lingering
-            if (engine) { await engine.unload(); engine = null; }
-
-            engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
-                initProgressCallback: (p) => {
-                    if (p.progress < 1) {
-                        overlay.style.display = 'flex';
-                        progressFill.style.width = (p.progress * 100) + '%';
-                    } else if (p.progress >= 1) overlay.style.display = 'none';
-                }
-            });
-
-            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Be extremely concise.`;
-            const chunks = await engine.chat.completions.create({
-                messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}],
-                stream: true
-            });
-
-            const aiBubble = appendMessage('ai', '...');
-            let full = "";
-            for await (const chunk of chunks) {
-                if (!isGenerating) break;
-                full += chunk.choices[0]?.delta?.content || "";
-                aiBubble.innerText = full;
+            // Check if we need to initialize or re-initialize
+            if (!engine) {
+                engine = await webllm.CreateMLCEngine(MODEL_ID, {
+                    initProgressCallback: (report) => {
+                        if (report.progress < 1) {
+                            overlay.style.display = 'flex';
+                            progressBar.style.width = (report.progress * 100) + '%';
+                            statusText.innerText = report.text;
+                        } else {
+                            overlay.style.display = 'none';
+                        }
+                    }
+                });
             }
 
-            // FIX: Update history but keep it short for mobile memory
-            sessionHistory.push({role: "user", content: val}, {role: "assistant", content: full});
-            if (sessionHistory.length > 4) sessionHistory.splice(0, 2);
+            // Strict 2-message history to prevent iPhone 11 crashes
+            const conversation = history.slice(-2).map(m => ({ role: m.role, content: m.content }));
+            const messages = [
+                { role: "system", content: "You are a light, fast assistant. Keep replies brief." },
+                ...conversation,
+                { role: "user", content: text }
+            ];
 
-            // FIX: THE PURGE - Cleans everything including hidden learning code
-            await new Promise(r => setTimeout(r, 250)); // Cooldown for GPU stability
+            await vibeTimer;
+            thinking.style.display = 'none';
+
+            const aiMsgDiv = appendMessage('ai', '...');
+            let fullReply = "";
+
+            const chunks = await engine.chat.completions.create({ messages, stream: true });
+            for await (const chunk of chunks) {
+                fullReply += chunk.choices[0]?.delta?.content || "";
+                aiMsgDiv.innerText = fullReply;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            // Method 4: Full Unload to prevent "3-reply crash"
             await engine.unload();
+            engine = null; 
+
+            history.push({ role: "user", content: text }, { role: "assistant", content: fullReply });
+            if (history.length > 4) history = history.slice(-4);
+
+        } catch (err) {
+            console.error(err);
+            appendMessage('ai', "I had a memory spike. Resetting to stay smooth.");
             engine = null;
-        } catch(e) { 
-            console.error(e);
-            if (engine) await engine.unload();
-            engine = null;
-        }
-        finally { 
-            isGenerating = false; 
-            actionBtn.innerText = '↑'; 
-            actionBtn.classList.remove('stop');
+            thinking.style.display = 'none';
+        } finally {
+            sendBtn.disabled = false;
         }
     }
 
-    actionBtn.onclick = handleAction;
-    input.onkeypress = (e) => { if(e.key === 'Enter') handleAction(); };
+    sendBtn.onclick = runChat;
+    input.onkeypress = (e) => { if(e.key === 'Enter') runChat(); };
 </script>
 </body>
 </html>
