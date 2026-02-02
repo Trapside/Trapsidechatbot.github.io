@@ -4,201 +4,198 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Qwen Air Pro</title>
-    <script type="importmap"> { "imports": { 
-        "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm",
-        "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0"
-    } } </script>
+    <script type="importmap"> { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } } </script>
     <style>
-        :root { --apple-blue: #007AFF; --apple-red: #FF3B30; --glass: rgba(255, 255, 255, 0.7); }
-        body { margin: 0; padding: 0; height: 100vh; background: #F2F2F7; font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        :root { 
+            --apple-blue: #007AFF; --apple-red: #FF3B30; 
+            --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.7); 
+            --text: #1d1d1f; --ai-bubble: white; --border: rgba(0,0,0,0.1);
+        }
+        [data-theme="dark"] {
+            --bg: #000000; --card-bg: rgba(28, 28, 30, 0.8);
+            --text: #FFFFFF; --ai-bubble: #2C2C2E; --border: rgba(255,255,255,0.1);
+        }
+
+        body { margin: 0; padding: 0; height: 100vh; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; transition: background 0.4s ease; }
         
-        /* Glassmorphism Card */
-        .app-card { width: 95%; max-width: 450px; height: 94vh; background: var(--glass); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.4); border-radius: 40px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.08); position: relative; }
+        .app-card { width: 95%; max-width: 450px; height: 94vh; background: var(--card-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid var(--border); border-radius: 40px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.1); position: relative; }
         
-        /* Dynamic Download Overlay */
-        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
-        .progress-bar-bg { width: 100%; height: 6px; background: #e5e5ea; border-radius: 3px; margin: 20px 0; overflow: hidden; }
-        #progress-fill { width: 0%; height: 100%; background: var(--apple-blue); transition: width 0.3s; }
+        /* Premium Loading Overlay */
+        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--card-bg); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; }
+        .spinner { width: 44px; height: 44px; border: 3px solid rgba(0,122,255,0.1); border-top: 3px solid var(--apple-blue); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .progress-bar-bg { width: 80%; height: 3px; background: rgba(0,0,0,0.05); border-radius: 2px; margin-top: 25px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: var(--apple-blue); transition: width 0.3s ease; }
 
-        header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.4); border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-        .controls { display: flex; gap: 8px; align-items: center; }
+        header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); }
+        .nav-btn { background: rgba(120, 120, 128, 0.16); border: none; padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 600; color: var(--text); cursor: pointer; }
+
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg-container { display: flex; flex-direction: column; gap: 5px; max-width: 85%; position: relative; }
+        .ai-container { align-self: flex-start; }
+        .user-container { align-self: flex-end; }
         
-        /* Battery Saver Toggle */
-        .battery-saver { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #8e8e93; background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: 0.3s; border: none; }
-        .battery-saver.on { background: #34C759; color: white; }
+        .msg { padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.45; animation: spring 0.4s ease-out; color: var(--text); }
+        .user { background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
+        .ai { background: var(--ai-bubble); border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        
+        pre { background: rgba(0,0,0,0.05); padding: 10px; border-radius: 12px; font-family: 'SF Mono', monospace; font-size: 13px; overflow-x: auto; margin: 8px 0; border: 1px solid var(--border); }
+        .copy-code-btn { font-size: 10px; color: var(--apple-blue); background: rgba(0,122,255,0.1); border: none; padding: 4px 8px; border-radius: 8px; align-self: flex-start; cursor: pointer; margin-top: -5px; }
 
-        /* Mode Switcher */
-        .mode-toggle { display: flex; background: rgba(0,0,0,0.05); padding: 3px; border-radius: 20px; }
-        .mode-btn { border: none; padding: 6px 14px; border-radius: 17px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: #8e8e93; }
-        .mode-btn.active { background: white; color: black; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .input-bar { padding: 15px 20px; background: rgba(255,255,255,0.1); display: flex; gap: 10px; border-top: 0.5px solid var(--border); align-items: center; }
+        input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: var(--ai-bubble); color: var(--text); font-size: 16px; outline: none; }
+        
+        #actionBtn { background: var(--apple-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        #actionBtn.stop { background: var(--apple-red); border-radius: 10px; }
 
-        /* Chat Area */
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; -webkit-overflow-scrolling: touch; }
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.45; animation: spring 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.28); }
-        .user { align-self: flex-end; background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: white; color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
-        .ai img { width: 100%; border-radius: 16px; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-
-        /* Thinking / Loading UI */
-        #thinking { display: none; padding: 10px 20px; }
-        .dots { display: flex; gap: 5px; }
-        .dot { width: 8px; height: 8px; background: #C7C7CC; border-radius: 50%; animation: pulse 1.4s infinite; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        .input-bar { padding: 15px 20px; background: rgba(255,255,255,0.7); display: flex; gap: 10px; border-top: 0.5px solid rgba(0,0,0,0.05); align-items: center; }
-        input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: white; font-size: 16px; outline: none; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.1); }
-        #sendBtn { background: var(--apple-blue); color: white; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: 0.2s; }
-
-        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
-        @keyframes spring { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
 <div class="app-card">
     <div id="download-overlay">
-        <h2 style="font-weight: 700;">Loading AI...</h2>
+        <div class="spinner"></div>
+        <p id="status-txt" style="font-size: 12px; color: #8e8e93; font-weight: 500;">Starting local GPU engine...</p>
         <div class="progress-bar-bg"><div id="progress-fill"></div></div>
-        <p id="status-txt" style="font-size: 12px; color: #8e8e93;">Initializing WebGPU Engine...</p>
     </div>
 
     <header>
-        <div class="controls">
-            <div class="mode-toggle">
-                <button class="mode-btn active" id="textMode">Chat</button>
-                <button class="mode-btn" id="imageMode">Draw</button>
-            </div>
-            <button class="battery-saver" id="batteryBtn">🔋 Saver: OFF</button>
+        <div style="display:flex; gap:8px;">
+            <button class="nav-btn" id="themeToggle">🌓 Theme</button>
+            <button class="nav-btn" onclick="document.getElementById('chat-box').scrollTo(0,0)">↑ Top</button>
         </div>
-        <button id="resetBtn" style="border:none; background:transparent; color:var(--apple-red); font-size:12px; font-weight:600;">Reset</button>
+        <button id="resetBtn" style="border:none; background:transparent; color:var(--apple-red); font-weight:600; font-size:13px;">Reset</button>
     </header>
 
     <div id="chat-box">
-        <div class="msg ai"><b>Welcome to Air Pro.</b><br>Fast. Local. Private.</div>
+        <div class="ai-container msg-container"><div class="msg ai">Private Air Pro is ready.</div></div>
     </div>
-    
-    <div id="thinking"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
 
     <div class="input-bar">
-        <input type="text" id="userInput" placeholder="Message...">
-        <button id="sendBtn">↑</button>
+        <input type="text" id="userInput" placeholder="Ask anything...">
+        <button id="actionBtn">↑</button>
     </div>
 </div>
 
 <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
-    import { pipeline } from "@huggingface/transformers";
 
     const chatBox = document.getElementById('chat-box');
     const input = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const thinking = document.getElementById('thinking');
+    const actionBtn = document.getElementById('actionBtn');
+    const themeToggle = document.getElementById('themeToggle');
     const progressFill = document.getElementById('progress-fill');
     const overlay = document.getElementById('download-overlay');
-    const batteryBtn = document.getElementById('batteryBtn');
 
-    let currentMode = 'text';
-    let batterySaver = false;
-    let textEngine = null;
-    let imagePipe = null;
+    let engine = null;
+    let isGenerating = false;
+    let history = [];
 
-    // Battery Saver Toggle
-    batteryBtn.onclick = () => {
-        batterySaver = !batterySaver;
-        batteryBtn.innerText = `🔋 Saver: ${batterySaver ? 'ON' : 'OFF'}`;
-        batteryBtn.classList.toggle('on');
+    // Dark Mode Logic
+    themeToggle.onclick = () => {
+        const current = document.body.getAttribute('data-theme');
+        document.body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
     };
 
-    // Mode Switcher
-    document.getElementById('textMode').onclick = () => switchMode('text');
-    document.getElementById('imageMode').onclick = () => switchMode('image');
-    document.getElementById('resetBtn').onclick = () => { chatBox.innerHTML = '<div class="msg ai">Memory purged.</div>'; };
+    function appendMessage(role, text) {
+        const container = document.createElement('div');
+        container.className = `${role}-container msg-container`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `msg ${role}`;
+        
+        // Detect and style code blocks
+        if (role === 'ai') {
+            const hasCode = text.includes('```');
+            bubble.innerHTML = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            container.appendChild(bubble);
 
-    async function switchMode(mode) {
-        if (currentMode === mode) return;
-        currentMode = mode;
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active'));
-        if (textEngine) { await textEngine.unload(); textEngine = null; }
-    }
-
-    function appendMessage(role, content, isImage = false) {
-        const div = document.createElement('div');
-        div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
-        if (isImage) {
-            div.innerHTML = `<img src="${content}">`;
+            if (hasCode) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-code-btn';
+                copyBtn.innerText = 'Copy Code';
+                copyBtn.onclick = () => {
+                    const code = text.match(/```([\s\S]*?)```/)[1];
+                    navigator.clipboard.writeText(code.trim());
+                    copyBtn.innerText = 'Copied!';
+                    setTimeout(() => copyBtn.innerText = 'Copy Code', 2000);
+                };
+                container.appendChild(copyBtn);
+            }
         } else {
-            div.innerText = content;
+            bubble.innerText = text;
+            container.appendChild(bubble);
         }
-        chatBox.appendChild(div);
+        
+        chatBox.appendChild(container);
         chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        return div;
+        return bubble;
     }
 
-    async function handleSend() {
+    async function handleAction() {
+        if (isGenerating) { stopGeneration(); return; }
+
         const val = input.value.trim();
         if (!val) return;
+
+        isGenerating = true;
+        actionBtn.innerText = '■';
+        actionBtn.classList.add('stop');
         input.value = '';
         appendMessage('user', val);
-        thinking.style.display = 'block';
 
-        if (currentMode === 'text') {
-            await runTextAI(val);
-        } else {
-            await runImageAI(val);
-        }
-        thinking.style.display = 'none';
-    }
-
-    async function runTextAI(prompt) {
-        textEngine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
-            initProgressCallback: (p) => {
-                // CONDITIONAL OVERLAY: Only show if it's actually downloading from the web
-                if (p.progress < 1 && (p.text.includes("Fetching") || p.text.includes("Downloading"))) {
-                    overlay.style.display = 'flex';
-                    progressFill.style.width = (p.progress * 100) + '%';
-                } else if (p.progress >= 1) {
-                    overlay.style.display = 'none';
-                }
+        try {
+            if (!engine) {
+                engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
+                    initProgressCallback: (p) => {
+                        if (p.progress < 1 && p.text.includes("Fetching")) {
+                            overlay.style.display = 'flex';
+                            progressFill.style.width = (p.progress * 100) + '%';
+                        } else if (p.progress >= 1) { overlay.style.display = 'none'; }
+                    }
+                });
             }
-        });
 
-        const reply = await textEngine.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
-            stream: true
-        });
+            const aiBubble = appendMessage('ai', '...');
+            let fullText = "";
+            const chunks = await engine.chat.completions.create({
+                messages: [...history.slice(-2), { role: "user", content: val }],
+                stream: true
+            });
 
-        let fullText = "";
-        const aiDiv = appendMessage('ai', '...');
-        for await (const chunk of reply) {
-            fullText += chunk.choices[0]?.delta?.content || "";
-            aiDiv.innerText = fullText;
-        }
-        await textEngine.unload(); 
-        textEngine = null;
+            for await (const chunk of chunks) {
+                if (!isGenerating) break;
+                fullText += chunk.choices[0]?.delta?.content || "";
+                aiBubble.innerHTML = fullText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            history.push({ role: "user", content: val }, { role: "assistant", content: fullText });
+            if (history.length > 4) history = history.slice(-4);
+            await engine.unload();
+            engine = null;
+
+        } catch (e) { console.error(e); } 
+        finally { stopGeneration(); }
     }
 
-    async function runImageAI(prompt) {
-        // Battery Saver Settings
-        const size = batterySaver ? 128 : 256; // 128x128 is ultra-light
-        const steps = batterySaver ? 1 : 1; 
-
-        overlay.style.display = 'flex';
-        imagePipe = await pipeline('text-to-image', 'Xenova/sd-turbo', { device: 'webgpu', dtype: 'fp16' });
-        overlay.style.display = 'none';
-
-        const output = await imagePipe(prompt, {
-            num_inference_steps: steps,
-            width: size,
-            height: size
-        });
-
-        const url = URL.createObjectURL(output.images[0]);
-        appendMessage('ai', url, true);
-        imagePipe = null; 
+    function stopGeneration() {
+        isGenerating = false;
+        actionBtn.innerText = '↑';
+        actionBtn.classList.remove('stop');
     }
 
-    sendBtn.onclick = handleSend;
+    document.getElementById('resetBtn').onclick = async () => {
+        history = [];
+        chatBox.innerHTML = '<div class="ai-container msg-container"><div class="msg ai">Memory purged.</div></div>';
+        if(engine) await engine.unload();
+        engine = null;
+        stopGeneration();
+    };
+
+    actionBtn.onclick = handleAction;
+    input.onkeypress = (e) => { if(e.key === 'Enter') handleAction(); };
 </script>
 </body>
 </html>
