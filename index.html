@@ -76,7 +76,7 @@
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile.</div>
+        <div class="msg ai">Systems nominal, sir. I'm calibrated to your profile. If it's your first here just wait about 7 to 15 second for the model to load locally on you device and after that the model will be extra smooth.</div>
     </div>
 
     <div id="scrollBtn" onclick="scrollToBottom()">↓</div>
@@ -178,7 +178,7 @@
                 }
             });
 
-            const sys = `You are Trapside (JARVIS persona). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
+            const sys = `You are Trapside. Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
             const chunks = await engine.chat.completions.create({
                 messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}],
                 stream: true
