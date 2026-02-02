@@ -12,30 +12,23 @@
             --safe-top: env(safe-area-inset-top);
             --safe-bottom: env(safe-area-inset-bottom);
         }
-        /* FIX: Full bleed background including Notch */
         body { margin: 0; padding: 0; height: 100vh; background: var(--bg); font-family: -apple-system, sans-serif; display: flex; justify-content: center; overflow: hidden; }
-        
         .app-card { width: 100%; max-width: 500px; height: 100vh; background: var(--card-bg); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); display: flex; flex-direction: column; position: relative; }
 
-        /* FIX: Header now respects the iPhone Notch */
         header { 
             padding: calc(var(--safe-top) + 10px) 20px 15px 20px; 
             display: flex; justify-content: space-between; align-items: center; 
             background: rgba(255,255,255,0.7); border-bottom: 0.5px solid rgba(0,0,0,0.1); z-index: 100;
         }
 
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 150px; -webkit-overflow-scrolling: touch; }
-
-        /* UI Optimization: Improved Bubble Contrast */
-        .msg { padding: 12px 16px; border-radius: 20px; font-size: 16px; max-width: 85%; line-height: 1.4; position: relative; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 150px; scroll-behavior: smooth; }
+        .msg { padding: 12px 16px; border-radius: 20px; font-size: 16px; max-width: 85%; line-height: 1.4; position: relative; animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .ai { background: white; align-self: flex-start; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .user { background: var(--apple-blue); color: white; align-self: flex-end; }
 
-        /* Image Display */
-        .gen-frame { margin-top: 10px; border-radius: 12px; overflow: hidden; background: #eee; min-height: 200px; display: flex; align-items: center; justify-content: center; position: relative; }
-        .gen-frame img { width: 100%; display: block; animation: fadeIn 0.8s ease; }
+        .gen-frame { margin-top: 10px; border-radius: 12px; overflow: hidden; background: #eee; min-height: 200px; }
+        .gen-frame img { width: 100%; display: block; }
 
-        /* FIX: Input bar respects bottom safe area/home bar */
         .input-area { 
             position: absolute; bottom: 0; width: 100%; 
             padding-bottom: calc(var(--safe-bottom) + 15px);
@@ -43,20 +36,19 @@
         }
         .input-wrap { margin: 0 20px; display: flex; gap: 10px; }
         input { flex: 1; border: none; padding: 14px 20px; border-radius: 30px; background: white; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); outline: none; }
-        
         #actionBtn { background: var(--apple-blue); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; font-weight: bold; }
 
-        /* Overlays */
         .overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spring { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div id="loader" class="overlay">
     <div style="width:40px; height:40px; border:3px solid #ddd; border-top-color:var(--apple-blue); border-radius:50%; animation: spin 1s linear infinite;"></div>
-    <p id="load-status" style="margin-top:20px; font-size:13px; font-weight:600; color:#888;">BOOTING CORE...</p>
+    <p id="load-status" style="margin-top:20px; font-size:13px; font-weight:600; color:#888;">SYNCING CORE...</p>
 </div>
 
 <div class="app-card">
@@ -67,7 +59,7 @@
     </header>
 
     <div id="chat-box">
-        <div class="msg ai">Nominal, sir. Use <b>/imagine cat</b> for a visual.</div>
+        <div class="msg ai">Systems nominal, sir. Try <b>/imagine a futuristic cat</b>.</div>
     </div>
 
     <div class="input-area">
@@ -91,30 +83,21 @@
     let isWorking = false;
     let userProfile = JSON.parse(localStorage.getItem('trapside_vault')) || { interests: ["Tech"] };
 
-    // --- OPTIMIZED IMAGE LOGIC ---
     async function runImagine(prompt) {
-        status.innerText = "SWITCHING TO VISION CORE...";
+        status.innerText = "GENERATING VISUAL...";
         loader.style.display = 'flex';
         
         try {
-            // FIX: This is where MobileDiffusion hooks in. 
-            // To prevent "random" images, we use a search-based fallback if WebGPU is busy.
-            const query = encodeURIComponent(prompt + " high quality photography");
-            const imgUrl = `https://source.unsplash.com/featured/512x512?${query}`;
-
-            await new Promise(r => setTimeout(r, 1500)); // Simulate diffusion warmup
+            // Using Pollinations AI - Reliable and prompt-accurate
+            const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
             
-            const bubble = appendMessage('ai', `Analysis of "${prompt}" complete, sir.`);
+            const bubble = appendMessage('ai', `Visual for "${prompt}" is ready, sir.`);
             const frame = document.createElement('div');
             frame.className = 'gen-frame';
-            frame.innerHTML = `<img src="${imgUrl}" onload="this.parentElement.style.background='none'">`;
+            frame.innerHTML = `<img src="${imgUrl}" style="opacity:0; transition: opacity 0.5s;" onload="this.style.opacity=1">`;
             bubble.appendChild(frame);
-            
-        } catch (e) {
-            appendMessage('ai', "Vision core failed to initialize, sir.");
         } finally {
             loader.style.display = 'none';
-            // METHOD 4 PURGE: Clear the specific Vision Buffers here
         }
     }
 
@@ -146,14 +129,17 @@
         try {
             const engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (p) => {
+                    // FIX: Only show loader if we are actually downloading (progress < 1)
                     if (p.progress < 1) {
                         loader.style.display = 'flex';
-                        status.innerText = `SYNCING: ${Math.round(p.progress*100)}%`;
-                    } else loader.style.display = 'none';
+                        status.innerText = `LOADING CORE: ${Math.round(p.progress*100)}%`;
+                    } else {
+                        loader.style.display = 'none';
+                    }
                 }
             });
 
-            const sys = `You are Trapside. Call user 'sir'. User Interests: ${userProfile.interests.join(", ")}.`;
+            const sys = `You are Trapside (JARVIS). Call user 'sir'. Profile: ${userProfile.interests.join(", ")}.`;
             const reply = await engine.chat.completions.create({
                 messages: [{role: "system", content: sys}, ...sessionHistory, {role: "user", content: val}]
             });
@@ -162,19 +148,17 @@
             appendMessage('ai', text);
             sessionHistory.push({role:"user", content:val}, {role:"assistant", content:text});
 
-            // Method 4 Purge
             await engine.unload();
         } finally {
             isWorking = false;
             actionBtn.innerText = '↑';
+            loader.style.display = 'none';
         }
     }
 
     actionBtn.onclick = handleCommand;
     input.onkeypress = (e) => { if(e.key === 'Enter') handleCommand(); };
-    window.toggleProfile = () => alert("Vault: " + userProfile.interests.join(", "));
+    window.toggleProfile = () => alert("User Data Vault: " + userProfile.interests.join(", "));
 </script>
-
-<style> @keyframes spin { 100% { transform: rotate(360deg); } } </style>
 </body>
 </html>
