@@ -10,7 +10,6 @@
             --apple-blue: #007AFF; --apple-red: #FF3B30; 
             --bg: #F2F2F7; --card-bg: rgba(255, 255, 255, 0.82); 
             --text: #1d1d1f; --ai-bubble: #ffffff; --border: rgba(0,0,0,0.1);
-            /* FIX: Defined safe area variables */
             --safe-top: env(safe-area-inset-top, 20px);
             --safe-bottom: env(safe-area-inset-bottom, 20px);
         }
@@ -20,7 +19,6 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; backdrop-filter: blur(15px); }
         .profile-modal { background: var(--card-bg); z-index: 150; align-items: stretch; display: none; padding-top: calc(var(--safe-top) + 20px); }
         
-        /* FIX: Increased header padding to move below notch */
         header { padding: calc(var(--safe-top) + 15px) 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); background: rgba(255,255,255,0.5); z-index: 10; }
         .header-btn { background: rgba(0,0,0,0.06); border: none; padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); }
 
@@ -153,7 +151,6 @@
     }
 
     async function handleAction() {
-        // FIX: Added strict generating check to prevent parallel engine crashes
         if (isGenerating) return; 
         const val = input.value.trim();
         if (!val) return;
@@ -194,25 +191,11 @@
                 }
             }
 
-            // FIX: Added error handling around learning to prevent it from blocking the purge
-            try {
-                const learn = await engine.chat.completions.create({
-                    messages: [{role: "user", content: `Extract 1 specific interest from "${val}". 1 word or 'none'.`}],
-                    stream: false
-                });
-                const fresh = learn.choices[0].message.content.trim().replace(/[^\w]/g, '');
-                if (fresh.length > 2 && fresh.toLowerCase() !== 'none' && !userProfile.interests.includes(fresh)) {
-                    userProfile.interests.push(fresh);
-                    if(userProfile.interests.length > 7) userProfile.interests.shift();
-                    localStorage.setItem('trapside_vault', JSON.stringify(userProfile));
-                }
-            } catch(e) { console.warn("Learning skipped"); }
-
             sessionHistory.push({role: "user", content: val}, {role: "assistant", content: full});
             if (sessionHistory.length > 4) sessionHistory.shift();
 
-            // FIX: Added a small delay before unload to let WebGPU finish clean-up
-            await new Promise(r => setTimeout(r, 150));
+            // DIRECT PURGE: No learning, no extra calls.
+            await new Promise(r => setTimeout(r, 200));
             await engine.unload();
             engine = null;
         } catch(e) { 
