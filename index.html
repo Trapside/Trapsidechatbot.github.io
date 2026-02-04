@@ -126,7 +126,7 @@
   <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
 
-    // Config and caps (tuned for SmolLM2-360M, with reasoning/formatting improvements)
+    // Config and caps (tuned for SmolLM2-360M, with deterministic formatting)
     const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
     const MAX_TRAITS = 7;
     const LOWPOWER_TRAITS = 3;
@@ -303,7 +303,7 @@
             }
           }
         }
-        // intentionally leaving other engine options to defaults for portability
+        // leave other engine options to defaults for portability
       });
 
       return eng;
@@ -343,7 +343,7 @@
       return (h >>> 0).toString(36);
     }
 
-    // Improved system prompt: strong formatting + refusal for chain-of-thought
+    // Improved system prompt: explicit examples and strict output rule
     function buildSystemPrompt(){
       const traits = userTraits.slice(0, LOWPOWER_TRAITS);
       const compact = traits.map(t => t.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
@@ -352,22 +352,22 @@
         "OUTPUT RULES: Produce ONLY a single line that starts with 'Answer:' followed by the concise answer. Do NOT give explanations, chain-of-thought, steps, or any extra text.",
         "If you cannot determine a reliable answer, respond exactly: 'Answer: I don't know.'",
         "Keep the answer short (<= 60 words). Prefer to be brief and precise.",
-        "Do not include uncertainty percentages, confidence, or meta commentary."
+        "Do not include uncertainty percentages, confidence, or meta commentary.",
+        "EXAMPLES:",
+        "User: 'Hi' -> Answer: Hello.",
+        "User: 'Is water wet?' -> Answer: Yes."
       ].join(' ');
       const base = "Concise assistant. Keep replies short and precise.";
       const systemRaw = compact ? `${base} User: ${compact}. ${instructions}` : `${base} ${instructions}`;
       return clampString(systemRaw, SYSTEM_PROMPT_CHAR_CAP);
     }
 
-    // Build messages with small-history support (useful for SmolLM2)
+    // Build messages with small-history support
     function buildMessages(userText){
       const system = buildSystemPrompt();
       const recent = [];
-      // include last N turns from history when not in strict low-power mode,
-      // or include HISTORY_TURNS_LOW when lowPower is false/true as configured.
       const turns = lowPower ? HISTORY_TURNS_LOW : Math.max(HISTORY_TURNS_LOW, 4);
       if (turns > 0) {
-        // history contains alternating user/assistant entries; take last turns*2 entries
         const sliceSize = turns * 2;
         const tail = history.slice(-sliceSize);
         for (const h of tail) recent.push(h);
@@ -379,25 +379,79 @@
     // Extract Answer: robust parsing
     function extractAnswer(fullText) {
       if (!fullText) return '';
-      // try explicit "Answer:" capture
       const answerMatch = fullText.match(/Answer\s*:\s*([\s\S]*?)(?:\n|$)/i);
       if (answerMatch && answerMatch[1].trim()) return answerMatch[1].trim();
-      // fallback: take first non-empty line and treat as the answer (trim to 250 chars)
       const lines = fullText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       if (lines.length) return lines[0].slice(0, 1000);
       return fullText.trim().slice(0, 1000);
     }
 
-    // If model produces extra text, re-run a tiny formatter step to enforce "Answer:" line
-    async function formatToSingleLine(answerSource, tryCount = 0) {
-      // Avoid recursion: do not call formatter more than once
+    // sanitize and normalize answer into canonical single-line "Answer: X"
+    function sanitizeAnswer(raw) {
+      if (!raw) return "Answer: I don't know.";
+      const s = String(raw).trim();
+
+      // If model already provided Answer:, extract
+      if (/Answer\s*:/i.test(s)) {
+        const body = extractAnswer(s);
+        if (!body) return "Answer: I don't know.";
+        const normalized = normalizeText(body);
+        return `Answer: ${normalized}`;
+      }
+
+      // If there's quoted text, prefer quoted content
+      const quoteMatch = s.match(/["'“‘](.+?)["'”’]/);
+      if (quoteMatch && quoteMatch[1]) {
+        const q = normalizeText(quoteMatch[1]);
+        if (q) return `Answer: ${q}`;
+      }
+
+      // Prefer explicit "I don't know" if present anywhere
+      if (/don't know|do not know|unable to determine/i.test(s)) {
+        return "Answer: I don't know.";
+      }
+
+      // Remove common meta phrases
+      let cleaned = s.replace(/^(my answer is|i think|it is|the answer is|answer is)\s*[:\-]?\s*/i, '');
+      cleaned = cleaned.replace(/\b(yes\s+or\s+no|my answer is)\b/ig, '').trim();
+
+      // Take first short sentence (<= 60 words, or first clause)
+      const firstSentence = cleaned.split(/[\.\?\!]\s/)[0].trim();
+      const normalized = normalizeText(firstSentence || cleaned);
+
+      if (!normalized) return "Answer: I don't know.";
+      return `Answer: ${normalized}`;
+    }
+
+    // Normalize spacing, strip trailing punctuation and excessive words, truncate
+    function normalizeText(s) {
+      if (!s) return '';
+      let t = s.trim();
+      // strip leading "Answer:" if present
+      t = t.replace(/^Answer\s*:\s*/i, '');
+      // remove meta-prefaces
+      t = t.replace(/^(my answer is|i think|it is|the answer is)\s*/i, '');
+      // reduce multiple spaces
+      t = t.replace(/\s+/g, ' ');
+      // trim stray punctuation at ends
+      t = t.replace(/^[\-\:\s"']+|[\-\:\s"']+$/g, '');
+      // cap words to 60
+      const words = t.split(/\s+/).slice(0, 60);
+      t = words.join(' ');
+      // final cleanup: if contains both yes and don't know, prefer don't know
+      if (/\byes\b/i.test(t) && /don't know|do not know/i.test(s)) return "I don't know.";
+      return t;
+    }
+
+    // formatToSingleLine: use a formatter pass with temp=0 to force "Answer:" if model didn't comply
+    async function formatToSingleLine(answerSource) {
       try {
         const probe = await createEngineWithProgress();
-        const sys = "Formatter: Extract the single concise answer from the provided content. Output ONLY one line that starts with 'Answer:' followed by the answer. If none present or unsure, output 'Answer: I don't know.'";
+        const sys = "Formatter: Extract a single concise answer from the provided content. Output ONLY one line that starts with 'Answer:' followed by the answer. If none present or unsure, output 'Answer: I don't know.'";
         const messages = [{ role: 'system', content: sys }, { role: 'user', content: answerSource }];
-        // Use a short synchronous completion (stream => false) if API supports it; fallback to streaming.
+        // deterministic: temperature 0, and keep output short
         try {
-          const chunks = await probe.chat.completions.create({ messages, stream: true });
+          const chunks = await probe.chat.completions.create({ messages, stream: true, temperature: 0.0, max_tokens: 64 });
           let out = '';
           for await (const c of chunks) {
             out += c?.choices?.[0]?.delta?.content || '';
@@ -406,9 +460,9 @@
           try { await probe.unload(); } catch(e){}
           return out.trim();
         } catch (streamErr) {
-          // last-resort: try single-shot call (some runtimes support non-stream)
+          // fallback single-shot (if supported)
           try {
-            const res = await probe.chat.completions.create({ messages });
+            const res = await probe.chat.completions.create({ messages, temperature: 0.0, max_tokens: 64 });
             const text = (res?.choices?.[0]?.message?.content) || '';
             try { await probe.unload(); } catch(e){}
             return text.trim();
@@ -432,7 +486,7 @@
       return false;
     }
 
-    // aggressive reset and retry (unchanged mostly)
+    // aggressive reset and retry (unchanged)
     async function aggressiveResetAndRetry(originalUserText) {
       appendMessage('assistant', 'Trying to refresh my mind...');
       sendBtn.disabled = true;
@@ -464,13 +518,13 @@
       }
     }
 
-    // Recovery direct answer (unchanged)
+    // Recovery direct answer: deterministic pass
     async function recoveryDirectAnswer(userText) {
       try {
         const eng = await createEngineWithProgress();
         const sys = "Concise assistant. Provide a single-line direct answer to the user's question. Do NOT include 'Certainty' or steps — just the answer. Output exactly one line starting with 'Answer:'. If unsure, output 'Answer: I don't know.'";
         const messages = [{ role: 'system', content: sys }, { role: 'user', content: userText }];
-        const chunks = await eng.chat.completions.create({ messages, stream: true });
+        const chunks = await eng.chat.completions.create({ messages, stream: true, temperature: 0.0, max_tokens: 128 });
         let text = '';
         for await (const chunk of chunks) {
           const delta = chunk?.choices?.[0]?.delta?.content || '';
@@ -490,7 +544,7 @@
       }
     }
 
-    // handle a single user request: improved flow -> cache -> engine -> enforce Answer: format -> cache result
+    // handle a single user request: deterministic + sanitizer + formatter fallback + cache
     async function handleSingleRequest(userText, retriesLeft = MAX_RESET_RETRIES) {
       if (!userText || !userText.trim()) return;
       const normQ = userText.trim();
@@ -521,7 +575,8 @@
         localEngine = await createEngineWithProgress();
         engine = localEngine;
 
-        const chunks = await localEngine.chat.completions.create({ messages, stream: true });
+        // deterministic: temperature 0, cap tokens to avoid huge outputs
+        const chunks = await localEngine.chat.completions.create({ messages, stream: true, temperature: 0.0, max_tokens: 256 });
         for await (const chunk of chunks) {
           const delta = chunk?.choices?.[0]?.delta?.content || '';
           if (delta) {
@@ -530,7 +585,6 @@
               fullReply = fullReply.slice(0, REPLY_CHAR_CAP_LOW) + '\n\n[truncated to fit device limits]';
               break;
             }
-            // yield occasionally for UI responsiveness
             if (fullReply.length % 200 === 0) await new Promise(requestAnimationFrame);
           }
         }
@@ -541,29 +595,29 @@
 
         hideOverlay();
 
-        // If model didn't follow "Answer:" format, try to enforce formatting with a small formatting pass
-        let finalLine = '';
-        if (/Answer\s*:/i.test(fullReply)) {
-          finalLine = 'Answer: ' + extractAnswer(fullReply);
-        } else {
-          // attempt formatter pass to strictly produce "Answer:" line
-          const fmt = await formatToSingleLine(fullReply, 0);
+        // primary sanitize
+        let finalLine = sanitizeAnswer(fullReply);
+
+        // if sanitize result seems still invalid or meta, run a formatter pass (deterministic)
+        if (!/Answer\s*:\s*\S+/.test(finalLine) || /my answer is|i think/i.test(finalLine) || isTrivial(finalLine)) {
+          const fmt = await formatToSingleLine(fullReply);
           if (fmt && /Answer\s*:/i.test(fmt)) {
-            finalLine = fmt.split(/\r?\n/).find(l => /Answer\s*:/i.test(l)).trim();
+            // extract the single Answer: line, then sanitize it
+            const ansLine = fmt.split(/\r?\n/).find(l => /Answer\s*:/i.test(l)) || fmt;
+            finalLine = sanitizeAnswer(ansLine);
           } else {
-            // fallback: extract best-effort and prefix Answer:
-            const best = extractAnswer(fullReply);
-            finalLine = best ? `Answer: ${best}` : `Answer: I don't know.`;
+            // fallback: try recovery direct answer once
+            if (retriesLeft > 0) {
+              const direct = await recoveryDirectAnswer(normQ);
+              if (direct && /Answer\s*:/i.test(direct) && !isTrivial(direct)) {
+                finalLine = sanitizeAnswer(direct);
+              }
+            }
           }
         }
 
-        // small sanity: if trivial or empty, try a direct recovery attempt once
-        if ((isTrivial(finalLine) || !finalLine || finalLine.length < 6) && retriesLeft > 0) {
-          const direct = await recoveryDirectAnswer(normQ);
-          if (direct && /Answer\s*:/i.test(direct) && !isTrivial(direct)) {
-            finalLine = direct;
-          }
-        }
+        // final sanity guard
+        if (!finalLine || !/Answer\s*:\s*\S+/.test(finalLine)) finalLine = "Answer: I don't know.";
 
         // Remove 'Thinking...' placeholder
         for (let i = 0; i < allMessages.length; i++) {
@@ -573,8 +627,7 @@
             break;
           }
         }
-        // append final answer (strip extra whitespace)
-        finalLine = (finalLine || 'Answer: I don\'t know.').trim();
+
         appendMessage('assistant', finalLine);
 
         // store in history and cache (cache stores the final single-line string)
@@ -587,7 +640,6 @@
 
       } catch (err) {
         console.error('Inference error', err);
-        // remove placeholder if exists
         for (let i = allMessages.length - 1; i >= 0; i--) {
           if (allMessages[i] && allMessages[i].text === 'Thinking...') {
             allMessages.splice(i, 1);
@@ -602,7 +654,7 @@
         if (retriesLeft > 0) {
           await aggressiveResetAndRetry(userText);
         } else {
-          appendMessage('assistant', 'Answer: I don\'t know.');
+          appendMessage('assistant', 'Answer: I don\\'t know.');
         }
       } finally {
         sendBtn.disabled = false;
