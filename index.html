@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Qwen Air Pro — Low Power Primary</title>
+  <title>SmolLM2 — Low Power Primary</title>
 
   <script type="importmap">
     { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } }
@@ -15,7 +15,7 @@
       --bg1:#e6efff; --bg2:#f4f7fb; --primary:#007AFF; --accent:#5856D6; --muted:#8e8e93; --card:rgba(255,255,255,0.92);
     }
     html,body{height:100%;margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(160deg,var(--bg1),var(--bg2));-webkit-font-smoothing:antialiased}
-    .card{width:94%;max-width:470px;margin:4vh auto;height:92vh;background:var(--card);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);box-shadow:0 6px 20px rgba(6,10,18,0.06)}
+    .card{width:94%;max-width:470px;margin:4vh auto;height:92vh;background:var(--card);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);box-shadow:0 8px 30px rgba(6,10,18,0.06)}
     header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.95), transparent)}
     .title{font-weight:700;color:#0b1220}
     .controls{display:flex;gap:8px;align-items:center}
@@ -56,7 +56,7 @@
       50% { opacity: 1; transform: translateY(-2px); }
       100% { opacity: 0.6; transform: translateY(0); }
     }
-    .thinking { font-style:italic;color:var(--muted);padding:8px 12px;border-radius:12px;background:transparent;border:1px dashed rgba(0,0,0,0.04);max-width:78%; animation: pulse 1.2s ease-in-out infinite; }
+    .thinking { font-style:italic;color:var(--muted);padding:8px 12px;border-radius:12px;background:transparent;border:1px dashed rgba(0,0,0,0.04);max-width:78%; animation: pulse 1.2s ease-in-out infinite }
 
     .fade-in { animation: fadeIn 360ms ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0); } }
@@ -79,7 +79,7 @@
     </div>
 
     <header>
-      <div class="title">Qwen Air Pro</div>
+      <div class="title">SmolLM2</div>
       <div class="controls">
         <!-- Low Power toggle (kept, default ON) -->
         <label class="toggle" title="Low Power Mode">
@@ -126,20 +126,20 @@
   <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
 
-    // Config and caps (tuned for iPhone 7 / low RAM)
-    const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+    // Config and caps (tuned for SmolLM2-360M)
+    const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
     const MAX_TRAITS = 7;
-    const LOWPOWER_TRAITS = 2;
-    const HISTORY_TURNS_LOW = 0;         // keep history off in low-power primary
-    const REPLY_CHAR_CAP_LOW = 500;      // per request
-    const SYSTEM_PROMPT_CHAR_CAP = 420;
-    const TRAITS_KEY = 'qwen_user_traits_v1';
-    const LOWPOWER_KEY = 'qwen_lowpower_v1';
-    const MODEL_DOWNLOADED_KEY = 'qwen_model_downloaded_v1';
-    const REASONING_CACHE_KEY = 'qwen_reasoning_cache_v1';
-    const MAX_MESSAGES_IN_DOM = 6;       // keep DOM small (4-6 recommended; using 6)
-    const ALL_MESSAGES_STORE_CAP = 300;  // keep last N messages in memory
-    const MAX_RESET_RETRIES = 2;         // attempts to reset model on memory spike
+    const LOWPOWER_TRAITS = 3;        // slightly more expressive traits for this smaller model
+    const HISTORY_TURNS_LOW = 2;      // keep a couple turns even in low-power mode (360M can handle small history)
+    const REPLY_CHAR_CAP_LOW = 800;   // larger per-request cap for richer answers
+    const SYSTEM_PROMPT_CHAR_CAP = 800;
+    const TRAITS_KEY = 'smollm_user_traits_v1';
+    const LOWPOWER_KEY = 'smollm_lowpower_v1';
+    const MODEL_DOWNLOADED_KEY = 'smollm_model_downloaded_v1';
+    const REASONING_CACHE_KEY = 'smollm_reasoning_cache_v1';
+    const MAX_MESSAGES_IN_DOM = 8;       // slightly larger window for better context
+    const ALL_MESSAGES_STORE_CAP = 500;  // keep more in-memory history (still bounded)
+    const MAX_RESET_RETRIES = 1;         // fewer retries necessary for smaller model
 
     // UI refs
     const chat = document.getElementById('chat');
@@ -317,6 +317,7 @@
             }
           }
         }
+        // Note: SmolLM2-360M is small and fast; leave advanced engine options to web-llm defaults for best portability.
       });
 
       return eng;
@@ -353,8 +354,8 @@
     function buildSystemPrompt(){
       const traits = userTraits.slice(0, LOWPOWER_TRAITS);
       const compact = traits.map(t => t.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
-      const prob = "Treat outputs as probabilistic predictions; avoid overconfidence. Provide a single-line 'Answer:' as the final output. Keep replies extremely short.";
-      const base = "Concise assistant. Keep replies extremely short.";
+      const prob = "Treat outputs as probabilistic predictions; avoid overconfidence. Provide a single-line 'Answer:' as the final output. Keep replies concise.";
+      const base = "Concise assistant. Keep replies short and precise.";
       const systemRaw = compact ? `${base} User: ${compact}. ${prob}` : `${base} ${prob}`;
       return clampString(systemRaw, SYSTEM_PROMPT_CHAR_CAP);
     }
@@ -506,10 +507,11 @@
           fullReply = "I couldn't produce an answer. Try again.";
         }
 
-        const minDelayMs = 6000; // 6s
-        const maxDelayMs = 20000; // 20s
+        // SmolLM2 is faster; shorten reveal delay but keep some natural pacing
+        const minDelayMs = 2000; // 2s
+        const maxDelayMs = 8000; // 8s
         const revealDelay = Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
-        const adjustedDelay = Math.min(revealDelay, 12000); // cap to 12s for safety
+        const adjustedDelay = Math.min(revealDelay, 8000); // cap to 8s for safety
 
         await new Promise(resolve => setTimeout(resolve, adjustedDelay));
 
@@ -664,7 +666,7 @@
     }
 
     // show initial ready message
-    appendMessage('assistant', 'Ready. Low Power mode is primary.');
+    appendMessage('assistant', 'Ready. Running SmolLM2-360M (Low Power primary).');
 
     // focus input
     try { userInput.focus(); } catch(e){}
