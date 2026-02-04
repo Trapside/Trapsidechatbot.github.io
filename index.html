@@ -126,20 +126,20 @@
   <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
 
-    // Config and caps (tuned for SmolLM2-360M)
+    // Config and caps (tuned for SmolLM2-360M, with reasoning/formatting improvements)
     const MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
     const MAX_TRAITS = 7;
-    const LOWPOWER_TRAITS = 3;        // slightly more expressive traits for this smaller model
-    const HISTORY_TURNS_LOW = 2;      // keep a couple turns even in low-power mode (360M can handle small history)
-    const REPLY_CHAR_CAP_LOW = 800;   // larger per-request cap for richer answers
-    const SYSTEM_PROMPT_CHAR_CAP = 800;
+    const LOWPOWER_TRAITS = 3;
+    const HISTORY_TURNS_LOW = 2;
+    const REPLY_CHAR_CAP_LOW = 800;
+    const SYSTEM_PROMPT_CHAR_CAP = 900;
     const TRAITS_KEY = 'smollm_user_traits_v1';
     const LOWPOWER_KEY = 'smollm_lowpower_v1';
     const MODEL_DOWNLOADED_KEY = 'smollm_model_downloaded_v1';
     const REASONING_CACHE_KEY = 'smollm_reasoning_cache_v1';
-    const MAX_MESSAGES_IN_DOM = 8;       // slightly larger window for better context
-    const ALL_MESSAGES_STORE_CAP = 500;  // keep more in-memory history (still bounded)
-    const MAX_RESET_RETRIES = 1;         // fewer retries necessary for smaller model
+    const MAX_MESSAGES_IN_DOM = 8;
+    const ALL_MESSAGES_STORE_CAP = 500;
+    const MAX_RESET_RETRIES = 1;
 
     // UI refs
     const chat = document.getElementById('chat');
@@ -168,19 +168,18 @@
     function loadLowPower(){ try { return localStorage.getItem(LOWPOWER_KEY) === '1'; } catch { return false; } }
     function saveLowPower(v){ try { localStorage.setItem(LOWPOWER_KEY, v ? '1' : '0'); } catch {} }
 
-    let lowPower = true; // will be set in init
+    let lowPower = true;
     let history = [];
-    let engine = null; // global ref to allow force-unload in reset
+    let engine = null;
     const requestQueue = [];
     let processing = false;
 
-    // windowed message rendering (keeps DOM small but allows viewing full convo)
-    const allMessages = [];           // full in-memory conversation (objects: {role, text, className?})
-    let displayStart = 0;             // index in allMessages where DOM window begins
-    const MESSAGE_WINDOW = MAX_MESSAGES_IN_DOM; // how many messages to show at once
-    let userIsNearBottom = true;      // whether to auto-scroll when new message arrives
+    // windowed message rendering
+    const allMessages = [];
+    let displayStart = 0;
+    const MESSAGE_WINDOW = MAX_MESSAGES_IN_DOM;
+    let userIsNearBottom = true;
 
-    // wire scroll detection
     (function wireChatScroll() {
       chat.addEventListener('scroll', () => {
         const near = (chat.scrollTop + chat.clientHeight) >= (chat.scrollHeight - 80);
@@ -188,11 +187,9 @@
       }, { passive: true });
     })();
 
-    // render the window [displayStart .. displayStart + MESSAGE_WINDOW)
     function renderMessageWindow() {
       chat.innerHTML = '';
 
-      // if there are older messages above displayStart, show a "Load earlier" control
       if (displayStart > 0) {
         const loadBtn = document.createElement('button');
         loadBtn.className = 'btn';
@@ -219,18 +216,15 @@
         chat.appendChild(d);
       }
 
-      // if there are newer messages not shown, provide "Load newer" control at bottom
       if ((displayStart + MESSAGE_WINDOW) < allMessages.length) {
         const newerBtn = document.createElement('button');
         newerBtn.className = 'btn';
         newerBtn.textContent = 'Load newer';
         newerBtn.style.margin = '6px 0';
         newerBtn.addEventListener('click', () => {
-          // move window forward
           const maxStart = Math.max(0, allMessages.length - MESSAGE_WINDOW);
           displayStart = Math.min(maxStart, displayStart + MESSAGE_WINDOW);
           renderMessageWindow();
-          // scroll a bit to keep context
           requestAnimationFrame(() => { chat.scrollTop = chat.scrollHeight; });
         });
         const wrapper2 = document.createElement('div');
@@ -245,21 +239,16 @@
       }
     }
 
-    // Add a new message to the in-memory list and update rendered window appropriately.
-    // opts: {className: string}
     function appendMessageWindowed(role, text, opts = {}) {
       const entry = { role, text, className: opts.className || '' };
       allMessages.push(entry);
 
-      // cap store
       if (allMessages.length > ALL_MESSAGES_STORE_CAP) {
-        // if we're showing the oldest block, shift displayStart down to account for removed element
-        const removed = allMessages.shift();
+        allMessages.shift();
         if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
       }
 
       const showingTail = (displayStart + MESSAGE_WINDOW) >= (allMessages.length - 1);
-
       if (showingTail) {
         displayStart = Math.max(0, allMessages.length - MESSAGE_WINDOW);
       } else {
@@ -267,10 +256,7 @@
       }
 
       renderMessageWindow();
-      // don't force-scroll if user reading history; renderMessageWindow will only auto-scroll if near bottom
     }
-
-    // convenience alias used in older code paths
     const appendMessage = appendMessageWindowed;
 
     function clampString(s, maxChars){
@@ -279,7 +265,7 @@
       return s.slice(0, maxChars - 3) + '...';
     }
 
-    // overlay controls (throttled)
+    // overlay
     let lastOverlayProgress = -1;
     function showOverlay(title='Preparing model…', sub='Optimizing for low-memory', progress=0){
       const p = Math.max(0, Math.min(1, progress));
@@ -297,7 +283,7 @@
     }
     function hideOverlay(){ overlay.style.display = 'none'; overlay.setAttribute('aria-hidden', 'true'); overlayBar.style.width = '0%'; lastOverlayProgress = -1; }
 
-    // Engine create with progress callback — sets downloaded flag on real download
+    // engine creation with progress
     async function createEngineWithProgress() {
       const alreadyDownloaded = modelDownloadedFlag();
       let downloadObserved = false;
@@ -317,13 +303,13 @@
             }
           }
         }
-        // Note: SmolLM2-360M is small and fast; leave advanced engine options to web-llm defaults for best portability.
+        // intentionally leaving other engine options to defaults for portability
       });
 
       return eng;
     }
 
-    // persistence helpers (traits + small cache)
+    // persistence helpers
     function loadTraits(){ try { const r = localStorage.getItem(TRAITS_KEY); return r ? JSON.parse(r).slice(0,MAX_TRAITS) : []; } catch { return []; } }
     function saveTraits(arr){ try { localStorage.setItem(TRAITS_KEY, JSON.stringify((arr||[]).slice(0,MAX_TRAITS))); } catch {} }
     function modelDownloadedFlag(){ try { return localStorage.getItem(MODEL_DOWNLOADED_KEY) === '1'; } catch { return false; } }
@@ -340,9 +326,9 @@
     function saveReasoningCache(cache){
       try {
         const keys = Object.keys(cache || {});
-        if (keys.length > 50) {
+        if (keys.length > 200) {
           keys.sort((a,b) => cache[a].t - cache[b].t);
-          for (let i=0;i<keys.length-50;i++) delete cache[keys[i]];
+          for (let i=0;i<keys.length-200;i++) delete cache[keys[i]];
         }
         localStorage.setItem(REASONING_CACHE_KEY, JSON.stringify(cache));
       } catch {}
@@ -350,31 +336,94 @@
     function getCachedReasoning(key){ const c = loadReasoningCache(); return c[key] ? c[key].v : null; }
     function setCachedReasoning(key, value){ const c = loadReasoningCache(); c[key] = { v: value, t: Date.now() }; saveReasoningCache(c); }
 
-    // system prompt tuned for low-power only
+    // Simple stable hash for cache keys (djb2)
+    function stableHash(s){
+      let h = 5381;
+      for (let i=0;i<s.length;i++) h = ((h << 5) + h) + s.charCodeAt(i);
+      return (h >>> 0).toString(36);
+    }
+
+    // Improved system prompt: strong formatting + refusal for chain-of-thought
     function buildSystemPrompt(){
       const traits = userTraits.slice(0, LOWPOWER_TRAITS);
       const compact = traits.map(t => t.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
-      const prob = "Treat outputs as probabilistic predictions; avoid overconfidence. Provide a single-line 'Answer:' as the final output. Keep replies concise.";
+      const instructions = [
+        "You are a concise assistant specialized for short, accurate answers.",
+        "OUTPUT RULES: Produce ONLY a single line that starts with 'Answer:' followed by the concise answer. Do NOT give explanations, chain-of-thought, steps, or any extra text.",
+        "If you cannot determine a reliable answer, respond exactly: 'Answer: I don't know.'",
+        "Keep the answer short (<= 60 words). Prefer to be brief and precise.",
+        "Do not include uncertainty percentages, confidence, or meta commentary."
+      ].join(' ');
       const base = "Concise assistant. Keep replies short and precise.";
-      const systemRaw = compact ? `${base} User: ${compact}. ${prob}` : `${base} ${prob}`;
+      const systemRaw = compact ? `${base} User: ${compact}. ${instructions}` : `${base} ${instructions}`;
       return clampString(systemRaw, SYSTEM_PROMPT_CHAR_CAP);
     }
 
+    // Build messages with small-history support (useful for SmolLM2)
     function buildMessages(userText){
       const system = buildSystemPrompt();
       const recent = [];
-      return [{ role: 'system', content: system }, ...recent, { role: 'user', content: userText }];
+      // include last N turns from history when not in strict low-power mode,
+      // or include HISTORY_TURNS_LOW when lowPower is false/true as configured.
+      const turns = lowPower ? HISTORY_TURNS_LOW : Math.max(HISTORY_TURNS_LOW, 4);
+      if (turns > 0) {
+        // history contains alternating user/assistant entries; take last turns*2 entries
+        const sliceSize = turns * 2;
+        const tail = history.slice(-sliceSize);
+        for (const h of tail) recent.push(h);
+      }
+      recent.push({ role: 'user', content: userText });
+      return [{ role: 'system', content: system }, ...recent];
     }
 
-    // parse "Answer:" style outputs
+    // Extract Answer: robust parsing
     function extractAnswer(fullText) {
       if (!fullText) return '';
-      const answerMatch = fullText.match(/Answer\s*:\s*([\s\S]*)$/i);
-      if (answerMatch) return answerMatch[1].trim();
-      return fullText.trim();
+      // try explicit "Answer:" capture
+      const answerMatch = fullText.match(/Answer\s*:\s*([\s\S]*?)(?:\n|$)/i);
+      if (answerMatch && answerMatch[1].trim()) return answerMatch[1].trim();
+      // fallback: take first non-empty line and treat as the answer (trim to 250 chars)
+      const lines = fullText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length) return lines[0].slice(0, 1000);
+      return fullText.trim().slice(0, 1000);
     }
 
-    // small helper to detect trivial outputs (e.g., certainty-only)
+    // If model produces extra text, re-run a tiny formatter step to enforce "Answer:" line
+    async function formatToSingleLine(answerSource, tryCount = 0) {
+      // Avoid recursion: do not call formatter more than once
+      try {
+        const probe = await createEngineWithProgress();
+        const sys = "Formatter: Extract the single concise answer from the provided content. Output ONLY one line that starts with 'Answer:' followed by the answer. If none present or unsure, output 'Answer: I don't know.'";
+        const messages = [{ role: 'system', content: sys }, { role: 'user', content: answerSource }];
+        // Use a short synchronous completion (stream => false) if API supports it; fallback to streaming.
+        try {
+          const chunks = await probe.chat.completions.create({ messages, stream: true });
+          let out = '';
+          for await (const c of chunks) {
+            out += c?.choices?.[0]?.delta?.content || '';
+            if (out.length > 400) break;
+          }
+          try { await probe.unload(); } catch(e){}
+          return out.trim();
+        } catch (streamErr) {
+          // last-resort: try single-shot call (some runtimes support non-stream)
+          try {
+            const res = await probe.chat.completions.create({ messages });
+            const text = (res?.choices?.[0]?.message?.content) || '';
+            try { await probe.unload(); } catch(e){}
+            return text.trim();
+          } catch (e) {
+            try { await probe.unload(); } catch(e){}
+            return null;
+          }
+        }
+      } catch (err) {
+        console.warn('formatToSingleLine failed', err);
+        return null;
+      }
+    }
+
+    // small helper to detect trivial outputs
     function isTrivial(text) {
       if (!text) return true;
       const t = text.trim();
@@ -383,31 +432,19 @@
       return false;
     }
 
-    // aggressive reset and retry (unload, prune DOM, probe, retry)
+    // aggressive reset and retry (unchanged mostly)
     async function aggressiveResetAndRetry(originalUserText) {
       appendMessage('assistant', 'Trying to refresh my mind...');
       sendBtn.disabled = true;
-
       requestQueue.length = 0;
-
-      try {
-        while (chat.children.length > 2) chat.removeChild(chat.firstChild);
-      } catch (e) { console.warn('DOM prune failed', e); }
-
-      try {
-        if (engine && typeof engine.unload === 'function') {
-          await engine.unload();
-        }
-      } catch (e) { console.warn('error unloading engine during aggressive reset', e); }
+      try { while (chat.children.length > 2) chat.removeChild(chat.firstChild); } catch (e) {}
+      try { if (engine && typeof engine.unload === 'function') await engine.unload(); } catch (e) {}
       engine = null;
-
       await new Promise(resolve => setTimeout(resolve, 600));
-
       try { localStorage.removeItem(REASONING_CACHE_KEY); } catch(e){}
-
       try {
         const probe = await createEngineWithProgress();
-        try { if (probe && typeof probe.unload === 'function') await probe.unload(); } catch(e) { console.warn('probe unload failed', e); }
+        try { if (probe && typeof probe.unload === 'function') await probe.unload(); } catch(e) {}
         appendMessage('assistant', 'I refreshed successfully. Retrying your question...');
         await new Promise(resolve => setTimeout(resolve, 300));
         if (originalUserText && originalUserText.trim()) {
@@ -416,11 +453,9 @@
         sendBtn.disabled = false;
         return true;
       } catch (probeErr) {
-        console.warn('Probe create failed', probeErr);
         appendMessage('assistant', 'I could not refresh fully. Performing a quick page refresh to free memory...');
         setTimeout(() => {
           try { window.location.reload(); } catch (reloadErr) {
-            console.error('reload failed', reloadErr);
             appendMessage('assistant', 'Automatic reload failed. Please manually refresh the page.');
             sendBtn.disabled = false;
           }
@@ -429,11 +464,11 @@
       }
     }
 
-    // Recovery direct answer: quick single-line attempt (lightweight)
+    // Recovery direct answer (unchanged)
     async function recoveryDirectAnswer(userText) {
       try {
         const eng = await createEngineWithProgress();
-        const sys = "Concise assistant. Provide a single-line direct answer to the user's question. Do NOT include 'Certainty' or steps — just the answer.";
+        const sys = "Concise assistant. Provide a single-line direct answer to the user's question. Do NOT include 'Certainty' or steps — just the answer. Output exactly one line starting with 'Answer:'. If unsure, output 'Answer: I don't know.'";
         const messages = [{ role: 'system', content: sys }, { role: 'user', content: userText }];
         const chunks = await eng.chat.completions.create({ messages, stream: true });
         let text = '';
@@ -455,12 +490,18 @@
       }
     }
 
-    // core request processing (with "thinking..." reveal delay)
+    // handle a single user request: improved flow -> cache -> engine -> enforce Answer: format -> cache result
     async function handleSingleRequest(userText, retriesLeft = MAX_RESET_RETRIES) {
-      const replyCharCap = REPLY_CHAR_CAP_LOW;
-      const messages = buildMessages(userText);
+      if (!userText || !userText.trim()) return;
+      const normQ = userText.trim();
+      const cacheKey = stableHash(normQ);
+      const cached = getCachedReasoning(cacheKey);
+      if (cached) {
+        appendMessage('assistant', cached);
+        return;
+      }
 
-      // Append thinking placeholder (will be removed and replaced later)
+      // thinking placeholder
       appendMessage('assistant', 'Thinking...', { className: 'thinking' });
 
       const alreadyDownloaded = modelDownloadedFlag();
@@ -476,18 +517,20 @@
       let fullReply = '';
 
       try {
+        const messages = buildMessages(normQ);
         localEngine = await createEngineWithProgress();
         engine = localEngine;
-        const chunks = await localEngine.chat.completions.create({ messages, stream: true });
 
+        const chunks = await localEngine.chat.completions.create({ messages, stream: true });
         for await (const chunk of chunks) {
           const delta = chunk?.choices?.[0]?.delta?.content || '';
           if (delta) {
             fullReply += delta;
-            if (fullReply.length > replyCharCap) {
-              fullReply = fullReply.slice(0, replyCharCap) + '\n\n[truncated to fit device limits]';
+            if (fullReply.length > REPLY_CHAR_CAP_LOW) {
+              fullReply = fullReply.slice(0, REPLY_CHAR_CAP_LOW) + '\n\n[truncated to fit device limits]';
               break;
             }
+            // yield occasionally for UI responsiveness
             if (fullReply.length % 200 === 0) await new Promise(requestAnimationFrame);
           }
         }
@@ -498,50 +541,49 @@
 
         hideOverlay();
 
-        if (isTrivial(fullReply) && retriesLeft > 0) {
-          const direct = await recoveryDirectAnswer(userText);
-          if (direct && !isTrivial(direct)) fullReply = direct;
+        // If model didn't follow "Answer:" format, try to enforce formatting with a small formatting pass
+        let finalLine = '';
+        if (/Answer\s*:/i.test(fullReply)) {
+          finalLine = 'Answer: ' + extractAnswer(fullReply);
+        } else {
+          // attempt formatter pass to strictly produce "Answer:" line
+          const fmt = await formatToSingleLine(fullReply, 0);
+          if (fmt && /Answer\s*:/i.test(fmt)) {
+            finalLine = fmt.split(/\r?\n/).find(l => /Answer\s*:/i.test(l)).trim();
+          } else {
+            // fallback: extract best-effort and prefix Answer:
+            const best = extractAnswer(fullReply);
+            finalLine = best ? `Answer: ${best}` : `Answer: I don't know.`;
+          }
         }
 
-        if (!fullReply || !fullReply.trim()) {
-          fullReply = "I couldn't produce an answer. Try again.";
+        // small sanity: if trivial or empty, try a direct recovery attempt once
+        if ((isTrivial(finalLine) || !finalLine || finalLine.length < 6) && retriesLeft > 0) {
+          const direct = await recoveryDirectAnswer(normQ);
+          if (direct && /Answer\s*:/i.test(direct) && !isTrivial(direct)) {
+            finalLine = direct;
+          }
         }
 
-        // SmolLM2 is faster; shorten reveal delay but keep some natural pacing
-        const minDelayMs = 2000; // 2s
-        const maxDelayMs = 8000; // 8s
-        const revealDelay = Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
-        const adjustedDelay = Math.min(revealDelay, 8000); // cap to 8s for safety
-
-        await new Promise(resolve => setTimeout(resolve, adjustedDelay));
-
-        // Remove the earliest 'Thinking...' placeholder (search for text + className)
-        let removed = false;
+        // Remove 'Thinking...' placeholder
         for (let i = 0; i < allMessages.length; i++) {
           if (allMessages[i] && allMessages[i].text === 'Thinking...' && allMessages[i].className && allMessages[i].className.includes('thinking')) {
             allMessages.splice(i, 1);
-            removed = true;
             if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
             break;
           }
         }
-        if (!removed) {
-          // fallback: remove first 'Thinking...' text even without class
-          for (let i = 0; i < allMessages.length; i++) {
-            if (allMessages[i] && allMessages[i].text === 'Thinking...') {
-              allMessages.splice(i, 1);
-              if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
-              break;
-            }
-          }
-        }
+        // append final answer (strip extra whitespace)
+        finalLine = (finalLine || 'Answer: I don\'t know.').trim();
+        appendMessage('assistant', finalLine);
 
-        appendMessage('assistant', extractAnswer(fullReply));
-
-        history.push({ role: 'user', content: userText }, { role: 'assistant', content: fullReply });
+        // store in history and cache (cache stores the final single-line string)
+        history.push({ role: 'user', content: normQ }, { role: 'assistant', content: finalLine });
         const maxEntries = HISTORY_TURNS_LOW * 2;
         if (maxEntries > 0 && history.length > maxEntries) history = history.slice(-maxEntries);
         if (maxEntries === 0) history = [];
+
+        try { setCachedReasoning(cacheKey, finalLine); } catch(e) {}
 
       } catch (err) {
         console.error('Inference error', err);
@@ -560,14 +602,14 @@
         if (retriesLeft > 0) {
           await aggressiveResetAndRetry(userText);
         } else {
-          appendMessage('assistant', 'I had a memory spike and could not recover. Try again later.');
+          appendMessage('assistant', 'Answer: I don\'t know.');
         }
       } finally {
         sendBtn.disabled = false;
       }
     }
 
-    // queue request (adds to single-run queue)
+    // queueing
     function queueRequest(userText){
       if (!userText || !userText.trim()) return;
       appendMessage('user', userText);
@@ -575,7 +617,6 @@
       processQueue();
     }
 
-    // queue processor
     async function processQueue(){
       if (processing) return;
       processing = true;
@@ -596,19 +637,20 @@
     });
     userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendBtn.click(); } });
 
-    // Reset button: clears history and unloads model
+    // reset
     resetBtn.addEventListener('click', async () => {
       history = [];
       allMessages.length = 0;
       displayStart = 0;
       renderMessageWindow();
-      appendMessage('assistant', 'Memory purged. Ready.');
+      appendMessage('assistant', 'Ready. Memory purged.');
       requestQueue.length = 0;
       try { if (engine) await engine.unload(); } catch(e) {}
       engine = null;
+      try { localStorage.removeItem(REASONING_CACHE_KEY); } catch(e){}
     });
 
-    // Low-power toggle wiring — default ON if not set
+    // low-power default handling
     const lowPowerRaw = loadLowPowerRaw();
     if (lowPowerRaw === null) {
       lowPower = true;
@@ -623,7 +665,7 @@
       appendMessage('assistant', lowPower ? 'Low Power enabled.' : 'Low Power disabled.');
     });
 
-    // Traits editor wiring (kept minimal)
+    // traits editor
     function openTraits(){ renderTraitsModal(); traitsOverlay.style.display = 'flex'; traitsOverlay.setAttribute('aria-hidden','false'); }
     function closeTraits(){ traitsOverlay.style.display = 'none'; traitsOverlay.setAttribute('aria-hidden','true'); }
 
@@ -658,17 +700,14 @@
     cancelTraitsBtn.addEventListener('click', () => closeTraits());
     traitsBtn.addEventListener('click', () => openTraits());
 
-    // initial load: small default trait set
+    // initial load of traits and ready message
     userTraits = loadTraits();
     if (!userTraits || !userTraits.length) {
       userTraits = ['Concise','English'];
       saveTraits(userTraits);
     }
 
-    // show initial ready message
     appendMessage('assistant', 'Ready. Running SmolLM2-360M (Low Power primary).');
-
-    // focus input
     try { userInput.focus(); } catch(e){}
   </script>
 </body>
