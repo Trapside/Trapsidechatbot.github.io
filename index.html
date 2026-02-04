@@ -1,209 +1,673 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Qwen Air Pro + Secret Knowledge</title>
-    <script type="importmap"> { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } } </script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
-    <style>
-        :root { --apple-blue: #007AFF; --apple-red: #FF3B30; --glass: rgba(255, 255, 255, 0.75); }
-        body { margin: 0; padding: 0; height: 100vh; background: linear-gradient(160deg, #a2c2e6 0%, #d4e1f5 100%); font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        
-        .app-card { width: 95%; max-width: 500px; height: 92vh; background: var(--glass); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.4); border-radius: 30px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.1); position: relative; }
-        
-        #download-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
-        .progress-container { width: 100%; height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin: 20px 0; }
-        #progress-bar { width: 0%; height: 100%; background: var(--apple-blue); transition: width 0.3s ease; }
-        
-        header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.2); }
-        h1 { margin: 0; font-size: 17px; font-weight: 700; color: #1d1d1f; }
-        
-        /* Search/Source Viewer */
-        #retrieval-viewer { display: none; background: rgba(0, 122, 255, 0.08); border-bottom: 0.5px solid rgba(0,122,255,0.1); padding: 12px 20px; font-size: 12px; transition: 0.3s; }
-        #retrieval-content { max-height: 80px; overflow-y: auto; font-family: 'SF Mono', monospace; color: #444; margin-top: 5px; line-height: 1.4; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Qwen Air Pro — Low Power Primary</title>
 
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.45; animation: spring 0.4s ease-out; word-wrap: break-word; }
-        .user { align-self: flex-end; background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: white; color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  <script type="importmap">
+    { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } }
+  </script>
 
-        pre { background: #1e1e1e !important; border-radius: 12px; padding: 12px; overflow-x: auto; position: relative; }
-        code { font-family: 'SF Mono', monospace; font-size: 13px; color: #efefef; }
-        .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; }
+  <style>
+    /* UI: clean, mobile-friendly, lightweight */
+    :root{
+      --bg1:#e6efff; --bg2:#f4f7fb; --primary:#007AFF; --accent:#5856D6; --muted:#8e8e93; --card:rgba(255,255,255,0.92);
+    }
+    html,body{height:100%;margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(160deg,var(--bg1),var(--bg2));-webkit-font-smoothing:antialiased}
+    .card{width:94%;max-width:470px;margin:4vh auto;height:92vh;background:var(--card);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);box-shadow:0 6px 20px rgba(6,10,18,0.06)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.95), transparent)}
+    .title{font-weight:700;color:#0b1220}
+    .controls{display:flex;gap:8px;align-items:center}
+    .btn{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:6px 10px;border-radius:12px;font-size:13px;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,0.6)}
+    .btn--danger{color:#ff3b30;border-color:rgba(255,59,48,0.12)}
+    .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+    .toggle input{width:40px;height:22px;appearance:none;background:#e9eef;border-radius:11px;position:relative;outline:none;cursor:pointer}
+    .toggle input:after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:transform 160ms ease}
+    .toggle input:checked{background:linear-gradient(90deg,var(--primary),var(--accent))}
+    .toggle input:checked:after{transform:translateX(18px)}
+    main#chat{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:transparent}
+    .msg{max-width:78%;padding:10px 14px;border-radius:16px;word-break:break-word;font-size:15px;line-height:1.35;box-shadow:0 6px 14px rgba(11,17,24,0.04)}
+    .user{align-self:flex-end;background:linear-gradient(180deg,var(--primary),#005bd8);color:#fff;border-bottom-right-radius:6px}
+    .assistant{align-self:flex-start;background:#fff;color:#0b1220;border-bottom-left-radius:6px}
+    .muted{font-size:12px;color:var(--muted)}
+    .input-row{display:flex;padding:10px;gap:8px;border-top:1px solid rgba(0,0,0,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.95), transparent)}
+    input[type="text"]{flex:1;padding:12px;border-radius:18px;border:1px solid #e9eef;font-size:15px;background:#fff}
+    button#send{background:linear-gradient(90deg,var(--primary),var(--accent));color:#fff;border:none;padding:10px 14px;border-radius:14px;cursor:pointer;box-shadow:0 6px 18px rgba(0,122,255,0.12)}
+    button:disabled{opacity:0.5;cursor:not-allowed}
 
-        .input-bar { padding: 15px; background: white; display: flex; gap: 10px; align-items: center; border-top: 0.5px solid rgba(0,0,0,0.05); }
-        input { flex: 1; border: none; padding: 12px 18px; border-radius: 25px; background: #f2f2f7; outline: none; font-size: 16px; }
-        #sendBtn { background: var(--apple-blue); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+    /* overlay + modal (first-time only) */
+    .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(8,12,20,0.12);z-index:60;padding:20px}
+    .progressModal{width:88%;max-width:420px;background:var(--card);border-radius:12px;padding:14px;text-align:center;box-shadow:0 12px 40px rgba(6,10,18,0.12)}
+    .progressBar{height:8px;background:#eee;border-radius:8px;overflow:hidden;margin-top:12px}
+    .progressBar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width 120ms linear}
 
-        #thinking { display: none; padding: 10px 20px; font-size: 12px; color: #8e8e93; }
-        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+    /* traits modal */
+    .traitsModal{width:92%;max-width:420px;background:var(--card);border-radius:12px;padding:12px;box-shadow:0 12px 40px rgba(6,10,18,0.12)}
+    .trait-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{background:#f3f6ff;border:1px solid rgba(0,0,0,0.03);padding:6px 10px;border-radius:999px;font-size:13px}
+    .traitsEditor{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .traitsEditor input{padding:8px;border-radius:8px;border:1px solid #eee}
+    .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+
+    /* thinking pulsing animation */
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-2px); }
+      100% { opacity: 0.6; transform: translateY(0); }
+    }
+    .thinking { font-style:italic;color:var(--muted);padding:8px 12px;border-radius:12px;background:transparent;border:1px dashed rgba(0,0,0,0.04);max-width:78%; animation: pulse 1.2s ease-in-out infinite; }
+
+    .fade-in { animation: fadeIn 360ms ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width:360px){
+      .card{width:98%;height:94vh}
+      .msg{font-size:14px}
+    }
+  </style>
 </head>
 <body>
-
-<div class="app-card">
-    <div id="download-overlay">
-        <h1 id="init-title">Initializing...</h1>
-        <p id="status-text" style="font-size: 13px; color: #8e8e93;">Connecting to Knowledge Base</p>
-        <div class="progress-container"><div id="progress-bar"></div></div>
+  <div class="card" id="card">
+    <!-- overlay used for first-time download ONLY -->
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <div class="progressModal" id="progressModal" role="status" aria-live="polite">
+        <div style="font-weight:600" id="overlayTitle">Preparing model…</div>
+        <div class="muted" id="overlaySub">Optimized for low-memory devices</div>
+        <div class="progressBar" aria-hidden="true"><i id="overlayBar"></i></div>
+      </div>
     </div>
 
     <header>
-        <h1>Qwen 2.5 Secret Air</h1>
-        <button onclick="location.reload()" style="border:none; background:none; color:var(--apple-red); font-size:12px; font-weight:600;">Reset Engine</button>
+      <div class="title">Qwen Air Pro</div>
+      <div class="controls">
+        <!-- Low Power toggle (kept, default ON) -->
+        <label class="toggle" title="Low Power Mode">
+          <input id="lowPowerToggle" type="checkbox" />
+        </label>
+
+        <button class="btn" id="traitsBtn">Traits</button>
+        <button class="btn btn--danger" id="resetBtn">Reset</button>
+      </div>
     </header>
 
-    <div id="retrieval-viewer">
-        <div style="display: flex; justify-content: space-between;">
-            <strong style="color: var(--apple-blue);">📚 Found in Secret Knowledge:</strong>
-            <span onclick="this.parentElement.parentElement.style.display='none'" style="cursor:pointer">✕</span>
-        </div>
-        <div id="retrieval-content"></div>
-    </div>
+    <main id="chat" aria-live="polite" aria-atomic="false">
+      <!-- content filled by script -->
+    </main>
 
-    <div id="chat-box">
-        <div class="msg ai">I have loaded "The Book of Secret Knowledge". Ask me about CLI tools, pentesting, or system optimization.</div>
+    <div class="input-row">
+      <input id="userInput" type="text" placeholder="Ask me anything..." autocomplete="off" />
+      <button id="send">Send</button>
     </div>
-    
-    <div id="thinking">Searching knowledge & thinking...</div>
+  </div>
 
-    <div class="input-bar">
-        <input type="text" id="userInput" placeholder="Search knowledge base...">
-        <button id="sendBtn">↑</button>
+  <!-- Traits Editor Overlay -->
+  <div class="overlay" id="traitsOverlay" aria-hidden="true">
+    <div class="traitsModal" role="dialog" aria-modal="true" aria-labelledby="traitsTitle">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div id="traitsTitle" style="font-weight:700">User Traits (max 7)</div>
+        <div class="muted" id="traitsCount">0/7</div>
+      </div>
+
+      <div class="trait-chips" id="traitsChips" aria-hidden="false"></div>
+
+      <div class="traitsEditor" id="traitsEditor"></div>
+
+      <div class="modalActions">
+        <button class="btn" id="addTraitBtn">+ Add</button>
+        <button class="btn" id="saveTraitsBtn">Save</button>
+        <button class="btn" id="cancelTraitsBtn">Cancel</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px">Low Power mode injects fewer traits and limits history to reduce memory use.</div>
     </div>
-</div>
+  </div>
 
-<script type="module">
+  <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
 
-    const chatBox = document.getElementById('chat-box');
-    const thinking = document.getElementById('thinking');
-    const input = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const overlay = document.getElementById('download-overlay');
-    const progressBar = document.getElementById('progress-bar');
-    const statusText = document.getElementById('status-text');
-    const retrievalViewer = document.getElementById('retrieval-viewer');
-    const retrievalContent = document.getElementById('retrieval-content');
-
-    let history = []; 
-    let knowledgeBase = [];
+    // Config and caps (tuned for iPhone 7 / low RAM)
     const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
-    let engine = null;
+    const MAX_TRAITS = 7;
+    const LOWPOWER_TRAITS = 2;
+    const HISTORY_TURNS_LOW = 0;         // keep history off in low-power primary
+    const REPLY_CHAR_CAP_LOW = 500;      // per request
+    const SYSTEM_PROMPT_CHAR_CAP = 420;
+    const TRAITS_KEY = 'qwen_user_traits_v1';
+    const LOWPOWER_KEY = 'qwen_lowpower_v1';
+    const MODEL_DOWNLOADED_KEY = 'qwen_model_downloaded_v1';
+    const REASONING_CACHE_KEY = 'qwen_reasoning_cache_v1';
+    const MAX_MESSAGES_IN_DOM = 6;       // keep DOM small (4-6 recommended; using 6)
+    const ALL_MESSAGES_STORE_CAP = 300;  // keep last N messages in memory
+    const MAX_RESET_RETRIES = 2;         // attempts to reset model on memory spike
 
-    // 1. DATA CHUNKING: Fetch and process GitHub Repo
-    async function initKnowledge() {
-        overlay.style.display = 'flex';
-        statusText.innerText = "Fetching trimstray/the-book-of-secret-knowledge...";
-        try {
-            const res = await fetch('https://raw.githubusercontent.com/trimstray/the-book-of-secret-knowledge/master/README.md');
-            const text = await res.text();
-            
-            // Chunking by Section headers
-            const sections = text.split(/\n(?=###? )/); 
-            knowledgeBase = sections.map(s => ({
-                content: s.trim().substring(0, 1000), 
-                searchKey: s.toLowerCase().substring(0, 200) 
-            }));
-            
-            statusText.innerText = "Knowledge Indexed. Loading AI Engine...";
-        } catch (e) {
-            statusText.innerText = "Knowledge Load Failed. AI only mode.";
-        }
+    // UI refs
+    const chat = document.getElementById('chat');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('send');
+    const resetBtn = document.getElementById('resetBtn');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlaySub = document.getElementById('overlaySub');
+    const overlayBar = document.getElementById('overlayBar');
+    const lowPowerToggle = document.getElementById('lowPowerToggle');
+    const traitsBtn = document.getElementById('traitsBtn');
+
+    // modal refs
+    const traitsOverlay = document.getElementById('traitsOverlay');
+    const traitsEditor = document.getElementById('traitsEditor');
+    const traitsChips = document.getElementById('traitsChips');
+    const addTraitBtn = document.getElementById('addTraitBtn');
+    const saveTraitsBtn = document.getElementById('saveTraitsBtn');
+    const cancelTraitsBtn = document.getElementById('cancelTraitsBtn');
+    const traitsCount = document.getElementById('traitsCount');
+
+    // state
+    let userTraits = [];
+    function loadLowPowerRaw(){ try { return localStorage.getItem(LOWPOWER_KEY); } catch { return null; } }
+    function loadLowPower(){ try { return localStorage.getItem(LOWPOWER_KEY) === '1'; } catch { return false; } }
+    function saveLowPower(v){ try { localStorage.setItem(LOWPOWER_KEY, v ? '1' : '0'); } catch {} }
+
+    let lowPower = true; // will be set in init
+    let history = [];
+    let engine = null; // global ref to allow force-unload in reset
+    const requestQueue = [];
+    let processing = false;
+
+    // windowed message rendering (keeps DOM small but allows viewing full convo)
+    const allMessages = [];           // full in-memory conversation (objects: {role, text, className?})
+    let displayStart = 0;             // index in allMessages where DOM window begins
+    const MESSAGE_WINDOW = MAX_MESSAGES_IN_DOM; // how many messages to show at once
+    let userIsNearBottom = true;      // whether to auto-scroll when new message arrives
+
+    // wire scroll detection
+    (function wireChatScroll() {
+      chat.addEventListener('scroll', () => {
+        const near = (chat.scrollTop + chat.clientHeight) >= (chat.scrollHeight - 80);
+        userIsNearBottom = near;
+      }, { passive: true });
+    })();
+
+    // render the window [displayStart .. displayStart + MESSAGE_WINDOW)
+    function renderMessageWindow() {
+      chat.innerHTML = '';
+
+      // if there are older messages above displayStart, show a "Load earlier" control
+      if (displayStart > 0) {
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'btn';
+        loadBtn.textContent = 'Load earlier';
+        loadBtn.style.margin = '6px 0';
+        loadBtn.addEventListener('click', () => {
+          displayStart = Math.max(0, displayStart - MESSAGE_WINDOW);
+          renderMessageWindow();
+          requestAnimationFrame(() => { chat.scrollTop = 1; });
+        });
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.justifyContent = 'center';
+        wrapper.appendChild(loadBtn);
+        chat.appendChild(wrapper);
+      }
+
+      const end = Math.min(allMessages.length, displayStart + MESSAGE_WINDOW);
+      for (let i = displayStart; i < end; i++) {
+        const m = allMessages[i];
+        const d = document.createElement('div');
+        d.className = (m.className ? m.className + ' ' : '') + 'msg ' + (m.role === 'user' ? 'user' : 'assistant');
+        d.textContent = m.text;
+        chat.appendChild(d);
+      }
+
+      // if there are newer messages not shown, provide "Load newer" control at bottom
+      if ((displayStart + MESSAGE_WINDOW) < allMessages.length) {
+        const newerBtn = document.createElement('button');
+        newerBtn.className = 'btn';
+        newerBtn.textContent = 'Load newer';
+        newerBtn.style.margin = '6px 0';
+        newerBtn.addEventListener('click', () => {
+          // move window forward
+          const maxStart = Math.max(0, allMessages.length - MESSAGE_WINDOW);
+          displayStart = Math.min(maxStart, displayStart + MESSAGE_WINDOW);
+          renderMessageWindow();
+          // scroll a bit to keep context
+          requestAnimationFrame(() => { chat.scrollTop = chat.scrollHeight; });
+        });
+        const wrapper2 = document.createElement('div');
+        wrapper2.style.display = 'flex';
+        wrapper2.style.justifyContent = 'center';
+        wrapper2.appendChild(newerBtn);
+        chat.appendChild(wrapper2);
+      }
+
+      if (userIsNearBottom) {
+        requestAnimationFrame(() => { chat.scrollTop = chat.scrollHeight; });
+      }
     }
 
-    // 2. RETRIEVAL: Search logic
-    function getContext(query) {
-        const terms = query.toLowerCase().split(' ').filter(t => t.length > 2);
-        if (terms.length === 0) return [];
-        
-        return knowledgeBase
-            .map(chunk => {
-                let score = 0;
-                terms.forEach(t => { if(chunk.searchKey.includes(t)) score += 5; if(chunk.content.toLowerCase().includes(t)) score += 1; });
-                return { ...chunk, score };
-            })
-            .filter(c => c.score > 2)
-            .sort((a,b) => b.score - a.score)
-            .slice(0, 3);
+    // Add a new message to the in-memory list and update rendered window appropriately.
+    // opts: {className: string}
+    function appendMessageWindowed(role, text, opts = {}) {
+      const entry = { role, text, className: opts.className || '' };
+      allMessages.push(entry);
+
+      // cap store
+      if (allMessages.length > ALL_MESSAGES_STORE_CAP) {
+        // if we're showing the oldest block, shift displayStart down to account for removed element
+        const removed = allMessages.shift();
+        if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
+      }
+
+      const showingTail = (displayStart + MESSAGE_WINDOW) >= (allMessages.length - 1);
+
+      if (showingTail) {
+        displayStart = Math.max(0, allMessages.length - MESSAGE_WINDOW);
+      } else {
+        if (allMessages.length <= MESSAGE_WINDOW) displayStart = 0;
+      }
+
+      renderMessageWindow();
+      // don't force-scroll if user reading history; renderMessageWindow will only auto-scroll if near bottom
     }
 
-    // 3. UI HELPERS
-    function appendMessage(role, text) {
-        const div = document.createElement('div');
-        div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
-        div.innerHTML = role === 'ai' ? marked.parse(text) : text;
-        chatBox.appendChild(div);
-        if (role === 'ai') Prism.highlightAllUnder(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return div;
+    // convenience alias used in older code paths
+    const appendMessage = appendMessageWindowed;
+
+    function clampString(s, maxChars){
+      if(!s) return '';
+      if(s.length <= maxChars) return s;
+      return s.slice(0, maxChars - 3) + '...';
     }
 
-    // 4. MAIN CHAT ENGINE
-    async function runChat() {
-        const text = input.value.trim();
-        if (!text) return;
-        
-        input.value = '';
-        appendMessage('user', text);
-        thinking.style.display = 'block';
-        sendBtn.disabled = true;
+    // overlay controls (throttled)
+    let lastOverlayProgress = -1;
+    function showOverlay(title='Preparing model…', sub='Optimizing for low-memory', progress=0){
+      const p = Math.max(0, Math.min(1, progress));
+      if (Math.abs(p - lastOverlayProgress) < 0.02 && overlay.style.display === 'flex') {
+        overlayTitle.textContent = title;
+        overlaySub.textContent = sub;
+        return;
+      }
+      lastOverlayProgress = p;
+      overlayTitle.textContent = title;
+      overlaySub.textContent = sub;
+      overlayBar.style.width = `${Math.round(p * 100)}%`;
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    function hideOverlay(){ overlay.style.display = 'none'; overlay.setAttribute('aria-hidden', 'true'); overlayBar.style.width = '0%'; lastOverlayProgress = -1; }
 
-        // Visual Search Step
-        const matches = getContext(text);
-        if (matches.length > 0) {
-            retrievalViewer.style.display = 'block';
-            retrievalContent.innerText = matches.map(m => `> ${m.content.split('\n')[0]}\n${m.content.substring(0,120)}...`).join('\n\n');
-        }
+    // Engine create with progress callback — sets downloaded flag on real download
+    async function createEngineWithProgress() {
+      const alreadyDownloaded = modelDownloadedFlag();
+      let downloadObserved = false;
 
-        try {
-            if (!engine) {
-                engine = await webllm.CreateMLCEngine(MODEL_ID, {
-                    initProgressCallback: (p) => {
-                        progressBar.style.width = (p.progress * 100) + '%';
-                        statusText.innerText = p.text;
-                        if(p.progress === 1) overlay.style.display = 'none';
-                    }
-                });
+      const eng = await webllm.CreateMLCEngine(MODEL_ID, {
+        initProgressCallback: (report) => {
+          const p = Math.max(0, Math.min(1, (report && report.progress) || 0));
+          const text = (report && report.text) || '';
+
+          if (!alreadyDownloaded) {
+            if (p < 1) {
+              downloadObserved = true;
+              showOverlay(text || 'Downloading model…', 'This happens only once on this device', p);
+            } else {
+              if (downloadObserved) setModelDownloadedFlag();
+              hideOverlay();
             }
+          }
+        }
+      });
 
-            const contextText = matches.map(m => m.content).join("\n---\n");
-            const messages = [
-                { role: "system", content: `You are an expert IT assistant. Use this info to help: ${contextText}` },
-                ...history,
-                { role: "user", content: text }
-            ];
+      return eng;
+    }
 
-            thinking.style.display = 'none';
-            const aiMsgDiv = appendMessage('ai', '...');
-            let fullReply = "";
+    // persistence helpers (traits + small cache)
+    function loadTraits(){ try { const r = localStorage.getItem(TRAITS_KEY); return r ? JSON.parse(r).slice(0,MAX_TRAITS) : []; } catch { return []; } }
+    function saveTraits(arr){ try { localStorage.setItem(TRAITS_KEY, JSON.stringify((arr||[]).slice(0,MAX_TRAITS))); } catch {} }
+    function modelDownloadedFlag(){ try { return localStorage.getItem(MODEL_DOWNLOADED_KEY) === '1'; } catch { return false; } }
+    function setModelDownloadedFlag(){ try { localStorage.setItem(MODEL_DOWNLOADED_KEY, '1'); } catch {} }
 
-            const chunks = await engine.chat.completions.create({ messages, stream: true });
-            for await (const chunk of chunks) {
-                fullReply += chunk.choices[0]?.delta?.content || "";
-                aiMsgDiv.innerHTML = marked.parse(fullReply);
-            }
+    function loadReasoningCache(){
+      try {
+        const raw = localStorage.getItem(REASONING_CACHE_KEY);
+        if (!raw) return {};
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch { return {}; }
+    }
+    function saveReasoningCache(cache){
+      try {
+        const keys = Object.keys(cache || {});
+        if (keys.length > 50) {
+          keys.sort((a,b) => cache[a].t - cache[b].t);
+          for (let i=0;i<keys.length-50;i++) delete cache[keys[i]];
+        }
+        localStorage.setItem(REASONING_CACHE_KEY, JSON.stringify(cache));
+      } catch {}
+    }
+    function getCachedReasoning(key){ const c = loadReasoningCache(); return c[key] ? c[key].v : null; }
+    function setCachedReasoning(key, value){ const c = loadReasoningCache(); c[key] = { v: value, t: Date.now() }; saveReasoningCache(c); }
 
-            history.push({ role: "user", content: text }, { role: "assistant", content: fullReply });
-            if (history.length > 6) history = history.slice(-6);
+    // system prompt tuned for low-power only
+    function buildSystemPrompt(){
+      const traits = userTraits.slice(0, LOWPOWER_TRAITS);
+      const compact = traits.map(t => t.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
+      const prob = "Treat outputs as probabilistic predictions; avoid overconfidence. Provide a single-line 'Answer:' as the final output. Keep replies extremely short.";
+      const base = "Concise assistant. Keep replies extremely short.";
+      const systemRaw = compact ? `${base} User: ${compact}. ${prob}` : `${base} ${prob}`;
+      return clampString(systemRaw, SYSTEM_PROMPT_CHAR_CAP);
+    }
 
-        } catch (err) {
-            appendMessage('ai', "Engine reset required.");
-            engine = null;
-        } finally {
-            thinking.style.display = 'none';
+    function buildMessages(userText){
+      const system = buildSystemPrompt();
+      const recent = [];
+      return [{ role: 'system', content: system }, ...recent, { role: 'user', content: userText }];
+    }
+
+    // parse "Answer:" style outputs
+    function extractAnswer(fullText) {
+      if (!fullText) return '';
+      const answerMatch = fullText.match(/Answer\s*:\s*([\s\S]*)$/i);
+      if (answerMatch) return answerMatch[1].trim();
+      return fullText.trim();
+    }
+
+    // small helper to detect trivial outputs (e.g., certainty-only)
+    function isTrivial(text) {
+      if (!text) return true;
+      const t = text.trim();
+      if (/^(high|medium|low)$/i.test(t)) return true;
+      if (t.length <= 3 && /^[A-Za-z]{1,3}$/.test(t)) return true;
+      return false;
+    }
+
+    // aggressive reset and retry (unload, prune DOM, probe, retry)
+    async function aggressiveResetAndRetry(originalUserText) {
+      appendMessage('assistant', 'Trying to refresh my mind...');
+      sendBtn.disabled = true;
+
+      requestQueue.length = 0;
+
+      try {
+        while (chat.children.length > 2) chat.removeChild(chat.firstChild);
+      } catch (e) { console.warn('DOM prune failed', e); }
+
+      try {
+        if (engine && typeof engine.unload === 'function') {
+          await engine.unload();
+        }
+      } catch (e) { console.warn('error unloading engine during aggressive reset', e); }
+      engine = null;
+
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      try { localStorage.removeItem(REASONING_CACHE_KEY); } catch(e){}
+
+      try {
+        const probe = await createEngineWithProgress();
+        try { if (probe && typeof probe.unload === 'function') await probe.unload(); } catch(e) { console.warn('probe unload failed', e); }
+        appendMessage('assistant', 'I refreshed successfully. Retrying your question...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        if (originalUserText && originalUserText.trim()) {
+          await handleSingleRequest(originalUserText, /*retriesLeft*/ 0);
+        }
+        sendBtn.disabled = false;
+        return true;
+      } catch (probeErr) {
+        console.warn('Probe create failed', probeErr);
+        appendMessage('assistant', 'I could not refresh fully. Performing a quick page refresh to free memory...');
+        setTimeout(() => {
+          try { window.location.reload(); } catch (reloadErr) {
+            console.error('reload failed', reloadErr);
+            appendMessage('assistant', 'Automatic reload failed. Please manually refresh the page.');
             sendBtn.disabled = false;
-        }
+          }
+        }, 700);
+        return false;
+      }
     }
 
-    // Start
-    initKnowledge();
-    sendBtn.onclick = runChat;
-    input.onkeypress = (e) => { if(e.key === 'Enter') runChat(); };
-</script>
+    // Recovery direct answer: quick single-line attempt (lightweight)
+    async function recoveryDirectAnswer(userText) {
+      try {
+        const eng = await createEngineWithProgress();
+        const sys = "Concise assistant. Provide a single-line direct answer to the user's question. Do NOT include 'Certainty' or steps — just the answer.";
+        const messages = [{ role: 'system', content: sys }, { role: 'user', content: userText }];
+        const chunks = await eng.chat.completions.create({ messages, stream: true });
+        let text = '';
+        for await (const chunk of chunks) {
+          const delta = chunk?.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            text += delta;
+            if (text.length > REPLY_CHAR_CAP_LOW) {
+              text = text.slice(0, REPLY_CHAR_CAP_LOW) + '\n\n[truncated]';
+              break;
+            }
+          }
+        }
+        try { await eng.unload(); } catch(e){}
+        return text.trim();
+      } catch (err) {
+        console.warn('Direct recovery failed', err);
+        return null;
+      }
+    }
+
+    // core request processing (with "thinking..." reveal delay)
+    async function handleSingleRequest(userText, retriesLeft = MAX_RESET_RETRIES) {
+      const replyCharCap = REPLY_CHAR_CAP_LOW;
+      const messages = buildMessages(userText);
+
+      // Append thinking placeholder (will be removed and replaced later)
+      appendMessage('assistant', 'Thinking...', { className: 'thinking' });
+
+      const alreadyDownloaded = modelDownloadedFlag();
+      if (!alreadyDownloaded) {
+        showOverlay('Preparing engine…', 'First-time model download may take longer', 0);
+        await new Promise(requestAnimationFrame);
+      } else {
+        await new Promise(requestAnimationFrame);
+      }
+
+      sendBtn.disabled = true;
+      let localEngine = null;
+      let fullReply = '';
+
+      try {
+        localEngine = await createEngineWithProgress();
+        engine = localEngine;
+        const chunks = await localEngine.chat.completions.create({ messages, stream: true });
+
+        for await (const chunk of chunks) {
+          const delta = chunk?.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            fullReply += delta;
+            if (fullReply.length > replyCharCap) {
+              fullReply = fullReply.slice(0, replyCharCap) + '\n\n[truncated to fit device limits]';
+              break;
+            }
+            if (fullReply.length % 200 === 0) await new Promise(requestAnimationFrame);
+          }
+        }
+
+        try { await localEngine.unload(); } catch(e) { console.warn('error unloading after stream', e); }
+        engine = null;
+        localEngine = null;
+
+        hideOverlay();
+
+        if (isTrivial(fullReply) && retriesLeft > 0) {
+          const direct = await recoveryDirectAnswer(userText);
+          if (direct && !isTrivial(direct)) fullReply = direct;
+        }
+
+        if (!fullReply || !fullReply.trim()) {
+          fullReply = "I couldn't produce an answer. Try again.";
+        }
+
+        const minDelayMs = 6000; // 6s
+        const maxDelayMs = 20000; // 20s
+        const revealDelay = Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
+        const adjustedDelay = Math.min(revealDelay, 12000); // cap to 12s for safety
+
+        await new Promise(resolve => setTimeout(resolve, adjustedDelay));
+
+        // Remove the earliest 'Thinking...' placeholder (search for text + className)
+        let removed = false;
+        for (let i = 0; i < allMessages.length; i++) {
+          if (allMessages[i] && allMessages[i].text === 'Thinking...' && allMessages[i].className && allMessages[i].className.includes('thinking')) {
+            allMessages.splice(i, 1);
+            removed = true;
+            if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
+            break;
+          }
+        }
+        if (!removed) {
+          // fallback: remove first 'Thinking...' text even without class
+          for (let i = 0; i < allMessages.length; i++) {
+            if (allMessages[i] && allMessages[i].text === 'Thinking...') {
+              allMessages.splice(i, 1);
+              if (displayStart > 0) displayStart = Math.max(0, displayStart - 1);
+              break;
+            }
+          }
+        }
+
+        appendMessage('assistant', extractAnswer(fullReply));
+
+        history.push({ role: 'user', content: userText }, { role: 'assistant', content: fullReply });
+        const maxEntries = HISTORY_TURNS_LOW * 2;
+        if (maxEntries > 0 && history.length > maxEntries) history = history.slice(-maxEntries);
+        if (maxEntries === 0) history = [];
+
+      } catch (err) {
+        console.error('Inference error', err);
+        // remove placeholder if exists
+        for (let i = allMessages.length - 1; i >= 0; i--) {
+          if (allMessages[i] && allMessages[i].text === 'Thinking...') {
+            allMessages.splice(i, 1);
+            break;
+          }
+        }
+        try { if (localEngine) await localEngine.unload(); } catch(e){}
+        engine = null;
+        localEngine = null;
+        hideOverlay();
+
+        if (retriesLeft > 0) {
+          await aggressiveResetAndRetry(userText);
+        } else {
+          appendMessage('assistant', 'I had a memory spike and could not recover. Try again later.');
+        }
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // queue request (adds to single-run queue)
+    function queueRequest(userText){
+      if (!userText || !userText.trim()) return;
+      appendMessage('user', userText);
+      requestQueue.push({ userText });
+      processQueue();
+    }
+
+    // queue processor
+    async function processQueue(){
+      if (processing) return;
+      processing = true;
+      while (requestQueue.length) {
+        const req = requestQueue.shift();
+        await handleSingleRequest(req.userText);
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+      processing = false;
+    }
+
+    // UI wiring
+    sendBtn.addEventListener('click', () => {
+      const txt = userInput.value.trim();
+      if (!txt) return;
+      userInput.value = '';
+      queueRequest(txt);
+    });
+    userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendBtn.click(); } });
+
+    // Reset button: clears history and unloads model
+    resetBtn.addEventListener('click', async () => {
+      history = [];
+      allMessages.length = 0;
+      displayStart = 0;
+      renderMessageWindow();
+      appendMessage('assistant', 'Memory purged. Ready.');
+      requestQueue.length = 0;
+      try { if (engine) await engine.unload(); } catch(e) {}
+      engine = null;
+    });
+
+    // Low-power toggle wiring — default ON if not set
+    const lowPowerRaw = loadLowPowerRaw();
+    if (lowPowerRaw === null) {
+      lowPower = true;
+      saveLowPower(true);
+    } else {
+      lowPower = loadLowPower();
+    }
+    lowPowerToggle.checked = lowPower;
+    lowPowerToggle.addEventListener('change', (e) => {
+      lowPower = !!e.target.checked;
+      saveLowPower(lowPower);
+      appendMessage('assistant', lowPower ? 'Low Power enabled.' : 'Low Power disabled.');
+    });
+
+    // Traits editor wiring (kept minimal)
+    function openTraits(){ renderTraitsModal(); traitsOverlay.style.display = 'flex'; traitsOverlay.setAttribute('aria-hidden','false'); }
+    function closeTraits(){ traitsOverlay.style.display = 'none'; traitsOverlay.setAttribute('aria-hidden','true'); }
+
+    function renderTraitsModal(){
+      traitsEditor.innerHTML = '';
+      traitsChips.innerHTML = '';
+      userTraits.forEach((t, idx) => {
+        const chip = document.createElement('div'); chip.className = 'chip'; chip.textContent = t; traitsChips.appendChild(chip);
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center';
+        const input = document.createElement('input'); input.value = t; input.placeholder = `Trait ${idx+1}`;
+        input.addEventListener('input', () => userTraits[idx] = input.value);
+        const rm = document.createElement('button'); rm.className = 'btn'; rm.textContent = 'Remove';
+        rm.addEventListener('click', () => { userTraits.splice(idx,1); renderTraitsModal(); });
+        row.appendChild(input); row.appendChild(rm);
+        traitsEditor.appendChild(row);
+      });
+      traitsCount.textContent = `${userTraits.length}/${MAX_TRAITS}`;
+    }
+
+    addTraitBtn.addEventListener('click', () => {
+      if (userTraits.length >= MAX_TRAITS) return;
+      userTraits.push('');
+      renderTraitsModal();
+    });
+    saveTraitsBtn.addEventListener('click', () => {
+      userTraits = userTraits.map(s => (s || '').trim()).filter(Boolean).slice(0, MAX_TRAITS);
+      saveTraits(userTraits);
+      closeTraits();
+      appendMessage('assistant', 'Traits saved.');
+    });
+    cancelTraitsBtn.addEventListener('click', () => closeTraits());
+    traitsBtn.addEventListener('click', () => openTraits());
+
+    // initial load: small default trait set
+    userTraits = loadTraits();
+    if (!userTraits || !userTraits.length) {
+      userTraits = ['Concise','English'];
+      saveTraits(userTraits);
+    }
+
+    // show initial ready message
+    appendMessage('assistant', 'Ready. Low Power mode is primary.');
+
+    // focus input
+    try { userInput.focus(); } catch(e){}
+  </script>
 </body>
 </html>
