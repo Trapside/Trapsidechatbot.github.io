@@ -3,129 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Chat GPT-2 (Clean Edition)</title>
+    <title>Tiny Chat (GPT-2 117M)</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 650px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
-        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #cfd8dc; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; font-size: 0.95rem; line-height: 1.5; }
-        .input-area { display: flex; gap: 10px; }
-        textarea { flex: 1; padding: 12px; border: 1px solid #cfd8dc; border-radius: 8px; resize: none; height: 60px; font-family: inherit; outline: none; transition: border 0.2s; }
-        textarea:focus { border-color: #007bff; }
-        .btn { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
-        .btn:disabled { background: #b0bec5; cursor: not-allowed; }
-        .btn-clear { background: #f44336; padding: 8px 15px; font-size: 0.8rem; }
-        #status { font-size: 0.85rem; color: #546e7a; margin-bottom: 10px; font-weight: 500; }
-        .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; }
-        .user-msg { background: #e3f2fd; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
-        .ai-msg { background: #f1f8e9; border-bottom-left-radius: 2px; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: #f4f4f9; 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .container { 
+            width: 100%; 
+            max-width: 600px; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        h2 { 
+            color: #333; 
+            margin-top: 0; 
+            font-size: 1.2rem; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h2::before {
+            content: "💬";
+        }
+        #chat-box { 
+            height: 300px; 
+            overflow-y: auto; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            background: #fafafa; 
+            font-size: 0.95rem; 
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .message {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .message:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .user-msg {
+            color: #0066cc;
+            font-weight: 500;
+        }
+        .ai-msg {
+            color: #333;
+        }
+        .system-msg {
+            color: #777;
+            font-style: italic;
+        }
+        .input-area { 
+            display: flex; 
+            gap: 10px; 
+            align-items: flex-end;
+        }
+        textarea { 
+            flex: 1; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            resize: vertical; 
+            min-height: 50px;
+            max-height: 150px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        button { 
+            padding: 10px 20px; 
+            border: none; 
+            background: #007bff; 
+            color: white; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: background 0.2s;
+            align-self: flex-end;
+            height: fit-content;
+        }
+        button:hover:not(:disabled) { 
+            background: #0069d9; 
+        }
+        button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
+        #status { 
+            font-size: 0.85rem; 
+            color: #e74c3c; 
+            margin-bottom: 10px; 
+            min-height: 1.5em;
+            font-weight: 500;
+        }
+        .status-ready {
+            color: #27ae60;
+        }
+        .disclaimer {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            #chat-box {
+                height: 250px;
+                font-size: 0.9rem;
+            }
+            .input-area {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            button {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>
-        Tiny Chat GPT-2 
-        <button class="btn btn-clear" id="clear-btn">Clear Chat</button>
-    </h2>
-    <div id="status">Initializing engine...</div>
-    <div id="chat-box"></div>
-    
-    <div class="input-area">
-        <textarea id="user-input" placeholder="Ask a simple question..." disabled></textarea>
-        <button class="btn" id="send-btn" disabled>Send</button>
+    <div class="container">
+        <h2>Tiny Chat (GPT-2 117M)</h2>
+        <div id="status">Status: Initializing...</div>
+        <div id="chat-box">
+            <div class="message system-msg">System: Loading model. This may take a minute on first load...</div>
+        </div>
+        <div class="disclaimer">
+            ⚠️ Note: This runs entirely in your browser. First load downloads ~113MB model. 
+            Keep questions simple - it's a small model!
+        </div>
+        <div class="input-area">
+            <textarea id="user-input" placeholder="Ask a simple question (e.g., What is Python?)" disabled></textarea>
+            <button id="send-btn" disabled>Send</button>
+        </div>
     </div>
-</div>
 
-<script type="module">
-    import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+    <script type="module">
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-    const CONFIG_PATHS = {
-        'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-        'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-    };
+        const statusEl = document.getElementById('status');
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
 
-    const statusEl = document.getElementById('status');
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const clearBtn = document.getElementById('clear-btn');
+        // WASM paths configuration
+        const CONFIG_PATHS = {
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        };
 
-    const wllama = new Wllama(CONFIG_PATHS);
+        // Initialize Wllama
+        const wllama = new Wllama(CONFIG_PATHS);
+        let isGenerating = false;
 
-    // Initialize model
-    async function init() {
-        try {
-            statusEl.innerText = "Downloading model (113MB)...";
-            await wllama.loadModelFromHF(
-                'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
-                'chat-GPT2.Q4_K.gguf', 
-                {
-                    progressCallback: ({ loaded, total }) => {
-                        statusEl.innerText = `Loading: ${Math.round((loaded/total)*100)}%`;
+        // Add message to chat box
+        function addMessage(content, className) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${className}`;
+            messageDiv.textContent = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Initialize model
+        async function init() {
+            try {
+                updateStatus("Downloading model (~113MB)...", false);
+                
+                await wllama.loadModelFromHF(
+                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
+                    'chat-GPT2.Q4_K.gguf',
+                    {
+                        progressCallback: ({ loaded, total }) => {
+                            const progress = Math.min(99, Math.round((loaded / total) * 100));
+                            updateStatus(`Downloading model: ${progress}%`, false);
+                        }
                     }
+                );
+
+                // Clear initial message and add system message
+                chatBox.innerHTML = '';
+                addMessage("Model loaded successfully! Ask me anything simple.", "system-msg");
+                updateStatus("Ready! Type your question below.", true);
+                
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            } catch (err) {
+                console.error("Model loading failed:", err);
+                updateStatus(`Error: ${err.message || 'Failed to load model'}`, false);
+                if (err.message?.includes('fetch')) {
+                    addMessage("Troubleshooting tips:\n• Check your internet connection\n• Disable ad-blockers\n• Try refreshing the page", "system-msg");
                 }
-            );
-            statusEl.innerText = "Status: Online";
-            addMessage("System", "Model loaded. I work best with direct questions.");
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-        } catch (e) {
-            statusEl.innerText = "Error loading model.";
-            console.error(e);
-        }
-    }
-
-    function addMessage(sender, text) {
-        const div = document.createElement('div');
-        div.className = `msg ${sender === 'You' ? 'user-msg' : 'ai-msg'}`;
-        div.innerHTML = `<strong>${sender}:</strong> ${text}`;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return div;
-    }
-
-    async function handleChat() {
-        const text = userInput.value.trim();
-        if (!text || sendBtn.disabled) return;
-
-        userInput.value = '';
-        sendBtn.disabled = true;
-        addMessage("You", text);
-        const aiMsgDiv = addMessage("AI", "...");
-
-        // PROMPT TUNING: Using the specific template this model was trained on
-        const prompt = `Read the question and give an honest answer. Question: ${text} Answer:`;
-
-        try {
-            const response = await wllama.createCompletion(prompt, {
-                nPredict: 150,
-                sampling: { temp: 0.2, top_k: 40 }, // Lower temp = less rambling
-                stopSequences: ["Question:", "Read the", "\n", "<|endoftext|>"]
-            });
-
-            // CLEANING: Strip the prompt and the pesky <|pad|> tokens
-            let cleanResponse = response
-                .replace(prompt, "")
-                .replace(/<\|pad\|>/g, "")
-                .replace(/<\|endoftext\|>/g, "")
-                .replace(/<\|startoftext\|>/g, "")
-                .trim();
-
-            aiMsgDiv.innerHTML = `<strong>AI:</strong> ${cleanResponse || "I don't have an answer for that."}`;
-        } catch (err) {
-            aiMsgDiv.innerHTML = `<strong>AI:</strong> [Error generating response]`;
+            }
         }
 
-        sendBtn.disabled = false;
-    }
+        // Update status with visual feedback
+        function updateStatus(message, isReady) {
+            statusEl.textContent = `Status: ${message}`;
+            statusEl.className = isReady ? 'status-ready' : '';
+        }
 
-    clearBtn.onclick = () => { chatBox.innerHTML = ''; addMessage("System", "Chat cleared."); };
-    sendBtn.onclick = handleChat;
-    userInput.onkeypress = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
+        // Handle chat submission
+        async function handleChat() {
+            const text = userInput.value.trim();
+            if (!text || isGenerating) return;
 
-    init();
-</script>
+            // Add user message
+            addMessage(`You: ${text}`, 'user-msg');
+            userInput.value = '';
+            isGenerating = true;
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            
+            // Add placeholder for AI response
+            const aiPlaceholder = document.createElement('div');
+            aiPlaceholder.className = 'message ai-msg';
+            aiPlaceholder.textContent = 'AI: Thinking...';
+            chatBox.appendChild(aiPlaceholder);
+            chatBox.scrollTop = chatBox.scrollHeight;
 
+            try {
+                // Format prompt for this specific model
+                const prompt = `Question: ${text} Answer:`;
+                
+                const response = await wllama.createCompletion(prompt, {
+                    nPredict: 120,  // Slightly increased for better responses
+                    sampling: { 
+                        temp: 0.85,  // Adjusted for better creativity
+                        top_k: 40,
+                        top_p: 0.95
+                    }
+                });
+
+                // Replace placeholder with actual response
+                chatBox.removeChild(aiPlaceholder);
+                addMessage(`AI: ${response.trim()}`, 'ai-msg');
+            } catch (err) {
+                console.error("Generation error:", err);
+                chatBox.removeChild(aiPlaceholder);
+                addMessage(`Error: ${err.message || 'Failed to generate response'}`, 'system-msg');
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // Event listeners
+        sendBtn.addEventListener('click', handleChat);
+        
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChat();
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
 </body>
 </html>
+
