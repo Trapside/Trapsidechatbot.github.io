@@ -78,7 +78,7 @@
             border-bottom-left-radius: 6px;
         }
         
-        .system-message {
+ .system-message {
             align-self: center;
             background: #222222;
             color: #999999;
@@ -186,6 +186,32 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* NEW: Message action buttons */
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: flex-end;
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            color: #999999;
+            cursor: pointer;
+            font-size: 14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: #333333;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -219,8 +245,8 @@
         // Conversation history
         let conversationHistory = [];
         
-        // CHANGED: Enhanced system prompt to encourage simple reasoning
-        const SYSTEM_PROMPT = "You are a helpful AI assistant. For questions requiring reasoning, first think briefly step by step, then give a clear final answer. Keep responses concise.";
+        // System prompt
+        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
         
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
@@ -248,6 +274,48 @@
                     const paragraphs = content.split('\n').filter(p => p.trim());
                     messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
                 }
+                
+                // NEW: Add action buttons under AI messages
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'message-actions';
+                actionsDiv.innerHTML = `
+                    <button class="action-btn copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
+                    <button class="action-btn like-btn" title="Like"><i class="fas fa-thumbs-up"></i></button>
+                    <button class="action-btn dislike-btn" title="Dislike"><i class="fas fa-thumbs-down"></i></button>
+                    <button class="action-btn share-btn" title="Share"><i class="fas fa-share"></i></button>
+                    <button class="action-btn retry-btn" title="Retry"><i class="fas fa-redo"></i></button>
+                    <button class="action-btn more-btn" title="More"><i class="fas fa-ellipsis-h"></i></button>
+                `;
+                messageEl.appendChild(actionsDiv);
+                
+                // Add event listeners for action buttons
+                const copyBtn = actionsDiv.querySelector('.copy-btn');
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(content).then(() => {
+                        const originalIcon = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalIcon;
+                        }, 1500);
+                    });
+                });
+                
+                const retryBtn = actionsDiv.querySelector('.retry-btn');
+                retryBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    userInput.value = content;
+                    handleChat();
+                });
+                
+                // Minimal behavior for other buttons (just log for now)
+                ['like', 'dislike', 'share', 'more'].forEach(type => {
+                    const btn = actionsDiv.querySelector(`.${type}-btn`);
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        console.log(`Button clicked: ${type}`);
+                    });
+                });
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
@@ -342,7 +410,7 @@
                 return "I'm not sure how to answer that. Could you rephrase your question?";
             }
             
-            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
+            return cleaned || "I'm not sure how to answer that. Could you rephrase question?";
         }
         
         // Build prompt with conversation history
@@ -411,9 +479,8 @@
             try {
                 const prompt = buildPrompt(text);
                 
-                // Slightly increased nPredict to allow room for brief reasoning (was 120)
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 150, // Small increase for reasoning space
+                    nPredict: 120,
                     sampling: { 
                         temp: 0.72,
                         top_k: 40,
