@@ -237,7 +237,6 @@
             
             if (role === 'user') {
                 messageEl.classList.add('user-message');
-                // FIXED: Added content rendering for user messages
                 const paragraphs = content.split('\n').filter(p => p.trim());
                 messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
             } else if (role === 'ai') {
@@ -292,11 +291,13 @@
                 .replace(/<\|unk\|>/g, '')
                 .trim();
             
-            // 2. Truncate at first occurrence of problematic patterns
+            // 2. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
+            // Catch patterns where model starts generating new Q&A pairs mid-response
             const badPatterns = [
-                { pattern: /\n\s*\n\s*Question:/i, reason: 'new question' },
-                { pattern: /\n\s*\n\s*Human:/i, reason: 'new human' },
-                { pattern: /\n\s*\n\s*User:/i, reason: 'new user' },
+                { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
+                { pattern: /\sHuman[:\s]/i, reason: 'new human' },
+                { pattern: /\sUser[:\s]/i, reason: 'new user' },
+                { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' }, // CRITICAL: catch when model generates its own "Answer:"
                 { pattern: /<\|/i, reason: 'special token' },
                 { pattern: /\n{3,}/, reason: 'excessive newlines' },
                 { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
@@ -304,7 +305,8 @@
             
             for (const { pattern } of badPatterns) {
                 const match = cleaned.match(pattern);
-                if (match && match.index > 20) { // Only truncate if we have meaningful content first
+                // Truncate at FIRST occurrence after we have meaningful content (10+ chars)
+                if (match && match.index > 10) {
                     cleaned = cleaned.substring(0, match.index).trim();
                     break; // Stop at first problematic pattern
                 }
