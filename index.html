@@ -99,7 +99,7 @@
         const vibeTimer = new Promise(r => setTimeout(r, 3000));
         
         try {
-            const engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
+            const engine = await webllm.CreateMLCEngine("SmolLM2-360M-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (p) => console.log(p.text)
             });
 
