@@ -246,11 +246,11 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Conversation history
+        // Conversation history - CRITICAL: Store raw messages for context
         let conversationHistory = [];
         
-        // System prompt
-        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
+        // System prompt - simplified to match model's training
+        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant.";
         
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
@@ -338,8 +338,8 @@
             
             if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
-                // Keep history manageable (last 4 messages)
-                if (conversationHistory.length > 4) {
+                // Keep ONLY last exchange (2 messages) for optimal 124M performance
+                if (conversationHistory.length > 2) {
                     conversationHistory.shift();
                 }
             }
@@ -429,25 +429,25 @@
             return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // Build prompt with conversation history - CRITICAL FIX: Optimized for chat continuity
+        // Build prompt with conversation history - CRITICAL FIX: Match exact fine-tuning format
         function buildPrompt(userMessage) {
-            // Use natural chat format matching the model's fine-tuning
-            let prompt = `${SYSTEM_PROMPT}\n\n`;
+            // EXACT format this model was trained with: USER/ASSISTANT with double newlines
+            let prompt = `SYSTEM: ${SYSTEM_PROMPT}\n\n`;
             
-            // Include last 2 exchanges (4 messages) for context
-            const historyCount = Math.min(4, conversationHistory.length);
+            // Include ONLY the last exchange (1 prior turn) for optimal 124M coherence
+            const historyCount = Math.min(2, conversationHistory.length);
             for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
                 const msg = conversationHistory[i];
                 if (msg.role === 'user') {
-                    prompt += `User: ${msg.content}\n`;
+                    prompt += `USER: ${msg.content}\n`;
                 } else if (msg.role === 'ai') {
                     // Use ORIGINAL response (not cleaned) for context continuity
-                    prompt += `Assistant: ${msg.content}\n`;
+                    prompt += `ASSISTANT: ${msg.content}\n\n`; // Double newline between exchanges
                 }
             }
             
-            // Current turn
-            prompt += `User: ${userMessage}\nAssistant:`;
+            // Current turn - NO extra newline after USER
+            prompt += `USER: ${userMessage}\nASSISTANT:`;
             return prompt;
         }
 
@@ -502,11 +502,11 @@
                 const response = await wllama.createCompletion(prompt, {
                     nPredict: 120,
                     sampling: { 
-                        temp: 0.68, // Slightly lower for conversation consistency
-                        top_k: 40,
-                        top_p: 0.92,
-                        repeat_penalty: 1.35,
-                        frequency_penalty: 0.4
+                        temp: 0.65, // Optimized for conversation coherence
+                        top_k: 35,  // Slightly more focused
+                        top_p: 0.9,
+                        repeat_penalty: 1.4, // Stronger repetition prevention
+                        frequency_penalty: 0.45
                     }
                 });
                 
