@@ -66,6 +66,13 @@
             color: #777;
             font-style: italic;
         }
+        .error-msg {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
         .input-area { 
             display: flex; 
             gap: 10px; 
@@ -113,9 +120,9 @@
         }
         .disclaimer {
             font-size: 0.8rem;
-            color: #7f8c8d;
+            color: #e67e22;
             margin-top: 5px;
-            font-style: italic;
+            font-weight: 500;
         }
         @media (max-width: 480px) {
             .container {
@@ -144,11 +151,11 @@
             <div class="message system-msg">System: Loading model. This may take a minute on first load...</div>
         </div>
         <div class="disclaimer">
-            ⚠️ Note: This runs entirely in your browser. First load downloads ~113MB model. 
-            Keep questions simple - it's a small model!
+            ⚠️ This is a VERY small model (117M params). Responses will be simple/unreliable. 
+            Not a real chatbot – more like a text completion demo.
         </div>
         <div class="input-area">
-            <textarea id="user-input" placeholder="Ask a simple question (e.g., What is Python?)" disabled></textarea>
+            <textarea id="user-input" placeholder="Ask a VERY simple question (e.g., 'What is water?')" disabled></textarea>
             <button id="send-btn" disabled>Send</button>
         </div>
     </div>
@@ -161,17 +168,45 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // WASM paths configuration
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         };
 
-        // Initialize Wllama
         const wllama = new Wllama(CONFIG_PATHS);
         let isGenerating = false;
 
-        // Add message to chat box
+        // Clean model output: remove padding tokens and truncate properly
+        function cleanOutput(text) {
+            // Remove all <|pad|> tokens and extra newlines
+            let cleaned = text.replace(/<\|pad\|>/g, '').trim();
+            
+            // Stop at first occurrence of unwanted patterns
+            const stopPatterns = [
+                /\n\nQuestion:/,  // Prevent next Q&A cycle
+                /\n\nYou:/,       // Prevent chat repetition
+                /<\|endoftext\|>/,
+                /\n\n\n/          // Excessive newlines
+            ];
+            
+            for (const pattern of stopPatterns) {
+                const match = cleaned.match(pattern);
+                if (match && match.index > 0) {
+                    cleaned = cleaned.substring(0, match.index).trim();
+                }
+            }
+            
+            // Remove trailing punctuation artifacts
+            cleaned = cleaned.replace(/[.,!?]+$/, '').trim();
+            
+            // If still empty or too short, provide fallback
+            if (cleaned.length < 3) {
+                return "I'm not sure how to answer that. Try a simpler question!";
+            }
+            
+            return cleaned;
+        }
+
         function addMessage(content, className) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${className}`;
@@ -180,7 +215,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Initialize model
         async function init() {
             try {
                 updateStatus("Downloading model (~113MB)...", false);
@@ -191,15 +225,14 @@
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.min(99, Math.round((loaded / total) * 100));
-                            updateStatus(`Downloading model: ${progress}%`, false);
+                            updateStatus(`Downloading: ${progress}%`, false);
                         }
                     }
                 );
 
-                // Clear initial message and add system message
                 chatBox.innerHTML = '';
-                addMessage("Model loaded successfully! Ask me anything simple.", "system-msg");
-                updateStatus("Ready! Type your question below.", true);
+                addMessage("✅ Model loaded! Keep questions VERY simple (1-5 words ideal).", "system-msg");
+                updateStatus("Ready! Example: 'What is sun?' or 'Why sky blue?'", true);
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
@@ -207,22 +240,23 @@
             } catch (err) {
                 console.error("Model loading failed:", err);
                 updateStatus(`Error: ${err.message || 'Failed to load model'}`, false);
-                if (err.message?.includes('fetch')) {
-                    addMessage("Troubleshooting tips:\n• Check your internet connection\n• Disable ad-blockers\n• Try refreshing the page", "system-msg");
-                }
+                addMessage("💡 Tips:\n• Disable ad-blockers\n• Use Chrome/Edge\n• Ensure 2GB+ RAM free\n• Model is VERY limited (not a real chatbot)", "error-msg");
             }
         }
 
-        // Update status with visual feedback
         function updateStatus(message, isReady) {
             statusEl.textContent = `Status: ${message}`;
             statusEl.className = isReady ? 'status-ready' : '';
         }
 
-        // Handle chat submission
         async function handleChat() {
             const text = userInput.value.trim();
-            if (!text || isGenerating) return;
+            if (!text || isGenerating || text.length > 60) {
+                if (text.length > 60) {
+                    addMessage("⚠️ Keep questions SHORT (under 60 chars). This is a tiny model!", "error-msg");
+                }
+                return;
+            }
 
             // Add user message
             addMessage(`You: ${text}`, 'user-msg');
@@ -231,33 +265,46 @@
             sendBtn.disabled = true;
             userInput.disabled = true;
             
-            // Add placeholder for AI response
-            const aiPlaceholder = document.createElement('div');
-            aiPlaceholder.className = 'message ai-msg';
-            aiPlaceholder.textContent = 'AI: Thinking...';
-            chatBox.appendChild(aiPlaceholder);
+            // Add thinking indicator
+            const thinkingEl = document.createElement('div');
+            thinkingEl.className = 'message ai-msg';
+            thinkingEl.textContent = 'AI: Thinking... (this may take 10-20 seconds)';
+            chatBox.appendChild(thinkingEl);
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                // Format prompt for this specific model
-                const prompt = `Question: ${text} Answer:`;
+                // CRITICAL FIX: Use simple continuation prompt instead of Q/A format
+                // GPT-2 wasn't trained for chat - just continue the text naturally
+                const prompt = `Q: ${text}\nA:`;
                 
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 120,  // Slightly increased for better responses
+                    nPredict: 80,   // Shorter to avoid repetition
                     sampling: { 
-                        temp: 0.85,  // Adjusted for better creativity
+                        temp: 0.9,   // Higher temp for more creativity (small model needs this)
                         top_k: 40,
                         top_p: 0.95
-                    }
+                    },
+                    // STOP TOKENS - critical fix to prevent <|pad|> spam
+                    stopTokens: ['<|endoftext|>', '<|pad|>', '\n\nQ:', '\n\nYou:']
                 });
 
-                // Replace placeholder with actual response
-                chatBox.removeChild(aiPlaceholder);
-                addMessage(`AI: ${response.trim()}`, 'ai-msg');
+                // Remove prompt from response and clean output
+                let answer = response.replace(prompt, '').trim();
+                answer = cleanOutput(answer);
+                
+                // Replace thinking indicator with real response
+                chatBox.removeChild(thinkingEl);
+                addMessage(`AI: ${answer}`, 'ai-msg');
+                
+                // Add reality check for bad responses
+                if (answer.includes('<|pad|>') || answer.split(' ').length < 3) {
+                    addMessage("💡 Tip: This 117M model is extremely limited. Try ultra-simple questions like 'What is water?'", "system-msg");
+                }
             } catch (err) {
                 console.error("Generation error:", err);
-                chatBox.removeChild(aiPlaceholder);
-                addMessage(`Error: ${err.message || 'Failed to generate response'}`, 'system-msg');
+                chatBox.removeChild(thinkingEl);
+                addMessage(`❌ Error: ${err.message || 'Generation failed'}`, "error-msg");
+                addMessage("💡 Try a simpler 1-3 word question. This model has severe limitations.", "system-msg");
             } finally {
                 isGenerating = false;
                 sendBtn.disabled = false;
@@ -266,7 +313,6 @@
             }
         }
 
-        // Event listeners
         sendBtn.addEventListener('click', handleChat);
         
         userInput.addEventListener('keypress', (e) => {
@@ -276,9 +322,18 @@
             }
         });
 
-        // Initialize on load
+        // Add character counter feedback
+        userInput.addEventListener('input', () => {
+            if (userInput.value.length > 60) {
+                userInput.style.borderColor = '#e74c3c';
+            } else {
+                userInput.style.borderColor = '#ccc';
+            }
+        });
+
         window.addEventListener('load', init);
     </script>
 </body>
 </html>
+
 
