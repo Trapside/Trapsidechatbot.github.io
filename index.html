@@ -2,142 +2,140 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Chat • Fixed GPT-2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Tiny Chat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --user-bg: #4f46e5;
-            --ai-bg: #f3f4f6;
-            --system-bg: #e0e7ff;
-            --border-radius: 18px;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s ease;
-        }
-        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #f0f4ff 0%, #e6e9ff 100%);
-            color: #333;
-            line-height: 1.5;
-            padding: 20px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 700px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            height: 100vh;
             overflow: hidden;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            line-height: 1.5;
+        }
+        
+        /* iOS Status Bar */
+        .status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            background: transparent;
+            z-index: 100;
             display: flex;
-            flex-direction: column;
-            height: 95vh;
-            position: relative;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            font-size: 16px;
+            pointer-events: none;
         }
         
-        header {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 18px 24px;
-            text-align: center;
-            position: relative;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-        }
-        
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
+        .status-bar-left {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 10px;
         }
         
-        .subtitle {
-            font-size: 0.95rem;
-            opacity: 0.9;
-            margin-top: 4px;
-            font-weight: 400;
+        .status-bar-left span {
+            font-weight: 500;
         }
         
-        .chat-container {
-            flex: 1;
+        .status-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-bar-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Main App Content */
+        .container {
+            height: 100vh;
             display: flex;
             flex-direction: column;
+            position: relative;
+            padding-top: 44px;
             overflow: hidden;
         }
         
-        #chat-box {
+        /* Header */
+        .header {
+            padding: 16px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Chat Area */
+        .chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             gap: 16px;
-            background: #f9fafc;
-            scroll-behavior: smooth;
         }
         
+        /* Messages */
         .message {
             max-width: 85%;
             padding: 14px 18px;
-            border-radius: var(--border-radius);
+            border-radius: 18px;
             position: relative;
-            animation: fadeIn 0.3s ease-out;
             line-height: 1.6;
-            font-size: 1.05rem;
+            font-size: 16px;
             word-wrap: break-word;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         .user-message {
             align-self: flex-end;
-            background: var(--user-bg);
-            color: white;
+            background: #333333;
+            color: #ffffff;
             border-bottom-right-radius: 6px;
-            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.25);
         }
         
         .ai-message {
             align-self: flex-start;
-            background: var(--ai-bg);
-            color: #333;
+            background: #222222;
+            color: #ffffff;
             border-bottom-left-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .system-message {
             align-self: center;
-            background: var(--system-bg);
-            color: #4338ca;
+            background: #222222;
+            color: #999999;
             max-width: 90%;
             font-style: italic;
-            border-radius: 14px;
-            font-size: 0.95rem;
+            border-radius: 18px;
+            font-size: 14px;
             padding: 10px 16px;
         }
         
         .loading-dots {
             display: inline-block;
+            color: #999999;
         }
         
         .loading-dots::after {
@@ -154,10 +152,11 @@
             60%, 100% { content: '...'; }
         }
         
+        /* Input Area */
         .input-area {
             padding: 16px;
-            border-top: 1px solid #eaeaea;
-            background: white;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: #000000;
             position: relative;
         }
         
@@ -167,188 +166,107 @@
             max-width: 100%;
         }
         
-        textarea {
+        .input-field {
             flex: 1;
-            padding: 14px 18px;
-            border: 1px solid #d1d5db;
-            border-radius: 18px;
-            resize: none;
+            background: #111111;
+            border: none;
+            border-radius: 24px;
+            padding: 12px 16px;
+            color: #ffffff;
             font-family: inherit;
-            font-size: 1.05rem;
+            font-size: 16px;
             line-height: 1.5;
-            min-height: 56px;
+            min-height: 44px;
             max-height: 200px;
-            transition: var(--transition);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        
-        textarea:focus {
+            resize: none;
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            -webkit-appearance: none;
         }
         
-        button {
-            background: var(--primary);
+        .input-field::placeholder {
+            color: #666666;
+        }
+        
+        .send-btn {
+            background: #4361ee;
             color: white;
             border: none;
-            border-radius: 16px;
+            border-radius: 24px;
             width: 48px;
             height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: var(--transition);
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s ease;
         }
         
-        button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
+        .send-btn:hover {
+            background: #3a56d4;
+            transform: scale(1.05);
         }
         
-        button:active {
-            transform: translateY(0);
+        .send-btn:active {
+            transform: scale(0.95);
         }
         
-        button:disabled {
-            background: #cbd5e1;
+        .send-btn:disabled {
+            background: #333333;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
         
-        button i {
+        .send-btn i {
             font-size: 18px;
-            width: 20px;
         }
         
-        .status-bar {
-            text-align: center;
-            padding: 8px 16px;
-            font-size: 0.85rem;
-            color: #4b5563;
-            background: #f3f4f6;
-            border-top: 1px solid #e5e7eb;
-            font-weight: 500;
+        /* Hide default scrollbar */
+        .chat-area::-webkit-scrollbar {
+            display: none;
         }
         
-        .model-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-        
-        .disclaimer {
-            text-align: center;
-            padding: 12px;
-            font-size: 0.85rem;
-            color: #64748b;
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            font-style: italic;
-        }
-        
-        @media (max-width: 600px) {
-            .container {
-                height: 100vh;
-                border-radius: 0;
-            }
-            
-            .message {
-                max-width: 95%;
-            }
-            
-            textarea {
-                min-height: 48px;
-                padding: 12px 16px;
-            }
-            
-            button {
-                width: 44px;
-                height: 44px;
-            }
-            
-            header {
-                padding: 14px 16px;
-            }
-            
-            h1 {
-                font-size: 1.5rem;
-            }
-            
-            .subtitle {
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* Scrollbar styling */
-        #chat-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        #chat-box::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        #chat-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        
-        #chat-box::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        .fix-badge {
-            background: #10b981;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            margin-left: 8px;
-        }
-        
-        .error {
-            background: #fee2e2;
-            color: #b91c1c;
-            border-left: 3px solid #ef4444;
+        .chat-area {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-robot"></i> Tiny Chat • Fixed GPT-2 <span class="fix-badge">PAD-FIXED</span></h1>
-            <div class="subtitle">Tokenizer artifacts removed • Enhanced coherence</div>
-        </header>
-        
-        <div class="chat-container">
-            <div id="chat-box">
-                <div class="system-message">
-                    <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
-                </div>
+    <!-- iOS Status Bar -->
+    <div class="status-bar">
+        <div class="status-bar-left">
+            <span id="time">17:30</span>
+        </div>
+        <div class="status-bar-right">
+            <div class="status-bar-icon">
+                <i class="fas fa-signal"></i>
             </div>
-            <div class="status-bar" id="status">Status: Loading model...</div>
+            <div class="status-bar-icon">
+                <i class="fas fa-wifi"></i>
+            </div>
+            <div class="status-bar-icon">
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header">New chat</div>
+        
+        <div class="chat-area" id="chat-box">
+            <div class="system-message">
+                <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
+            </div>
         </div>
         
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" placeholder="Ask a question... (e.g., Why is the sky blue?)" disabled></textarea>
-                <button id="send-btn" disabled>
-                    <i class="fas fa-paper-plane"></i>
+                <textarea id="user-input" class="input-field" placeholder="Ask me anything..." disabled></textarea>
+                <button id="send-btn" class="send-btn" disabled>
+                    <i class="fas fa-arrow-up"></i>
                 </button>
             </div>
-        </div>
-        
-        <div class="disclaimer">
-            <i class="fas fa-info-circle"></i> Fixed tokenizer issues • Responses cleaned of &lt;|pad|&gt; tokens and repetitions
         </div>
     </div>
 
@@ -395,7 +313,7 @@
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
             } else if (role === 'error') {
-                messageEl.classList.add('error');
+                messageEl.classList.add('system-message');
                 messageEl.innerHTML = `<strong>Error:</strong> ${escapeHtml(content)}`;
             }
             
@@ -515,7 +433,7 @@
 
         async function init() {
             try {
-                updateStatus("Downloading model (~113MB)...");
+                // Update status in chat
                 addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
                 
                 // Load model with explicit token settings
@@ -525,38 +443,32 @@
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            updateStatus(`Downloading model: ${progress}%`);
+                            // Update chat with progress
+                            if (progress < 100) {
+                                const progressEl = chatBox.querySelector('.progress');
+                                if (progressEl) {
+                                    progressEl.textContent = `Downloading model: ${progress}%`;
+                                } else {
+                                    addMessage(`Downloading model: ${progress}%`, "system");
+                                }
+                            }
                         }
                     }
                 );
 
-                updateStatus("Ready! Ask me anything.");
                 addMessage("I'm ready to chat! My responses are now cleaned of tokenizer artifacts (<|pad|> tokens) and repetitions.", "ai");
                 addMessage("💡 Tip: Ask clear, specific questions for best results.", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
-                
-                // Update status bar
-                statusEl.innerHTML = `
-                    <div class="model-info">
-                        <span><i class="fas fa-microchip"></i> GPT-2 124M • Fixed</span>
-                        <span><i class="fas fa-broom"></i> PAD tokens removed</span>
-                    </div>
-                `;
             } catch (err) {
                 const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
-                updateStatus("Error loading model");
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
             }
         }
         
-        function updateStatus(message) {
-            statusEl.textContent = `Status: ${message}`;
-        }
-
         async function handleChat() {
             const text = userInput.value.trim();
             if (!text) return;
@@ -564,7 +476,7 @@
             // Add user message
             addMessage(text, 'user');
             userInput.value = '';
-            userInput.style.height = '56px';
+            userInput.style.height = 'auto';
             
             // Show loading indicator
             const loadingEl = addMessage("Thinking", 'ai', true);
@@ -606,7 +518,7 @@
 
         sendBtn.addEventListener('click', handleChat);
         userInput.addEventListener('keypress', (e) => { 
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleChat();
             }
@@ -620,6 +532,15 @@
 
         // Initialize the app
         init();
+        
+        // Set realistic time (for demo purposes)
+        const timeEl = document.getElementById('time');
+        setInterval(() => {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            timeEl.textContent = `${hours}:${minutes}`;
+        }, 60000);
     </script>
 </body>
 </html>
