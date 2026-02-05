@@ -194,7 +194,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
+                The AI is currently downloading its knowledge files (113MB). Think of this as the model getting its thoughts in order before it starts talking.<br>⏳ Almost Ready<br>It should be finished and ready to use in about a minute or less.
             </div>
         </div>
         
@@ -375,8 +375,7 @@
 
         async function init() {
             try {
-                // Update status in chat
-                addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
+                // REMOVED: Original "Model is downloading..." message call
                 
                 // Load model with explicit token settings
                 await wllama.loadModelFromHF(
@@ -398,8 +397,8 @@
                     }
                 );
 
-                addMessage("I'm ready to chat! My responses are now cleaned of tokenizer artifacts (<|pad|> tokens) and repetitions.", "ai");
-                addMessage("💡 Tip: Ask clear, specific questions for best results.", "system");
+                // CHANGED: Single welcome message after download completes
+                addMessage("Hi. Welcome to trapside how can i help.?", "ai");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
