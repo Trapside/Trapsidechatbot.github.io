@@ -3,99 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Chat GPT-2 (124M)</title>
+    <title>Tiny Chat GPT-2 (Clean Edition)</title>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f4f9; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-top: 0; font-size: 1.2rem; }
-        #chat-box { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; font-size: 0.9rem; white-space: pre-wrap; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 650px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #cfd8dc; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; font-size: 0.95rem; line-height: 1.5; }
         .input-area { display: flex; gap: 10px; }
-        textarea { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; resize: none; height: 50px; font-family: inherit; }
-        button { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #status { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+        textarea { flex: 1; padding: 12px; border: 1px solid #cfd8dc; border-radius: 8px; resize: none; height: 60px; font-family: inherit; outline: none; transition: border 0.2s; }
+        textarea:focus { border-color: #007bff; }
+        .btn { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
+        .btn:disabled { background: #b0bec5; cursor: not-allowed; }
+        .btn-clear { background: #f44336; padding: 8px 15px; font-size: 0.8rem; }
+        #status { font-size: 0.85rem; color: #546e7a; margin-bottom: 10px; font-weight: 500; }
+        .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; }
+        .user-msg { background: #e3f2fd; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
+        .ai-msg { background: #f1f8e9; border-bottom-left-radius: 2px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Tiny Chat (GPT-2 124M)</h2>
-    <div id="status">Status: Initializing...</div>
-    <div id="chat-box">System: Waiting for model to load...</div>
+    <h2>
+        Tiny Chat GPT-2 
+        <button class="btn btn-clear" id="clear-btn">Clear Chat</button>
+    </h2>
+    <div id="status">Initializing engine...</div>
+    <div id="chat-box"></div>
     
     <div class="input-area">
-        <textarea id="user-input" placeholder="Type a simple question (e.g., What is Python?)" disabled></textarea>
-        <button id="send-btn" disabled>Chat</button>
+        <textarea id="user-input" placeholder="Ask a simple question..." disabled></textarea>
+        <button class="btn" id="send-btn" disabled>Send</button>
     </div>
 </div>
 
 <script type="module">
-    // Using Wllama from CDN
     import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-    const statusEl = document.getElementById('status');
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-
-    // Configuration for WASM binaries
     const CONFIG_PATHS = {
         'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
         'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
     };
 
+    const statusEl = document.getElementById('status');
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
     const wllama = new Wllama(CONFIG_PATHS);
 
+    // Initialize model
     async function init() {
         try {
-            statusEl.innerText = "Status: Downloading model (~113MB)...";
-            
-            // Loading the specific GGUF model you requested
+            statusEl.innerText = "Downloading model (113MB)...";
             await wllama.loadModelFromHF(
                 'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
                 'chat-GPT2.Q4_K.gguf', 
                 {
                     progressCallback: ({ loaded, total }) => {
-                        const progress = Math.round((loaded / total) * 100);
-                        statusEl.innerText = `Status: Downloading ${progress}%`;
+                        statusEl.innerText = `Loading: ${Math.round((loaded/total)*100)}%`;
                     }
                 }
             );
-
-            statusEl.innerText = "Status: Ready!";
-            chatBox.innerText = "System: Model loaded. Note: This is an 82M model, so keep questions simple!";
+            statusEl.innerText = "Status: Online";
+            addMessage("System", "Model loaded. I work best with direct questions.");
             userInput.disabled = false;
             sendBtn.disabled = false;
-        } catch (err) {
-            statusEl.innerText = "Status: Error loading model.";
-            console.error(err);
+        } catch (e) {
+            statusEl.innerText = "Error loading model.";
+            console.error(e);
         }
+    }
+
+    function addMessage(sender, text) {
+        const div = document.createElement('div');
+        div.className = `msg ${sender === 'You' ? 'user-msg' : 'ai-msg'}`;
+        div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return div;
     }
 
     async function handleChat() {
         const text = userInput.value.trim();
-        if (!text) return;
+        if (!text || sendBtn.disabled) return;
 
         userInput.value = '';
         sendBtn.disabled = true;
-        chatBox.innerText += `\n\nYou: ${text}\n\nAI: ...`;
+        addMessage("You", text);
+        const aiMsgDiv = addMessage("AI", "...");
 
-        // Arjun-G-Ravi model likes the "Question: Answer:" format
-        const prompt = `Question: ${text} Answer:`;
+        // PROMPT TUNING: Using the specific template this model was trained on
+        const prompt = `Read the question and give an honest answer. Question: ${text} Answer:`;
 
-        const response = await wllama.createCompletion(prompt, {
-            nPredict: 100,
-            sampling: { temp: 0.7, top_k: 40 }
-        });
+        try {
+            const response = await wllama.createCompletion(prompt, {
+                nPredict: 150,
+                sampling: { temp: 0.2, top_k: 40 }, // Lower temp = less rambling
+                stopSequences: ["Question:", "Read the", "\n", "<|endoftext|>"]
+            });
 
-        // Append only the new response text
-        chatBox.innerText = chatBox.innerText.replace('AI: ...', `AI: ${response.trim()}`);
+            // CLEANING: Strip the prompt and the pesky <|pad|> tokens
+            let cleanResponse = response
+                .replace(prompt, "")
+                .replace(/<\|pad\|>/g, "")
+                .replace(/<\|endoftext\|>/g, "")
+                .replace(/<\|startoftext\|>/g, "")
+                .trim();
+
+            aiMsgDiv.innerHTML = `<strong>AI:</strong> ${cleanResponse || "I don't have an answer for that."}`;
+        } catch (err) {
+            aiMsgDiv.innerHTML = `<strong>AI:</strong> [Error generating response]`;
+        }
+
         sendBtn.disabled = false;
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    sendBtn.addEventListener('click', handleChat);
-    userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleChat(); });
+    clearBtn.onclick = () => { chatBox.innerHTML = ''; addMessage("System", "Chat cleared."); };
+    sendBtn.onclick = handleChat;
+    userInput.onkeypress = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
 
     init();
 </script>
