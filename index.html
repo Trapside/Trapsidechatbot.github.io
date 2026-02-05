@@ -143,31 +143,6 @@
             color: #666666;
         }
         
-        .action-btn {
-            background: #2a2a2a;
-            color: #aaaaaa;
-            border: none;
-            border-radius: 24px;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: all 0.2s ease;
-        }
-        
-        .action-btn:hover {
-            background: #3a3a3a;
-            color: #ffffff;
-            transform: scale(1.05);
-        }
-        
-        .action-btn:active {
-            transform: scale(0.95);
-        }
-        
         .send-btn {
             background: #4361ee;
             color: white;
@@ -226,9 +201,6 @@
         <div class="input-area">
             <div class="input-container">
                 <textarea id="user-input" class="input-field" placeholder="Ask me anything..." disabled></textarea>
-                <button id="search-btn" class="action-btn" disabled title="Search the web for this query">
-                    <i class="fas fa-search"></i>
-                </button>
                 <button id="send-btn" class="send-btn" disabled>
                     <i class="fas fa-arrow-up"></i>
                 </button>
@@ -243,13 +215,12 @@
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
-        const searchBtn = document.getElementById('search-btn'); // NEW: Search button
         
         // Conversation history
         let conversationHistory = [];
         
-        // System prompt
-        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
+        // CHANGED: Enhanced system prompt to encourage simple reasoning
+        const SYSTEM_PROMPT = "You are a helpful AI assistant. For questions requiring reasoning, first think briefly step by step, then give a clear final answer. Keep responses concise.";
         
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
@@ -321,12 +292,11 @@
                 .trim();
             
             // 2. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
-            // Catch patterns where model starts generating new Q&A pairs mid-response
             const badPatterns = [
                 { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
                 { pattern: /\sHuman[:\s]/i, reason: 'new human' },
                 { pattern: /\sUser[:\s]/i, reason: 'new user' },
-                { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' }, // CRITICAL: catch when model generates its own "Answer:"
+                { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' },
                 { pattern: /<\|/i, reason: 'special token' },
                 { pattern: /\n{3,}/, reason: 'excessive newlines' },
                 { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
@@ -334,29 +304,23 @@
             
             for (const { pattern } of badPatterns) {
                 const match = cleaned.match(pattern);
-                // Truncate at FIRST occurrence after we have meaningful content (10+ chars)
                 if (match && match.index > 10) {
                     cleaned = cleaned.substring(0, match.index).trim();
-                    break; // Stop at first problematic pattern
+                    break;
                 }
             }
             
-            // 3. Remove trailing repetitions (common GPT-2 degeneration)
-            // Remove sequences repeated 3+ times (e.g., "and and and")
+            // 3. Remove trailing repetitions
             cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
-            // Remove longer phrase repetitions
             cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
             
             // 4. Ensure proper sentence ending
             if (cleaned.length > 10) {
-                // If doesn't end with proper punctuation, find last sentence boundary
                 if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
-                    // Find last occurrence of sentence-ending punctuation followed by space/capital letter
                     const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
                     if (lastGoodBreak > cleaned.length - 30 && lastGoodBreak > 20) {
                         cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
                     } else if (lastGoodBreak > 10) {
-                        // Find next space after last period to avoid cutting mid-word
                         const nextSpace = cleaned.indexOf(' ', lastGoodBreak);
                         if (nextSpace > lastGoodBreak) {
                             cleaned = cleaned.substring(0, nextSpace).trim();
@@ -367,13 +331,13 @@
                 }
             }
             
-            // 5. Final cleanup: collapse multiple spaces/newlines and trim
+            // 5. Final cleanup
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
                 .replace(/\n{2,}/g, '\n\n')
                 .trim();
             
-            // 6. Safety net: if still contains pad tokens or is too short, use fallback
+            // 6. Safety net
             if (cleaned.includes('<|') || cleaned.length < 5) {
                 return "I'm not sure how to answer that. Could you rephrase your question?";
             }
@@ -385,14 +349,12 @@
         function buildPrompt(userMessage) {
             let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
             
-            // Add last 2 exchanges for context (GPT-2 has limited context)
             const historyCount = Math.min(2, conversationHistory.length);
             for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
                 const msg = conversationHistory[i];
                 if (msg.role === 'user') {
                     prompt += `Question: ${msg.content}\n`;
                 } else if (msg.role === 'ai') {
-                    // Clean previous AI response before adding to context
                     const cleanResp = cleanModelResponse(msg.content);
                     prompt += `Answer: ${cleanResp}\n\n`;
                 }
@@ -402,29 +364,14 @@
             return prompt;
         }
 
-        // NEW: Web search function (client-side only, no API keys needed)
-        function performSearch() {
-            const query = userInput.value.trim();
-            if (!query) return;
-            
-            // Open Google search in new tab (privacy-respecting, no tracking)
-            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-            window.open(searchUrl, '_blank');
-            
-            // Add system message confirming search
-            addMessage(`🔍 Searched the web for: "${escapeHtml(query)}"<br><small>Results opened in new tab</small>`, "system");
-        }
-
         async function init() {
             try {
-                // Load model with explicit token settings
                 await wllama.loadModelFromHF(
                     'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
                     'chat-GPT2.Q4_K.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            // Update chat with progress
                             if (progress < 100) {
                                 const progressEl = chatBox.querySelector('.progress');
                                 if (progressEl) {
@@ -437,12 +384,10 @@
                     }
                 );
 
-                // CHANGED: Single welcome message after download completes
                 addMessage("Hi. Welcome to trapside how can i help.?", "ai");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
-                searchBtn.disabled = false; // NEW: Enable search button
                 userInput.focus();
             } catch (err) {
                 const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
@@ -455,36 +400,30 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Add user message
             addMessage(text, 'user');
             userInput.value = '';
             userInput.style.height = 'auto';
             
-            // Show loading indicator
             const loadingEl = addMessage("Thinking", 'ai', true);
             sendBtn.disabled = true;
-            searchBtn.disabled = true; // NEW: Disable during response
             userInput.disabled = true;
             
             try {
                 const prompt = buildPrompt(text);
                 
-                // Generate response with PAD-prevention parameters
+                // Slightly increased nPredict to allow room for brief reasoning (was 120)
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 120, // Reasonable length for 124M model
+                    nPredict: 150, // Small increase for reasoning space
                     sampling: { 
-                        temp: 0.72,          // Balanced creativity
-                        top_k: 40,           // Focused diversity
-                        top_p: 0.9,          // Nucleus sampling
-                        repeat_penalty: 1.35, // CRITICAL: Higher penalty prevents repetitions
-                        frequency_penalty: 0.4 // Additional repetition control
+                        temp: 0.72,
+                        top_k: 40,
+                        top_p: 0.9,
+                        repeat_penalty: 1.35,
+                        frequency_penalty: 0.4
                     }
                 });
                 
-                // CRITICAL: Clean the response before displaying
                 const cleanedResponse = cleanModelResponse(response);
-                
-                // Replace loading indicator with cleaned response
                 loadingEl.remove();
                 addMessage(cleanedResponse, 'ai');
                 
@@ -494,14 +433,12 @@
                 addMessage("I encountered an error while processing your request. Please try again.", "error");
             } finally {
                 sendBtn.disabled = false;
-                searchBtn.disabled = false; // NEW: Re-enable after response
                 userInput.disabled = false;
                 userInput.focus();
             }
         }
 
         sendBtn.addEventListener('click', handleChat);
-        searchBtn.addEventListener('click', performSearch); // NEW: Search button handler
         userInput.addEventListener('keypress', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -509,21 +446,11 @@
             }
         });
         
-        // NEW: Ctrl+Enter or Cmd+Enter for search, Enter for send
-        userInput.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                performSearch();
-            }
-        });
-        
-        // Auto-resize textarea
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = Math.min(200, userInput.scrollHeight) + 'px';
         });
 
-        // Initialize the app
         init();
     </script>
 </body>
