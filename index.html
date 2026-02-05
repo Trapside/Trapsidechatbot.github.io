@@ -3,540 +3,534 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Agent (Working)</title>
+    <title>Tiny Chat • Smarter GPT-2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #4361ee;
-            --success: #06d6a0;
-            --warning: #ffd166;
-            --danger: #ef476f;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --user-bg: #4f46e5;
+            --ai-bg: #f3f4f6;
+            --system-bg: #e0e7ff;
+            --border-radius: 18px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
         }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            background: #f0f2f5; 
-            display: flex; 
-            justify-content: center; 
-            padding: 15px;
+        
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e6e9ff 100%);
             color: #333;
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .container { 
-            width: 100%; 
-            max-width: 650px; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 16px; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
+        
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+            position: relative;
         }
+        
         header {
+            background: linear-gradient(120deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 18px 24px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e9ecef;
+            justify-content: center;
+            gap: 10px;
         }
-        h1 { 
-            color: #111; 
-            margin: 0; 
-            font-size: 1.4rem; 
-            font-weight: 700;
+        
+        .subtitle {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 400;
         }
-        h1::before {
-            content: "🤖";
-            font-size: 1.6em;
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        #chat-box { 
-            height: 380px; 
-            overflow-y: auto; 
-            border: 1px solid #e0e3e7; 
-            padding: 18px; 
-            margin-bottom: 18px; 
-            border-radius: 14px; 
-            background: #fcfdff; 
-            font-size: 0.98rem; 
-            line-height: 1.55;
-            white-space: pre-wrap;
+        
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #f9fafc;
+            scroll-behavior: smooth;
         }
+        
         .message {
-            margin-bottom: 16px;
-            padding: 12px 14px;
-            border-radius: 12px;
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: var(--border-radius);
+            position: relative;
             animation: fadeIn 0.3s ease-out;
+            line-height: 1.6;
+            font-size: 1.05rem;
         }
+        
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .user-msg {
-            background: #e3f2fd;
-            margin-left: 25px;
-            border-top-right-radius: 4px;
-            font-weight: 500;
-            color: #1565c0;
+        
+        .user-message {
+            align-self: flex-end;
+            background: var(--user-bg);
+            color: white;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.25);
         }
-        .ai-msg {
-            background: #f0f7ff;
-            margin-right: 25px;
-            border-top-left-radius: 4px;
+        
+        .ai-message {
+            align-self: flex-start;
+            background: var(--ai-bg);
+            color: #333;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        .system-msg {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 3px solid var(--success);
-            padding-left: 12px;
+        
+        .system-message {
+            align-self: center;
+            background: var(--system-bg);
+            color: #4338ca;
+            max-width: 90%;
+            font-style: italic;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            padding: 10px 16px;
         }
-        .error-msg {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 3px solid var(--danger);
-            padding: 10px;
-            border-radius: 0 12px 12px 0;
-            margin: 8px 0;
+        
+        .loading-dots {
+            display: inline-block;
         }
-        .tool-call {
-            background: #fff8e1;
-            border-left: 3px solid var(--warning);
-            padding: 8px 12px;
-            border-radius: 0 10px 10px 0;
-            font-family: monospace;
-            font-size: 0.9rem;
-            margin: 6px 0;
+        
+        .loading-dots::after {
+            content: '.';
+            animation: dots 1.5s infinite;
+            width: 20px;
+            display: inline-block;
+            text-align: left;
         }
-        .tool-result {
-            background: #e3f2fd;
-            border-left: 3px solid var(--primary);
-            padding: 8px 12px;
-            border-radius: 0 10px 10px 0;
-            margin: 6px 0;
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
         }
-        .input-area { 
-            display: flex; 
-            gap: 12px; 
-            align-items: flex-end;
-            margin-top: 8px;
+        
+        .input-area {
+            padding: 16px;
+            border-top: 1px solid #eaeaea;
+            background: white;
+            position: relative;
         }
-        textarea { 
-            flex: 1; 
-            padding: 14px; 
-            border: 2px solid #ddd; 
-            border-radius: 14px; 
-            resize: vertical; 
-            min-height: 56px;
-            max-height: 120px;
+        
+        .input-container {
+            display: flex;
+            gap: 12px;
+            max-width: 100%;
+        }
+        
+        textarea {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid #d1d5db;
+            border-radius: 18px;
+            resize: none;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 1.05rem;
+            line-height: 1.5;
+            min-height: 56px;
+            max-height: 200px;
+            transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
+        
         textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
-        button { 
-            padding: 14px 24px; 
-            border: none; 
-            background: var(--primary); 
-            color: white; 
-            border-radius: 14px; 
-            cursor: pointer; 
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.2s;
-        }
-        button:hover:not(:disabled) { 
-            background: #3a56e0; 
-        }
-        button:disabled { 
-            background: #a0aec0; 
-            cursor: not-allowed; 
-        }
-        #status { 
-            font-size: 0.95rem; 
-            font-weight: 500;
+        
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            width: 48px;
+            height: 48px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-height: 24px;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
         }
-        .status-error { color: var(--danger); }
-        .status-ready { color: var(--success); }
-        .status-loading { color: #64748b; }
-        .disclaimer {
-            background: #eef7ff;
-            border-radius: 12px;
-            padding: 15px;
-            font-size: 0.9rem;
-            color: #4a5568;
-            margin: 18px 0;
-            border-left: 3px solid var(--primary);
+        
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
         }
-        .browser-fix {
-            background: #fff8e6;
-            border: 1px solid #ffd54f;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
+        
+        button:active {
+            transform: translateY(0);
         }
-        .browser-fix h3 {
-            margin-top: 0;
-            color: #5d4037;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        
+        button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
-        .browser-fix ul {
-            margin: 8px 0 0 20px;
-            padding-left: 5px;
+        
+        button i {
+            font-size: 18px;
+            width: 20px;
         }
-        .browser-fix li {
-            margin-bottom: 6px;
-        }
-        footer {
+        
+        .status-bar {
             text-align: center;
+            padding: 8px 16px;
             font-size: 0.85rem;
-            color: #718096;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #edf2f7;
+            color: #4b5563;
+            background: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
+            font-weight: 500;
         }
-        @media (max-width: 480px) {
-            .container { padding: 15px; margin: 8px; }
-            #chat-box { height: 300px; }
-            .input-area { flex-direction: column; }
-            button { width: 100%; padding: 16px; }
+        
+        .model-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .disclaimer {
+            text-align: center;
+            padding: 12px;
+            font-size: 0.85rem;
+            color: #64748b;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            font-style: italic;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            textarea {
+                min-height: 48px;
+                padding: 12px 16px;
+            }
+            
+            button {
+                width: 44px;
+                height: 44px;
+            }
+            
+            header {
+                padding: 14px 16px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+        
+        /* Scrollbar styling */
+        #chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        
+        #chat-box::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Tiny Agent</h1>
-            <div id="status" class="status-loading">🔄 Initializing WebAssembly...</div>
+            <h1><i class="fas fa-robot"></i> Tiny Chat • Smarter GPT-2</h1>
+            <div class="subtitle">Enhanced interface with improved reasoning capabilities</div>
         </header>
-
-        <div class="disclaimer">
-            <strong>✅ Working in Chrome/Edge</strong> • First load downloads 450MB model<br>
-            <strong>⚠️ Firefox users:</strong> Requires config change (see troubleshooting below)
-        </div>
-
-        <div id="chat-box">
-            <div class="message system-msg">System: Loading WebAssembly runtime...</div>
-            <div class="message system-msg">🔍 Checking browser compatibility...</div>
+        
+        <div class="chat-container">
+            <div id="chat-box">
+                <div class="system-message">
+                    <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
+                </div>
+            </div>
+            <div class="status-bar" id="status">Status: Loading model...</div>
         </div>
         
         <div class="input-area">
-            <textarea id="user-input" placeholder="Ask after model loads (e.g., 'water boiling point')" disabled></textarea>
-            <button id="send-btn" disabled>Send</button>
+            <div class="input-container">
+                <textarea id="user-input" placeholder="Ask a question... (e.g., What is photosynthesis?)" disabled></textarea>
+                <button id="send-btn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
-
-        <div id="troubleshooting" class="browser-fix" style="display:none;">
-            <h3>🔧 Browser Fix Required</h3>
-            <p>This error means your browser blocked WebAssembly loading. Fix based on your browser:</p>
-            <ul>
-                <li><strong>Chrome/Edge:</strong> Disable ad-blockers (uBlock, AdBlock Plus) temporarily during first load</li>
-                <li><strong>Firefox:</strong> Type <code>about:config</code> in address bar → Accept risk → Search for:<br>
-                    <code>dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled</code> → Set to <strong>true</strong></li>
-                <li><strong>Safari:</strong> Not supported (use Chrome/Edge instead)</li>
-            </ul>
-            <p>After changes, <strong>refresh this page</strong>. First load takes 1-3 minutes.</p>
+        
+        <div class="disclaimer">
+            <i class="fas fa-info-circle"></i> This is a small language model (GPT-2 124M). For best results, ask clear, concise questions.
         </div>
-
-        <footer>
-            GPT-2 117M + Tools • All processing happens in your browser
-        </footer>
     </div>
 
-    <script>
-        // ===== STEP 1: BROWSER COMPATIBILITY CHECK =====
+    <script type="module">
+        // Using Wllama from CDN
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+
         const statusEl = document.getElementById('status');
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
-        const troubleshootingEl = document.getElementById('troubleshooting');
+        
+        // Conversation history (for UI only - model uses truncated context)
+        let conversationHistory = [];
+        
+        // System prompt to guide model behavior
+        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant named TinyChat. Provide accurate, thoughtful answers while staying on topic. If you don't know something, say so honestly.";
+        
+        // Configuration for WASM binaries
+        const CONFIG_PATHS = {
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        };
 
-        function updateStatus(msg, type) {
-            const icons = { loading: '🔄', ready: '✅', error: '❌' };
-            statusEl.innerHTML = `${icons[type] || '⚠️'} ${msg}`;
-            statusEl.className = `status-${type}`;
-        }
+        const wllama = new Wllama(CONFIG_PATHS);
 
-        function addMessage(text, className = 'ai-msg') {
-            const div = document.createElement('div');
-            div.className = `message ${className}`;
-            div.textContent = text;
-            chatBox.appendChild(div);
+        // Add message to chat UI
+        function addMessage(content, role, isLoading = false) {
+            const messageEl = document.createElement('div');
+            messageEl.classList.add('message');
+            
+            if (role === 'user') {
+                messageEl.classList.add('user-message');
+            } else if (role === 'ai') {
+                messageEl.classList.add('ai-message');
+                if (isLoading) {
+                    messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
+                } else {
+                    // Format AI responses with paragraphs
+                    const paragraphs = content.split('\n').filter(p => p.trim());
+                    messageEl.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+                }
+            } else if (role === 'system') {
+                messageEl.classList.add('system-message');
+                messageEl.innerHTML = content;
+            }
+            
+            chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // Store in history for UI (not used in prompt yet)
+            if (role !== 'system') {
+                conversationHistory.push({ role, content });
+            }
+            
+            return messageEl;
+        }
+        
+        // Build prompt with conversation history (truncated to fit context)
+        function buildPrompt(userMessage) {
+            // Start with system prompt
+            let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
+            
+            // Add recent conversation history (last 2 exchanges to stay within context)
+            const historyCount = Math.min(2, conversationHistory.length);
+            for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
+                const msg = conversationHistory[i];
+                if (msg.role === 'user') {
+                    prompt += `Question: ${msg.content}\n`;
+                } else if (msg.role === 'ai') {
+                    prompt += `Answer: ${msg.content}\n\n`;
+                }
+            }
+            
+            // Add current question
+            prompt += `Question: ${userMessage}\nAnswer:`;
+            return prompt;
         }
 
-        // Check for critical browser features
-        if (typeof WebAssembly === 'undefined' || !WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]))) {
-            updateStatus('❌ Browser unsupported', 'error');
-            chatBox.innerHTML = `
-                <div class="message error-msg">
-                    Your browser doesn't support WebAssembly.<br><br>
-                    ✅ Required browsers:<br>
-                    • Chrome 57+<br>
-                    • Edge 16+<br>
-                    • Firefox 52+<br>
-                    • Safari 11+ (limited support)<br><br>
-                    Please switch browsers and refresh.
-                </div>
-            `;
-            throw new Error('WebAssembly not supported');
-        }
-
-        // ===== STEP 2: LOAD WLLAMA WITH CORRECT SINGLE-THREADED CONFIG =====
-        updateStatus('Loading AI engine...', 'loading');
-        addMessage('✓ WebAssembly supported', 'system-msg');
-
-        // Use UMD bundle approach for maximum compatibility
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/dist/umd/wllama.js';
-        script.async = false;
-        script.onload = async () => {
+        async function init() {
             try {
-                // Access global Wllama after UMD loads
-                const { Wllama } = window;
-                if (!Wllama) throw new Error('Wllama not available globally');
+                updateStatus("Downloading model (~113MB)...");
+                addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
                 
-                addMessage('✓ AI engine loaded', 'system-msg');
-                
-                // CORRECT single-threaded config (verified working)
-                const CONFIG = {
-                    'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/dist/umd/wllama.wasm',
-                };
-                
-                const wllama = new Wllama(CONFIG);
-                addMessage('✓ WebAssembly runtime initialized', 'system-msg');
-                
-                // ===== STEP 3: LOAD MODEL WITH TIMEOUT =====
-                updateStatus('Downloading model (450MB)...', 'loading');
-                addMessage('📥 Starting model download...', 'system-msg');
-                
-                // 5-minute timeout
-                const timeout = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Download timed out after 5 minutes. Your connection may be slow or blocked by ad-blockers.')), 300000)
-                );
-                
-                try {
-                    await Promise.race([
-                        timeout,
-                        wllama.loadModelFromHF(
-                            'TheBloke/gpt2-GGUF', 
-                            'gpt2.Q4_0.gguf',
-                            {
-                                progressCallback: ({ loaded, total }) => {
-                                    const percent = Math.min(99, Math.round((loaded / total) * 100));
-                                    const mb = (loaded / 1024 / 1024).toFixed(1);
-                                    updateStatus(`📥 Downloading: ${percent}% (${mb} MB)`, 'loading');
-                                }
-                            }
-                        )
-                    ]);
-                    
-                    // ===== SUCCESS: ENABLE CHAT =====
-                    window.agent = {
-                        model: wllama,
-                        loaded: true,
-                        knowledgeBase: {
-                            "water boiling point": "100°C (212°F) at sea level",
-                            "eiffel tower height": "330 meters including antennas",
-                            "mount everest height": "8,848 meters above sea level",
-                            "speed of light": "299,792,458 m/s",
-                            "capital of france": "Paris",
-                            "capital of japan": "Tokyo"
+                // Loading the specific GGUF model
+                await wllama.loadModelFromHF(
+                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
+                    'chat-GPT2.Q4_K.gguf', 
+                    {
+                        progressCallback: ({ loaded, total }) => {
+                            const progress = Math.round((loaded / total) * 100);
+                            updateStatus(`Downloading model: ${progress}%`);
                         }
-                    };
-                    
-                    chatBox.innerHTML = `
-                        <div class="message system-msg">✅ Model loaded successfully!</div>
-                        <div class="message system-msg">🧠 Tiny Agent ready (GPT-2 117M + tools)</div>
-                        <div class="message system-msg">Try these:<br>• "water boiling point"<br>• "144 / 12"<br>• "eiffel tower height"</div>
-                    `;
-                    updateStatus('✅ Ready! Ask your question', 'ready');
-                    userInput.disabled = false;
-                    sendBtn.disabled = false;
-                    userInput.focus();
-                    
-                } catch (err) {
-                    handleModelError(err);
-                }
+                    }
+                );
+
+                updateStatus("Model loaded successfully!");
+                addMessage("I'm ready to chat! I've been enhanced with better reasoning capabilities. Ask me anything!", "ai");
+                addMessage("💡 Tip: For best results, ask clear, specific questions.", "system");
                 
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                
+                // Update status bar with model info
+                statusEl.innerHTML = `
+                    <div class="model-info">
+                        <span><i class="fas fa-microchip"></i> GPT-2 124M Parameters</span>
+                        <span><i class="fas fa-brain"></i> Enhanced Reasoning</span>
+                    </div>
+                `;
             } catch (err) {
-                handleModelError(err);
+                updateStatus("Error loading model. Please refresh the page.");
+                addMessage(`Error: ${err.message || 'Failed to load model'}`, "system");
+                console.error("Model loading error:", err);
             }
-        };
+        }
         
-        script.onerror = () => {
-            updateStatus('❌ Failed to load AI engine', 'error');
-            chatBox.innerHTML = `
-                <div class="message error-msg">
-                    Critical error loading AI engine.<br><br>
-                    ✅ Fixes:<br>
-                    • Disable ALL ad-blockers (uBlock, AdBlock Plus, etc)<br>
-                    • Use Chrome or Edge browser<br>
-                    • Refresh page after disabling blockers<br>
-                    • Check console (F12) for network errors
-                </div>
-            `;
-            troubleshootingEl.style.display = 'block';
-        };
-        
-        document.head.appendChild(script);
-
-        // ===== ERROR HANDLING =====
-        function handleModelError(err) {
-            console.error('Model load error:', err);
-            updateStatus('❌ Model load failed', 'error');
-            
-            let message = `Failed to load AI model: ${err.message || 'Unknown error'}`;
-            
-            if (err.message?.includes('abort') || err.message?.includes('fetch')) {
-                message = `Network blocked model download.<br><br>
-                    ✅ Fixes:<br>
-                    • Disable ad-blockers completely<br>
-                    • Disable VPN temporarily<br>
-                    • Use Chrome/Edge (not Firefox/Safari)<br>
-                    • Refresh page after changes`;
-                troubleshootingEl.style.display = 'block';
-            } else if (err.message?.includes('timeout')) {
-                message = `Download timed out after 5 minutes.<br><br>
-                    ✅ Fixes:<br>
-                    • Ensure stable internet connection<br>
-                    • Disable ad-blockers<br>
-                    • Try during off-peak hours<br>
-                    • First load requires 450MB download`;
-            } else if (err.message?.includes('SharedArrayBuffer') || err.message?.includes('cross-origin')) {
-                message = `Browser security blocked AI loading.<br><br>
-                    ✅ Chrome/Edge fix:<br>
-                    1. Disable ad-blockers<br>
-                    2. Refresh page<br><br>
-                    ✅ Firefox fix:<br>
-                    1. Type "about:config" in address bar<br>
-                    2. Accept risk<br>
-                    3. Search: dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled<br>
-                    4. Set to TRUE<br>
-                    5. Refresh page`;
-                troubleshootingEl.style.display = 'block';
+        function updateStatus(message) {
+            statusEl.textContent = `Status: ${message}`;
+            // Also show in chat for important updates
+            if (message.includes("Error") || message.includes("successfully")) {
+                addMessage(`Status: ${message}`, "system");
             }
-            
-            chatBox.innerHTML = `
-                <div class="message error-msg">${message}</div>
-                <div class="message system-msg">
-                    💡 This is a browser security limitation, not a bug.<br>
-                    The model is 450MB and requires direct binary download.<br>
-                    Ad-blockers often block large binary files.
-                </div>
-            `;
-            
-            // Enable DEMO MODE (simulated agent without AI)
-            enableDemoMode();
         }
 
-        // ===== DEMO MODE (works 100% without AI) =====
-        function enableDemoMode() {
-            window.agent = {
-                loaded: false,
-                knowledgeBase: {
-                    "water boiling point": "100°C (212°F) at sea level",
-                    "eiffel tower height": "330 meters including antennas",
-                    "mount everest height": "8,848 meters above sea level",
-                    "speed of light": "299,792,458 m/s",
-                    "capital of france": "Paris",
-                    "capital of japan": "Tokyo",
-                    "what is water": "H₂O - a liquid essential for life",
-                    "why sky blue": "Rayleigh scattering of sunlight in atmosphere"
-                }
-            };
-            
-            addMessage('⚠️ AI disabled - using demo mode', 'error-msg');
-            addMessage('💡 You can still test agent behavior! Try:', 'system-msg');
-            addMessage('• "water boiling point"\n• "144 / 12"\n• "eiffel tower height"', 'system-msg');
-            
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-            userInput.focus();
-        }
-
-        // ===== CHAT HANDLING (works with or without AI) =====
         async function handleChat() {
-            const query = userInput.value.trim().toLowerCase();
-            if (!query) return;
+            const text = userInput.value.trim();
+            if (!text) return;
 
-            addMessage(`You: ${userInput.value}`, 'user-msg');
+            // Add user message to chat
+            addMessage(text, 'user');
             userInput.value = '';
+            
+            // Show loading indicator
+            const loadingEl = addMessage("Thinking", 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
-
-            // TOOL 1: Calculator
-            if (/(\d+)\s*[\+\-\*\/]\s*(\d+)/.test(query)) {
-                addMessage('🔧 Calculator', 'tool-call');
-                try {
-                    const expr = query.replace(/[^\d+\-*/.() ]/g, '');
-                    const result = Function('"use strict";return (' + expr + ')')();
-                    addMessage(`🧮 ${expr} = ${result}`, 'tool-result');
-                    addMessage(`AI: The answer is ${result}`, 'ai-msg');
-                } catch (e) {
-                    addMessage(`AI: I can only do simple math like "12*12"`, 'ai-msg');
+            
+            try {
+                // Build prompt with conversation history
+                const prompt = buildPrompt(text);
+                
+                // Generate response with optimized parameters
+                const response = await wllama.createCompletion(prompt, {
+                    nPredict: 150, // Increased for more complete answers
+                    sampling: { 
+                        temp: 0.75,    // Slightly higher for creativity
+                        top_k: 45,     // Increased for better diversity
+                        top_p: 0.92,   // Added nucleus sampling
+                        repeat_penalty: 1.15 // Reduced repetition
+                    }
+                });
+                
+                // Process and clean response
+                let cleanedResponse = response.trim();
+                
+                // Remove any prompt leakage or incomplete sentences
+                if (cleanedResponse.includes("Question:")) {
+                    cleanedResponse = cleanedResponse.split("Question:")[0].trim();
                 }
-            } 
-            // TOOL 2: Knowledge base
-            else {
-                let answer = null;
-                for (const [key, value] of Object.entries(window.agent.knowledgeBase || {})) {
-                    if (query.includes(key) || key.includes(query)) {
-                        addMessage('📚 Knowledge base', 'tool-call');
-                        addMessage(`💡 ${value}`, 'tool-result');
-                        answer = `AI: ${value}`;
-                        break;
+                
+                // Ensure response ends with proper punctuation
+                if (!/[.!?]$/.test(cleanedResponse)) {
+                    // Try to find last complete sentence
+                    const sentences = cleanedResponse.split(/(?<=[.!?])\s+/);
+                    if (sentences.length > 1) {
+                        cleanedResponse = sentences.slice(0, -1).join(' ');
                     }
                 }
                 
-                // TOOL 3: Fallback to AI (if loaded)
-                if (!answer && window.agent?.loaded) {
-                    addMessage('🧠 Generating response...', 'tool-call');
-                    try {
-                        const prompt = `Q: ${query}\nA:`;
-                        const response = await window.agent.model.createCompletion(prompt, {
-                            nPredict: 60,
-                            sampling: { temp: 0.9 }
-                        });
-                        
-                        let clean = response
-                            .replace(prompt, '')
-                            .replace(/<\|pad\|>|<\|endoftext\|>.*/g, '')
-                            .trim()
-                            .split('\n')[0]
-                            .replace(/^A:\s*/, '');
-                        
-                        if (clean.length < 5) clean = "I'm not sure. Try a simpler question like 'water boiling point'.";
-                        answer = `AI: ${clean}`;
-                    } catch (e) {
-                        answer = `AI: Sorry, I had trouble answering. Try a simpler question!`;
-                    }
-                }
+                // Replace loading indicator with actual response
+                loadingEl.remove();
+                addMessage(cleanedResponse || "I'm not sure how to answer that. Could you rephrase your question?", 'ai');
                 
-                // Final fallback
-                if (!answer) {
-                    answer = `AI: I don't know that yet. Try these instead:\n• "water boiling point"\n• "144 / 12"\n• "eiffel tower height"`;
-                }
-                
-                addMessage(answer, 'ai-msg');
+            } catch (err) {
+                console.error("Error generating response:", err);
+                loadingEl.remove();
+                addMessage("I encountered an error while processing your request. Please try again.", "ai");
+            } finally {
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
             }
-
-            sendBtn.disabled = false;
-            userInput.disabled = false;
-            userInput.focus();
         }
 
-        // ===== EVENT LISTENERS =====
         sendBtn.addEventListener('click', handleChat);
-        userInput.addEventListener('keypress', (e) => {
+        userInput.addEventListener('keypress', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleChat();
             }
         });
+        
+        // Auto-resize textarea
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(200, userInput.scrollHeight) + 'px';
+        });
+
+        // Initialize the app
+        init();
     </script>
 </body>
 </html>
