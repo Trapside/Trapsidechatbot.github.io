@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Qwen Air Mobile</title>
+    <title>SmolLM2 Air — Mobile</title>
     <script type="importmap">
         { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } }
     </script>
@@ -26,6 +26,8 @@
         header { padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
         h1 { margin: 0; font-size: 16px; font-weight: 600; color: #1d1d1f; }
         .status { font-size: 12px; color: #444; opacity: 0.9; text-align: right; }
+        .controls { display:flex; gap:8px; align-items:center; }
+        .btn-clear { background: transparent; border: 1px solid rgba(0,0,0,0.06); padding: 6px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; }
         
         #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
@@ -56,7 +58,10 @@
 <div class="app-card">
     <header>
         <h1>SmolLM2 Air — Mobile</h1>
-        <div class="status" id="status">Initializing...</div>
+        <div class="controls">
+            <div class="status" id="status">Initializing...</div>
+            <button id="clearBtn" class="btn-clear" title="Clear session">Clear session</button>
+        </div>
     </header>
 
     <div id="chat-box">
@@ -75,36 +80,36 @@
 </div>
 
 <script type="module">
-    import * as webllm from "@mlc-ai/web-llm";
-
-    // Configuration
+    // Main thread: UI, IndexedDB, telemetry and worker messaging
     const MODEL_DEFAULT = "SmolLM2-360M-Instruct-q4f16_1-MLC";
-    const MAX_INPUT_CHARS = 800;              // truncate longer user inputs
-    const SUMMARIZE_AFTER = 6;                // number of assistant replies before summarizing
-    const SUMMARIZE_MAX_TOKENS = 128;         // summarization token budget
-    const SESSION_STORE_KEY = 'latest_session';
+    const MAX_INPUT_CHARS = 800;
+    const SUMMARIZE_AFTER = 6;
     const DB_NAME = 'chatbot-db';
     const DB_STORE = 'sessions';
+    const SESSION_STORE_KEY = 'latest_session';
     const TELEMETRY_KEY = 'telemetry';
 
-    // UI elements
+    // UI
     const chatBox = document.getElementById('chat-box');
     const thinking = document.getElementById('thinking');
     const input = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusEl = document.getElementById('status');
     const charsRemainingEl = document.getElementById('charsRemaining');
+    const clearBtn = document.getElementById('clearBtn');
 
     // State
-    let engine = null;
-    let engineReady = false;
-    let history = []; // alternating user/assistant objects: {role, content}
+    let history = [];
     let summary = "The start of a fresh conversation.";
     let assistantCountSinceSummary = 0;
-    let currentController = null;
     let telemetry = { initTimes: [], avgCharsPerSec: [], memorySamples: [] };
+    let worker = null;
+    let workerReady = false;
+    let pendingInit = null;
+    let activeRun = null; // {runId, resolveDone}
+    let persistedTelemetry = null;
 
-    // --- IndexedDB helpers (minimal) ---
+    // IndexedDB helpers (same as before)
     function openDB() {
         return new Promise((resolve, reject) => {
             const req = indexedDB.open(DB_NAME, 1);
@@ -118,7 +123,6 @@
             req.onerror = () => reject(req.error);
         });
     }
-
     async function dbPut(key, value) {
         try {
             const db = await openDB();
@@ -131,7 +135,6 @@
             });
         } catch (e) { console.warn('dbPut error', e); }
     }
-
     async function dbGet(key) {
         try {
             const db = await openDB();
@@ -145,7 +148,7 @@
         } catch (e) { console.warn('dbGet error', e); }
     }
 
-    // Load saved session & telemetry on startup
+    // Restore session
     (async function restoreSession() {
         try {
             const s = await dbGet(SESSION_STORE_KEY);
@@ -153,7 +156,6 @@
                 history = s.history || [];
                 summary = s.summary || summary;
                 assistantCountSinceSummary = s.assistantCountSinceSummary || assistantCountSinceSummary;
-                // render loaded history into chat box (lightweight)
                 chatBox.innerHTML = '';
                 for (const m of history) {
                     const div = document.createElement('div');
@@ -164,7 +166,7 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
             const t = await dbGet(TELEMETRY_KEY);
-            if (t) telemetry = t;
+            if (t) { telemetry = t; }
             updateStatus('Idle');
         } catch (e) {
             console.warn('restoreSession failed', e);
@@ -174,7 +176,7 @@
 
     function updateStatus(text) { statusEl.innerText = text; }
 
-    // Simple device/memory telemetry
+    // Device memory sample
     function sampleMemory() {
         const mem = {
             deviceMemoryGB: navigator.deviceMemory || null,
@@ -190,124 +192,133 @@
         dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
     }
 
-    // --- Engine lifecycle & telemetry ---
-    async function initEngine(modelId = MODEL_DEFAULT) {
-        if (engineReady) return engine;
-        updateStatus('Loading model...');
-        const t0 = performance.now();
-        try {
-            engine = await webllm.CreateMLCEngine(modelId, {
-                initProgressCallback: (p) => {
-                    // optionally show progress text
-                    if (p && p.text) updateStatus(p.text);
-                    console.log('initProgress', p);
+    // Worker setup
+    function ensureWorker() {
+        if (worker) return;
+        // Worker file is mlc-worker.js located next to index.html
+        worker = new Worker('mlc-worker.js', { type: 'module' });
+
+        worker.onmessage = (ev) => {
+            const m = ev.data;
+            if (m.type === 'ready') {
+                workerReady = true;
+                if (pendingInit) {
+                    pendingInit.resolve(m.initTime);
+                    pendingInit = null;
                 }
-            });
-            const t1 = performance.now();
-            const initMs = t1 - t0;
-            telemetry.initTimes.push(initMs);
-            if (telemetry.initTimes.length > 20) telemetry.initTimes.shift();
-            await dbPut(TELEMETRY_KEY, telemetry);
-            engineReady = true;
-            updateStatus('Model ready');
-            sampleMemory();
-            return engine;
-        } catch (e) {
-            console.error('Engine init failed', e);
-            updateStatus('Model failed to load');
-            throw e;
-        }
+                telemetry.initTimes.push(m.initTime);
+                if (telemetry.initTimes.length > 20) telemetry.initTimes.shift();
+                dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
+                updateStatus('Model ready (worker)');
+                sampleMemory();
+            } else if (m.type === 'token') {
+                if (activeRun && activeRun.runId === m.runId) {
+                    activeRun.onToken && activeRun.onToken(m.token);
+                }
+            } else if (m.type === 'done') {
+                if (activeRun && activeRun.runId === m.runId) {
+                    activeRun.resolveDone && activeRun.resolveDone();
+                    activeRun = null;
+                }
+            } else if (m.type === 'error') {
+                if (activeRun && activeRun.runId === m.runId) {
+                    activeRun.rejectDone && activeRun.rejectDone(m.error || 'worker-error');
+                    activeRun = null;
+                } else {
+                    console.error('worker error', m.error);
+                }
+            } else if (m.type === 'log') {
+                console.log('worker:', m.msg);
+            }
+        };
+
+        worker.onerror = (e) => {
+            console.error('Worker error', e);
+            updateStatus('Worker error');
+        };
     }
 
-    async function shutdownEngine() {
-        if (!engine) return;
-        try {
-            await engine.unload();
-        } catch (e) { console.warn('unload failed', e); }
-        engine = null;
-        engineReady = false;
-    }
-
-    // --- Utility: efficient streaming append with batching ---
-    async function streamReply(messages, onChunk, onDone, opts = {}) {
-        if (!engineReady) throw new Error('Engine not ready');
-        const chunks = await engine.chat.completions.create({
-            messages,
-            stream: true,
-            max_new_tokens: opts.max_new_tokens || 256,
-            temperature: opts.temperature || 0.2,
-            top_p: opts.top_p || 0.95
+    // Initialize model in worker
+    async function initEngine(modelId = MODEL_DEFAULT) {
+        ensureWorker();
+        if (workerReady) return;
+        updateStatus('Loading model (worker)...');
+        pendingInit = {};
+        pendingInit.promise = new Promise((resolve, reject) => {
+            pendingInit.resolve = resolve;
+            pendingInit.reject = reject;
         });
-
-        let buffer = '';
-        let lastFlush = performance.now();
-        const FLUSH_MS = 60;
-        let totalChars = 0;
-        const start = performance.now();
-
-        for await (const chunk of chunks) {
-            if (currentController?.signal?.aborted) break;
-            const delta = chunk.choices?.[0]?.delta?.content || "";
-            if (!delta) continue;
-            buffer += delta;
-            totalChars += delta.length;
-            const now = performance.now();
-            if (now - lastFlush >= FLUSH_MS) {
-                onChunk(buffer);
-                buffer = '';
-                lastFlush = now;
-            }
-        }
-        if (buffer) onChunk(buffer);
-        const durationSec = Math.max((performance.now() - start) / 1000, 0.0001);
-        const charsPerSec = totalChars / durationSec;
-        telemetry.avgCharsPerSec = telemetry.avgCharsPerSec || [];
-        telemetry.avgCharsPerSec.push(charsPerSec);
-        if (telemetry.avgCharsPerSec.length > 50) telemetry.avgCharsPerSec.shift();
-        await dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
-        onDone && onDone();
+        worker.postMessage({ type: 'init', modelId });
+        const initTime = await pendingInit.promise;
+        return initTime;
     }
 
-    // --- Summarize history to keep context small ---
-    async function summarizeHistory() {
-        if (!engineReady) {
-            try { await initEngine(); } catch(e){ return; }
+    // Request run (streaming) through worker
+    async function runWorkerChat(messages, opts = {}, onToken) {
+        ensureWorker();
+        if (!workerReady) {
+            await initEngine();
         }
-        updateStatus('Summarizing...');
-        const messages = [
-            { role: "system", content: "You are a concise summarization assistant. Produce a short summary of the conversation focusing on facts and user intent." },
-            { role: "user", content: `Summarize the following conversation briefly:\n\n${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n')}` }
-        ];
-        let newSummary = '';
-        const controllerBackup = currentController;
-        currentController = { signal: { aborted: false } }; // dummy controller for summarization
+        // single active run enforced
+        if (activeRun) {
+            // abort previous active run first
+            worker.postMessage({ type: 'abort', runId: activeRun.runId });
+            // wait a tick for it to stop
+            await new Promise(r => setTimeout(r, 40));
+        }
+
+        const runId = `r-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+        return new Promise((resolve, reject) => {
+            activeRun = {
+                runId,
+                onToken,
+                resolveDone: resolve,
+                rejectDone: reject
+            };
+            worker.postMessage({ type: 'run', runId, messages, opts });
+            // Caller can await resolve which resolves on 'done'
+        });
+    }
+
+    // Summarize via worker
+    async function runWorkerSummarize(messages, opts = {}, onToken) {
+        ensureWorker();
+        if (!workerReady) await initEngine();
+        const runId = `s-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+        return new Promise((resolve, reject) => {
+            // Reuse activeRun slot for simplicity (do not run concurrently)
+            if (activeRun) {
+                worker.postMessage({ type: 'abort', runId: activeRun.runId });
+            }
+            activeRun = {
+                runId,
+                onToken: onToken,
+                resolveDone: resolve,
+                rejectDone: reject
+            };
+            worker.postMessage({ type: 'summarize', runId, messages, opts });
+        });
+    }
+
+    // Abort active run
+    function abortActiveRun() {
+        if (activeRun && worker) {
+            worker.postMessage({ type: 'abort', runId: activeRun.runId });
+        }
+    }
+
+    // Shutdown worker
+    async function shutdownWorker() {
+        if (!worker) return;
         try {
-            await streamReply(messages, (chunk) => { newSummary += chunk; }, () => {});
-            if (newSummary.trim()) {
-                summary = newSummary.trim();
-                // shrink history: keep only the last 2 messages plus the summary marker
-                history = history.slice(-2);
-                assistantCountSinceSummary = 0;
-                await persistSession();
-                updateStatus('Summarized');
-            } else {
-                updateStatus('Idle');
-            }
-        } catch (e) {
-            console.warn('summarizeHistory failed', e);
-            updateStatus('Idle');
-        } finally {
-            currentController = controllerBackup;
-        }
+            worker.postMessage({ type: 'shutdown' });
+        } catch (e) {}
+        worker.terminate();
+        worker = null;
+        workerReady = false;
     }
 
-    // --- Persist session (history & summary) ---
-    async function persistSession() {
-        const s = { history, summary, assistantCountSinceSummary, savedAt: Date.now() };
-        await dbPut(SESSION_STORE_KEY, s).catch(e => console.warn('persistSession failed', e));
-    }
-
-    // --- UI helpers ---
+    // Efficient append helpers
     function appendMessage(role, text) {
         const div = document.createElement('div');
         div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
@@ -326,7 +337,40 @@
         return { div, tn };
     }
 
-    // --- Input truncation UI ---
+    // Save session
+    async function persistSession() {
+        const s = { history, summary, assistantCountSinceSummary, savedAt: Date.now() };
+        await dbPut(SESSION_STORE_KEY, s).catch(e => console.warn('persistSession failed', e));
+    }
+
+    // Summarize history (via worker)
+    async function summarizeHistory() {
+        updateStatus('Summarizing...');
+        const messages = [
+            { role: "system", content: "You are a concise summarization assistant. Produce a short summary of the conversation focusing on facts and user intent." },
+            { role: "user", content: `Summarize the following conversation briefly:\n\n${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n')}` }
+        ];
+        let newSummary = '';
+        try {
+            await runWorkerSummarize(messages, { max_new_tokens: 128, temperature: 0.1 }, (chunk) => {
+                newSummary += chunk;
+            });
+            if (newSummary.trim()) {
+                summary = newSummary.trim();
+                history = history.slice(-2);
+                assistantCountSinceSummary = 0;
+                await persistSession();
+                updateStatus('Summarized');
+            } else {
+                updateStatus('Idle');
+            }
+        } catch (e) {
+            console.warn('summarizeHistory failed', e);
+            updateStatus('Idle');
+        }
+    }
+
+    // Input truncation UI
     function updateCharsRemaining() {
         const remaining = Math.max(0, MAX_INPUT_CHARS - (input.value || '').length);
         charsRemainingEl.innerText = `${remaining} chars`;
@@ -334,67 +378,59 @@
     input.addEventListener('input', updateCharsRemaining);
     updateCharsRemaining();
 
-    // --- Main chat flow ---
+    // Main chat flow using worker
     async function runChat() {
         let text = (input.value || '').trim();
         if (!text) return;
-        // Enforce truncation
         if (text.length > MAX_INPUT_CHARS) {
             text = text.slice(0, MAX_INPUT_CHARS);
-            // briefly show feedback
             input.value = text;
             updateCharsRemaining();
-            // optional: inform user
             appendMessage('ai', '[Note] Your input was truncated to fit limits.');
         }
-
-        // append user message
         appendMessage('user', text);
         input.value = '';
         updateCharsRemaining();
         thinking.style.display = 'block';
-        updateStatus('Thinking...');
+        updateStatus('Thinking (worker)...');
         sendBtn.disabled = true;
 
         try {
-            // init engine if needed (measures init time)
+            // ensure worker + model ready
             await initEngine();
 
-            // Prepare messages with summary and sliding window
+            // prepare messages
             const windowMsgs = [
                 { role: "system", content: `Context summary: ${summary}` },
-                ...history.slice(-4), // keep small sliding window
+                ...history.slice(-4),
                 { role: "user", content: text }
             ];
 
-            // Append AI placeholder
+            // placeholder
             const { div: aiDiv, tn: textNode } = appendAiPlaceholderNode();
-
-            // cancellation
-            if (currentController) {
-                currentController.signal.aborted = true; // best-effort abort previous
-            }
-            currentController = new AbortController();
-
-            // stream reply
             let fullReply = '';
-            await streamReply(windowMsgs, (chunk) => {
-                // append cheaply
+            const start = performance.now();
+
+            await runWorkerChat(windowMsgs, { max_new_tokens: 256, temperature: 0.2 }, (chunk) => {
                 fullReply += chunk;
                 textNode.nodeValue = fullReply;
                 chatBox.scrollTop = chatBox.scrollHeight;
-            }, () => {}, { max_new_tokens: 256 });
+            });
 
-            // update session history
+            const durationSec = Math.max((performance.now() - start) / 1000, 0.0001);
+            const charsPerSec = (fullReply.length) / durationSec;
+            telemetry.avgCharsPerSec.push(charsPerSec);
+            if (telemetry.avgCharsPerSec.length > 50) telemetry.avgCharsPerSec.shift();
+            dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
+
+            // update history and persist
             history.push({ role: 'user', content: text }, { role: 'assistant', content: fullReply });
             if (history.length > 12) history = history.slice(-12);
-
             assistantCountSinceSummary++;
             await persistSession();
 
-            // Periodic summarization
+            // background summarization
             if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
-                // run summarization in background but don't block UI
                 summarizeHistory().catch(e => console.warn('background summarize failed', e));
             }
 
@@ -406,20 +442,32 @@
         } finally {
             thinking.style.display = 'none';
             sendBtn.disabled = false;
-            currentController = null;
         }
     }
 
     sendBtn.onclick = runChat;
     input.onkeypress = (e) => { if (e.key === 'Enter') runChat(); };
 
-    // Persist telemetry & shutdown on unload
-    window.addEventListener('beforeunload', async () => {
-        try { await persistSession(); await dbPut(TELEMETRY_KEY, telemetry); } catch(e){}
-        try { await shutdownEngine(); } catch(e){}
+    // Clear session button
+    clearBtn.addEventListener('click', async () => {
+        if (!confirm('Clear current session and local summary?')) return;
+        history = [];
+        summary = "The start of a fresh conversation.";
+        assistantCountSinceSummary = 0;
+        chatBox.innerHTML = '';
+        appendMessage('ai', "Session cleared. Hello! Ask me anything.");
+        await persistSession();
+        updateStatus('Idle');
     });
 
-    // Expose a debug keyboard shortcut: Ctrl+M to print telemetry to console
+    // Abort active generation on unload or user navigation
+    window.addEventListener('beforeunload', async () => {
+        try { await persistSession(); await dbPut(TELEMETRY_KEY, telemetry); } catch(e){}
+        abortActiveRun();
+        await shutdownWorker();
+    });
+
+    // Debug shortcut
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'm') {
             console.log('Telemetry:', telemetry);
@@ -427,7 +475,7 @@
         }
     });
 
-    // Initial device-aware hint (no automatic model switch here; model already chosen)
+    // Device hint
     (function deviceHint() {
         const dm = navigator.deviceMemory || 'unknown';
         const gpu = !!navigator.gpu;
