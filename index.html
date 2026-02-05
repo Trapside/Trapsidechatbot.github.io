@@ -1,623 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Arjun-G-Ravi/chat-GPT-2 — Mobile</title>
-    <script type="importmap">
-        { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } }
-    </script>
-    <style>
-        :root { --apple-blue: #007AFF; --glass: rgba(255, 255, 255, 0.7); }
-        body {
-            margin: 0; padding: 0; height: 100vh;
-            background: linear-gradient(160deg, #a2c2e6 0%, #d4e1f5 100%);
-            font-family: -apple-system, system-ui, sans-serif;
-            display: flex; justify-content: center; align-items: center;
-        }
-        /* Apple Glass Container */
-        .app-card {
-            width: 95%; max-width: 450px; height: 90vh;
-            background: var(--glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255,255,255,0.4); border-radius: 38px;
-            display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-        }
-        header { padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-        h1 { margin: 0; font-size: 16px; font-weight: 600; color: #1d1d1f; }
-        .status { font-size: 12px; color: #444; opacity: 0.9; text-align: right; }
-        .controls { display:flex; gap:8px; align-items:center; }
-        .btn-clear { background: transparent; border: 1px solid rgba(0,0,0,0.06); padding: 6px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-        
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        
-        /* Message Bubbles */
-        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; line-height: 1.4; animation: spring 0.4s ease-out; word-break: break-word; white-space: pre-wrap; }
-        .user { align-self: flex-end; background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: rgba(255,255,255,0.9); color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-
-        /* Thinking Animation */
-        .thinking { display: none; padding: 12px; }
-        .dots { display: flex; gap: 4px; }
-        .dot { width: 8px; height: 8px; background: #8e8e93; border-radius: 50%; animation: pulse 1.4s infinite; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        .input-bar { padding: 12px 15px; background: rgba(255,255,255,0.5); display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; border: none; padding: 10px 14px; border-radius: 20px; background: white; outline: none; font-size: 15px; }
-        button { background: var(--apple-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: transform 0.2s; }
-        button:active { transform: scale(0.9); }
-        .small { font-size: 12px; color: #666; margin-left: 8px; }
-
-        .btn-stop { background: #ff3b30; width: auto; padding: 6px 10px; height: auto; border-radius: 12px; font-size: 13px; display: inline-block; color: white; border: none; cursor: pointer; }
-        .btn-stop[disabled] { opacity: 0.5; cursor: default; }
-
-        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
-        @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wllama Chat (WASM)</title>
+  <style>
+    :root { --blue: #007AFF; --glass: rgba(255,255,255,0.85); }
+    body { margin:0; font-family: -apple-system, system-ui, sans-serif; background:linear-gradient(160deg,#a2c2e6,#d4e1f5); display:flex; min-height:100vh; align-items:center; justify-content:center; }
+    .card { width:95%; max-width:720px; background:var(--glass); border-radius:18px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:18px}
+    .controls{display:flex;gap:8px;align-items:center}
+    #chat{height:60vh; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; margin-top:12px; background:transparent}
+    .msg{max-width:85%; padding:10px 14px;border-radius:14px; line-height:1.3; white-space:pre-wrap; word-break:break-word;}
+    .user{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px;}
+    .ai{align-self:flex-start;background:#fff;color:#111;border-bottom-left-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+    .bar{display:flex;gap:8px; margin-top:12px; align-items:center}
+    input[type=text] { flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.06); }
+    button { background:var(--blue); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
+    .btn-stop{ background:#ff3b30 }
+    .small{font-size:12px;color:#444; margin-left:8px}
+    label{font-size:13px;color:#222; margin-right:6px}
+  </style>
 </head>
 <body>
-
-<div class="app-card">
+  <div class="card" role="application">
     <header>
-        <h1>Arjun-G-Ravi/chat-GPT-2 — Mobile</h1>
-        <div class="controls">
-            <div class="status" id="status">Initializing...</div>
-            <button id="clearBtn" class="btn-clear" title="Clear session">Clear session</button>
-        </div>
+      <h1>Wllama Chat (WASM)</h1>
+      <div class="controls">
+        <div class="meta" id="status">Idle</div>
+      </div>
     </header>
 
-    <div id="chat-box">
-        <div class="msg ai">Hello! I'm optimized for phones. Ask me anything.</div>
-    </div>
-    
-    <div id="thinking" class="thinking" aria-hidden="true">
-        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+      <label for="modelUrl">Model (repo, filename) or direct URL</label>
+      <input id="modelUrl" type="text" placeholder="owner/repo, model.gguf  — or — https://example.com/model.gguf" value="RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf, chat-GPT2.Q4_K.gguf" />
+      <button id="loadBtn">Load Model</button>
+      <button id="unloadBtn" title="Unload model to free memory">Unload</button>
     </div>
 
-    <div class="input-bar">
-        <input type="text" id="userInput" placeholder="Message">
-        <button id="sendBtn">↑</button>
-        <button id="stopBtn" class="btn-stop" disabled title="Stop generation">Stop</button>
-        <div class="small" id="charsRemaining"></div>
+    <div id="chat">
+      <div class="msg ai">Hello — load a model to start. Paste a Hugging Face repo+filename (comma-separated) like:<br><code>RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf, chat-GPT2.Q4_K.gguf</code><br>or a direct .gguf URL.</div>
     </div>
-</div>
+
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+      <input id="userInput" type="text" placeholder="Message" />
+      <button id="sendBtn">Send</button>
+      <button id="stopBtn" class="btn-stop" disabled>Stop</button>
+      <button id="clearBtn" title="Clear session">Clear</button>
+      <div class="small" id="charsRemaining"></div>
+    </div>
+    <div style="margin-top:8px; font-size:12px; color:#333;">
+      <span>Summarize after <strong id="summCount">6</strong> replies • Auto-unload after <strong id="autoUnload">20</strong> runs</span>
+    </div>
+  </div>
 
 <script type="module">
-    // Main thread: UI, IndexedDB, telemetry and worker messaging
-    const MODEL_DEFAULT = "Arjun-G-Ravi/chat-GPT-2";
-    const MAX_INPUT_CHARS = 800;
-    const SUMMARIZE_AFTER = 6;
-    const DB_NAME = 'chatbot-db';
-    const DB_STORE = 'sessions';
-    const SESSION_STORE_KEY = 'latest_session';
-    const TELEMETRY_KEY = 'telemetry';
-    const AUTO_UNLOAD_AFTER_RUNS = 20; // auto-unload engine in worker after N runs to avoid memory bloat
+const WORKER_FILE = 'mlc-worker-llama.js';
+const AUTO_UNLOAD_AFTER_RUNS = 20;
+const SUMMARIZE_AFTER = 6;
+const MAX_INPUT_CHARS = 800;
 
-    // UI
-    const chatBox = document.getElementById('chat-box');
-    const thinking = document.getElementById('thinking');
-    const input = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const statusEl = document.getElementById('status');
-    const charsRemainingEl = document.getElementById('charsRemaining');
-    const clearBtn = document.getElementById('clearBtn');
+const modelUrlInput = document.getElementById('modelUrl');
+const loadBtn = document.getElementById('loadBtn');
+const unloadBtn = document.getElementById('unloadBtn');
+const sendBtn = document.getElementById('sendBtn');
+const stopBtn = document.getElementById('stopBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const chat = document.getElementById('chat');
+const userInput = document.getElementById('userInput');
+const charsRemainingEl = document.getElementById('charsRemaining');
 
-    // State
-    let history = [];
-    let summary = "The start of a fresh conversation.";
-    let assistantCountSinceSummary = 0;
-    let telemetry = { initTimes: [], avgCharsPerSec: [], memorySamples: [] };
-    let worker = null;
-    let workerReady = false;
-    let pendingInit = null;
-    let activeRun = null; // {runId, resolveDone}
-    let runCounter = 0; // counts completed runs since last unload/restart
+let worker = null;
+let workerReady = false;
+let activeRunId = null;
+let history = [];
+let summary = "The start of a fresh conversation.";
+let assistantCountSinceSummary = 0;
+let runCounter = 0;
+let telemetry = { initTimes: [], avgCharsPerSec: [], memorySamples: [] };
 
-    // IndexedDB helpers (same as before + delete)
-    function openDB() {
-        return new Promise((resolve, reject) => {
-            const req = indexedDB.open(DB_NAME, 1);
-            req.onupgradeneeded = () => {
-                const db = req.result;
-                if (!db.objectStoreNames.contains(DB_STORE)) {
-                    db.createObjectStore(DB_STORE);
-                }
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
+// IndexedDB helpers (same as previously provided)
+const DB_NAME = 'chatbot-db';
+const DB_STORE = 'sessions';
+const SESSION_STORE_KEY = 'latest_session';
+const TELEMETRY_KEY = 'telemetry';
+function openDB(){ return new Promise((resolve,reject)=>{ const r = indexedDB.open(DB_NAME,1); r.onupgradeneeded = ()=> { const db = r.result; if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE); }; r.onsuccess = ()=> resolve(r.result); r.onerror = ()=> reject(r.error); });}
+async function dbPut(key,val){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(val,key); tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error); }); } catch(e){ console.warn('dbPut',e);} }
+async function dbGet(key){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readonly'); const r = tx.objectStore(DB_STORE).get(key); r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error); }); } catch(e){ console.warn('dbGet',e);} }
+async function dbDelete(key){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); const r = tx.objectStore(DB_STORE).delete(key); r.onsuccess = ()=> res(); r.onerror = ()=> rej(r.error); }); } catch(e){ console.warn('dbDelete',e);} }
+
+// UI helpers
+function appendMessage(role,text){ const d=document.createElement('div'); d.className='msg '+(role==='user'?'user':'ai'); d.innerText=text; chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d; }
+function appendAiPlaceholder(){ const d=document.createElement('div'); d.className='msg ai'; const tn=document.createTextNode(''); d.appendChild(tn); chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return {div:d, tn}; }
+function updateStatus(t){ statusEl.innerText = t; }
+
+// Worker wiring
+function ensureWorker(){
+  if (worker) return;
+  worker = new Worker(WORKER_FILE, { type:'module' });
+  worker.onmessage = (ev) => {
+    const m = ev.data;
+    if (m.type === 'ready') { workerReady = true; telemetry.initTimes.push(m.initTime); updateStatus('Model ready'); }
+    else if (m.type === 'token') { if (activeRunId === m.runId && activeRunCallback) activeRunCallback(m.token); }
+    else if (m.type === 'done') { if (activeRunId === m.runId && activeRunResolve) activeRunResolve(); activeRunCleanup(); }
+    else if (m.type === 'error') { console.error('Worker error', m); appendMessage('ai','[Error] '+(m.error||'unknown')); updateStatus('Worker error'); activeRunCleanup(); try { worker.terminate(); } catch(e){} worker=null; workerReady=false; }
+    else if (m.type === 'unloaded') { workerReady = false; updateStatus('Engine unloaded'); }
+    else if (m.type === 'shutdown') { updateStatus('Worker shutdown'); }
+    else if (m.type === 'log') { console.log('worker log:', m.msg); }
+  };
+  worker.onerror = (e) => { console.error('Worker onerror', e); updateStatus('Worker error'); try { worker.terminate(); } catch(e){} worker=null; workerReady=false; };
+}
+
+let activeRunCallback = null;
+let activeRunResolve = null;
+let activeRunReject = null;
+function activeRunCleanup(){ activeRunId=null; activeRunCallback=null; if (activeRunResolve) activeRunResolve=null; if (activeRunReject) activeRunReject=null; setRunState(false); }
+
+function setRunState(running){ sendBtn.disabled = running; stopBtn.disabled = !running; if (!running) activeRunCleanup(); }
+
+// Load button: accepts either "owner/repo, filename" OR a direct .gguf URL
+loadBtn.addEventListener('click', async () => {
+  const v = modelUrlInput.value.trim();
+  if (!v) { alert('Enter Hugging Face repo+filename (comma-separated) or a direct .gguf URL'); return; }
+  ensureWorker();
+  try {
+    // detect "repo, filename" (comma-separated)
+    if (v.includes(',') && !v.startsWith('http')) {
+      const [repo, file] = v.split(',').map(s=>s.trim());
+      if (!repo || !file) { alert('Provide repo and filename like: owner/repo, model.gguf'); return; }
+      updateStatus('Loading model from Hugging Face...');
+      worker.postMessage({ type:'init', modelRepo: repo, modelFile: file, opts: {} });
+    } else {
+      // assume direct URL
+      const url = v;
+      updateStatus('Loading model from URL...');
+      worker.postMessage({ type:'init', modelUrl: url, opts: {} });
     }
-    async function dbPut(key, value) {
-        try {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(DB_STORE, 'readwrite');
-                const store = tx.objectStore(DB_STORE);
-                store.put(value, key);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        } catch (e) { console.warn('dbPut error', e); }
+  } catch(e) {
+    console.error('load error', e);
+    updateStatus('Init failed');
+  }
+});
+
+// Unload engine
+unloadBtn.addEventListener('click', ()=>{
+  if (!worker) return;
+  try { worker.postMessage({ type:'unload' }); updateStatus('Unloading engine...'); } catch(e){ console.warn(e); }
+});
+
+// send/abort/clear
+function abortActive(){ if (!worker || !activeRunId) return; try{ worker.postMessage({ type:'abort', runId: activeRunId }); }catch(e){console.warn(e);} }
+stopBtn.addEventListener('click', ()=>{ abortActive(); setRunState(false); updateStatus('Aborted'); });
+
+clearBtn.addEventListener('click', async ()=>{
+  if (!confirm('Clear session and local storage?')) return;
+  abortActive();
+  try { if (worker) { worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){}
+  worker = null; workerReady = false;
+  history = []; summary = "The start of a fresh conversation."; assistantCountSinceSummary = 0; runCounter = 0;
+  chat.innerHTML = ''; appendMessage('ai','Session cleared. Load a model and say hello.');
+  try { await dbDelete(SESSION_STORE_KEY); await dbDelete(TELEMETRY_KEY); } catch(e){console.warn(e)}
+  updateStatus('Idle');
+});
+
+// input chars
+function updateCharsRemaining(){ charsRemainingEl.innerText = Math.max(0, MAX_INPUT_CHARS - (userInput.value||'').length) + ' chars'; }
+userInput.addEventListener('input', updateCharsRemaining);
+updateCharsRemaining();
+
+// persistence restore
+(async function restoreSession(){ const s = await dbGet(SESSION_STORE_KEY); if (s) { history = s.history || []; summary = s.summary || summary; assistantCountSinceSummary = s.assistantCountSinceSummary || assistantCountSinceSummary; chat.innerHTML=''; history.forEach(m=>appendMessage(m.role,m.content)); chat.scrollTop=chat.scrollHeight; } const t = await dbGet(TELEMETRY_KEY); if (t) telemetry = t; updateStatus('Idle'); })();
+
+function sampleMemory(){ const mem = { deviceMemoryGB: navigator.deviceMemory || null, time:Date.now() }; telemetry.memorySamples.push(mem); if (telemetry.memorySamples.length>50) telemetry.memorySamples.shift(); dbPut(TELEMETRY_KEY, telemetry).catch(()=>{}); }
+
+// runWorkerChat: ensures worker/model ready; streams tokens via onToken
+async function runWorkerChat(messages, opts = {}, onToken){
+  ensureWorker();
+  // If worker not yet ready, try to init using value in modelUrlInput (to support convenience)
+  if (!workerReady) {
+    const v = modelUrlInput.value.trim();
+    if (!v) throw new Error('Model not loaded. Enter model repo+filename or URL and click Load Model.');
+    // Wait for ready
+    await new Promise((resolve,reject)=>{
+      const tmp = (ev)=>{ const m=ev.data; if (m.type==='ready') { worker.removeEventListener('message', tmp); resolve(); } else if (m.type==='error'){ worker.removeEventListener('message', tmp); reject(new Error(m.error||'init-failed')); } };
+      worker.addEventListener('message', tmp);
+      // send init depending on format (this is safe if the main load already sent it; posting twice is benign)
+      if (v.includes(',') && !v.startsWith('http')) {
+        const [repo,file] = v.split(',').map(s=>s.trim());
+        worker.postMessage({ type:'init', modelRepo: repo, modelFile: file, opts: {} });
+      } else {
+        worker.postMessage({ type:'init', modelUrl: v, opts: {} });
+      }
+    });
+  }
+
+  const runId = 'r-'+Date.now()+'-'+Math.floor(Math.random()*1000);
+  activeRunId = runId;
+
+  return new Promise((resolve,reject)=>{
+    activeRunCallback = onToken;
+    activeRunResolve = resolve;
+    activeRunReject = reject;
+    setRunState(true);
+    try {
+      worker.postMessage({ type:'run', runId, messages, opts });
+    } catch(e){
+      activeRunCleanup();
+      reject(e);
     }
-    async function dbGet(key) {
-        try {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(DB_STORE, 'readonly');
-                const store = tx.objectStore(DB_STORE);
-                const req = store.get(key);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-        } catch (e) { console.warn('dbGet error', e); }
-    }
-    async function dbDelete(key) {
-        try {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(DB_STORE, 'readwrite');
-                const store = tx.objectStore(DB_STORE);
-                const req = store.delete(key);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        } catch (e) { console.warn('dbDelete error', e); }
-    }
+  });
+}
 
-    // Restore session
-    (async function restoreSession() {
-        try {
-            const s = await dbGet(SESSION_STORE_KEY);
-            if (s) {
-                history = s.history || [];
-                summary = s.summary || summary;
-                assistantCountSinceSummary = s.assistantCountSinceSummary || assistantCountSinceSummary;
-                chatBox.innerHTML = '';
-                for (const m of history) {
-                    const div = document.createElement('div');
-                    div.className = `msg ${m.role === 'user' ? 'user' : 'ai'}`;
-                    div.innerText = m.content;
-                    chatBox.appendChild(div);
-                }
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-            const t = await dbGet(TELEMETRY_KEY);
-            if (t) { telemetry = t; }
-            updateStatus('Idle');
-        } catch (e) {
-            console.warn('restoreSession failed', e);
-            updateStatus('Idle');
-        }
-    })();
-
-    function updateStatus(text) { statusEl.innerText = text; }
-
-    // Device memory sample
-    function sampleMemory() {
-        const mem = {
-            deviceMemoryGB: navigator.deviceMemory || null,
-            performanceMemory: performance?.memory ? {
-                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-                totalJSHeapSize: performance.memory.totalJSHeapSize,
-                usedJSHeapSize: performance.memory.usedJSHeapSize
-            } : null,
-            time: Date.now()
-        };
-        telemetry.memorySamples.push(mem);
-        if (telemetry.memorySamples.length > 50) telemetry.memorySamples.shift();
-        dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
-    }
-
-    // Worker setup
-    function ensureWorker() {
-        if (worker) return;
-        // Worker file is mlc-worker.js located next to index.html
-        worker = new Worker('mlc-worker.js', { type: 'module' });
-
-        worker.onmessage = (ev) => {
-            const m = ev.data;
-            if (m.type === 'ready') {
-                workerReady = true;
-                if (pendingInit) {
-                    pendingInit.resolve(m.initTime);
-                    pendingInit = null;
-                }
-                telemetry.initTimes.push(m.initTime);
-                if (telemetry.initTimes.length > 20) telemetry.initTimes.shift();
-                dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
-                updateStatus('Model ready (worker)');
-                sampleMemory();
-            } else if (m.type === 'unloaded') {
-                // engine inside worker unloaded — will be re-initialized on next initEngine()
-                workerReady = false;
-                updateStatus('Engine unloaded (worker)');
-            } else if (m.type === 'token') {
-                if (activeRun && activeRun.runId === m.runId) {
-                    activeRun.onToken && activeRun.onToken(m.token);
-                }
-            } else if (m.type === 'done') {
-                if (activeRun && activeRun.runId === m.runId) {
-                    activeRun.resolveDone && activeRun.resolveDone();
-                    activeRun = null;
-                }
-            } else if (m.type === 'error') {
-                // show the error message to the user and try to recover
-                console.error('Worker error:', m.error);
-                updateStatus('Worker error: ' + (m.error || 'unknown'));
-                if (activeRun && activeRun.runId === m.runId) {
-                    activeRun.rejectDone && activeRun.rejectDone(m.error || 'worker-error');
-                    activeRun = null;
-                }
-                // Try to recover automatically by restarting worker (best-effort)
-                setTimeout(async () => {
-                    try {
-                        await restartWorker();
-                        updateStatus('Worker restarted');
-                    } catch (e) {
-                        console.warn('restartWorker failed', e);
-                    }
-                }, 400);
-            } else if (m.type === 'log') {
-                console.log('worker:', m.msg);
-            } else if (m.type === 'shutdown') {
-                // worker confirmed shutdown
-                console.log('worker shutdown confirmed');
-            }
-        };
-
-        worker.onerror = (e) => {
-            console.error('Worker onerror', e);
-            updateStatus('Worker error');
-            // attempt restart
-            setTimeout(() => restartWorker().catch(()=>{}), 300);
-        };
-    }
-
-    // Initialize model in worker
-    async function initEngine(modelId = MODEL_DEFAULT) {
-        ensureWorker();
-        if (workerReady) return;
-        updateStatus('Loading model (worker)...');
-        pendingInit = {};
-        pendingInit.promise = new Promise((resolve, reject) => {
-            pendingInit.resolve = resolve;
-            pendingInit.reject = reject;
-        });
-        worker.postMessage({ type: 'init', modelId });
-        const initTime = await pendingInit.promise;
-        return initTime;
-    }
-
-    // Request run (streaming) through worker with automatic retry once
-    async function runWorkerChat(messages, opts = {}, onToken) {
-        ensureWorker();
-        if (!workerReady) {
-            await initEngine();
-        }
-
-        // If previous run exists, abort it first
-        if (activeRun) {
-            worker.postMessage({ type: 'abort', runId: activeRun.runId });
-            await new Promise(r => setTimeout(r, 40));
-        }
-
-        const runId = `r-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-        return new Promise((resolve, reject) => {
-            let resolved = false;
-            activeRun = {
-                runId,
-                onToken,
-                resolveDone: () => { if (!resolved) { resolved = true; resolve(); } },
-                rejectDone: (err) => { if (!resolved) { resolved = true; reject(err); } }
-            };
-            try {
-                worker.postMessage({ type: 'run', runId, messages, opts });
-            } catch (e) {
-                activeRun = null;
-                reject(e);
-            }
-        }).catch(async (err) => {
-            // Try one recovery attempt: restart worker and retry once
-            console.warn('runWorkerChat failed, attempting restart...', err);
-            try {
-                await restartWorker();
-                // retry once
-                return runWorkerChat(messages, opts, onToken);
-            } catch (err2) {
-                throw err2;
-            }
-        });
-    }
-
-    // Summarize via worker
-    async function runWorkerSummarize(messages, opts = {}, onToken) {
-        ensureWorker();
-        if (!workerReady) await initEngine();
-        const runId = `s-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-        return new Promise((resolve, reject) => {
-            if (activeRun) {
-                worker.postMessage({ type: 'abort', runId: activeRun.runId });
-            }
-            activeRun = {
-                runId,
-                onToken: onToken,
-                resolveDone: resolve,
-                rejectDone: reject
-            };
-            worker.postMessage({ type: 'summarize', runId, messages, opts });
-        }).catch(async (err) => {
-            console.warn('runWorkerSummarize failed, restarting worker...', err);
-            await restartWorker();
-            return runWorkerSummarize(messages, opts, onToken);
-        });
-    }
-
-    // Ask worker to unload the model (keep worker alive)
-    function unloadEngineInWorker() {
-        if (!worker) return;
-        try {
-            worker.postMessage({ type: 'unload' });
-            // mark workerReady false; 'unloaded' will also come via message
-            workerReady = false;
-            updateStatus('Unloading engine (worker)...');
-        } catch (e) {
-            console.warn('unloadEngineInWorker failed', e);
-        }
-    }
-
-    // Abort active run
-    function abortActiveRun() {
-        if (activeRun && worker) {
-            worker.postMessage({ type: 'abort', runId: activeRun.runId });
-            updateStatus('Aborted');
-        }
-    }
-
-    // Restart worker (shutdown -> recreate)
-    async function restartWorker() {
-        try {
-            if (worker) {
-                try { worker.postMessage({ type: 'shutdown' }); } catch (e) {}
-                worker.terminate();
-            }
-        } catch (e) { console.warn('terminate error', e); }
-        worker = null;
-        workerReady = false;
-        pendingInit = null;
-        activeRun = null;
-        // small delay before recreating
-        await new Promise(r => setTimeout(r, 150));
-        ensureWorker();
-        await initEngine();
-    }
-
-    // Shutdown worker
-    async function shutdownWorker() {
-        if (!worker) return;
-        try {
-            worker.postMessage({ type: 'shutdown' });
-        } catch (e) {}
-        worker.terminate();
-        worker = null;
-        workerReady = false;
-    }
-
-    // Efficient append helpers
-    function appendMessage(role, text) {
-        const div = document.createElement('div');
-        div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
-        div.innerText = text;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return div;
-    }
-    function appendAiPlaceholderNode() {
-        const div = document.createElement('div');
-        div.className = 'msg ai';
-        const tn = document.createTextNode('');
-        div.appendChild(tn);
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return { div, tn };
-    }
-
-    // Save session
-    async function persistSession() {
-        const s = { history, summary, assistantCountSinceSummary, savedAt: Date.now() };
-        await dbPut(SESSION_STORE_KEY, s).catch(e => console.warn('persistSession failed', e));
-    }
-
-    // Summarize history (via worker)
-    async function summarizeHistory() {
-        updateStatus('Summarizing...');
-        const messages = [
-            { role: "system", content: "You are a concise summarization assistant. Produce a short summary of the conversation focusing on facts and user intent." },
-            { role: "user", content: `Summarize the following conversation briefly:\n\n${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n')}` }
-        ];
-        let newSummary = '';
-        try {
-            await runWorkerSummarize(messages, { max_new_tokens: 128, temperature: 0.1 }, (chunk) => {
-                newSummary += chunk;
-            });
-            if (newSummary.trim()) {
-                summary = newSummary.trim();
-                // keep only last 1-2 exchanges + summary to reduce context
-                history = history.slice(-2);
-                assistantCountSinceSummary = 0;
-                await persistSession();
-                updateStatus('Summarized');
-            } else {
-                updateStatus('Idle');
-            }
-        } catch (e) {
-            console.warn('summarizeHistory failed', e);
-            updateStatus('Idle');
-        }
-    }
-
-    // Input truncation UI
-    function updateCharsRemaining() {
-        const remaining = Math.max(0, MAX_INPUT_CHARS - (input.value || '').length);
-        charsRemainingEl.innerText = `${remaining} chars`;
-    }
-    input.addEventListener('input', updateCharsRemaining);
+// send flow
+sendBtn.addEventListener('click', async ()=>{
+  let text = (userInput.value||'').trim();
+  if (!text) return;
+  if (text.length > MAX_INPUT_CHARS) {
+    text = text.slice(0, MAX_INPUT_CHARS);
+    userInput.value = text;
     updateCharsRemaining();
+    appendMessage('ai','[Note] Input truncated to limit.');
+  }
+  appendMessage('user', text);
+  userInput.value = '';
+  updateCharsRemaining();
+  updateStatus('Thinking...');
+  setRunState(true);
 
-    // UI helper to set run state
-    function setRunState(running) {
-        sendBtn.disabled = running;
-        stopBtn.disabled = !running;
+  try {
+    const windowMsgs = [ { role:'system', content:`Context summary: ${summary}` }, ...history.slice(-2), { role:'user', content:text } ];
+    const {div, tn} = appendAiPlaceholder();
+    let full = '';
+    const start = performance.now();
+
+    await runWorkerChat(windowMsgs, { max_new_tokens: 160, temperature:0.2 }, (chunk) => {
+      full += chunk;
+      tn.nodeValue = full;
+      chat.scrollTop = chat.scrollHeight;
+    });
+
+    const dur = Math.max((performance.now()-start)/1000, 0.0001);
+    telemetry.avgCharsPerSec.push(full.length / dur);
+    if (telemetry.avgCharsPerSec.length>50) telemetry.avgCharsPerSec.shift();
+    dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
+
+    history.push({ role:'user', content:text }, { role:'assistant', content: full });
+    if (history.length > 8) history = history.slice(-8);
+    assistantCountSinceSummary++;
+    runCounter++;
+    await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() });
+
+    if (runCounter >= AUTO_UNLOAD_AFTER_RUNS) {
+      runCounter = 0;
+      if (worker) try { worker.postMessage({ type:'unload' }); updateStatus('Unloading engine to free memory...'); } catch(e){}
     }
 
-    // Main chat flow using worker
-    async function runChat() {
-        let text = (input.value || '').trim();
-        if (!text) return;
-        if (text.length > MAX_INPUT_CHARS) {
-            text = text.slice(0, MAX_INPUT_CHARS);
-            input.value = text;
-            updateCharsRemaining();
-            appendMessage('ai', '[Note] Your input was truncated to fit limits.');
-        }
-        appendMessage('user', text);
-        input.value = '';
-        updateCharsRemaining();
-        thinking.style.display = 'block';
-        updateStatus('Thinking (worker)...');
-        setRunState(true);
-
+    if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
+      (async ()=>{
         try {
-            // ensure worker + model ready
-            await initEngine();
+          updateStatus('Summarizing...');
+          let sText = '';
+          const msgs = [ { role:'system', content:'You are a concise summarizer.' }, { role:'user', content: history.map(h=>`${h.role}: ${h.content}`).join('\n\n') } ];
+          await runWorkerChat(msgs, { max_new_tokens: 96, temperature:0.1 }, (tok) => { sText += tok; });
+          if (sText.trim()) { summary = sText.trim(); history = history.slice(-2); assistantCountSinceSummary = 0; await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() }); updateStatus('Idle'); }
+        } catch(e) { console.warn('summarize failed', e); updateStatus('Idle'); }
+      })();
+    } else updateStatus('Idle');
 
-            // prepare messages (aggressively small)
-            const windowMsgs = [
-                { role: "system", content: `Context summary: ${summary}` },
-                ...history.slice(-2), // keep it tiny
-                { role: "user", content: text }
-            ];
+  } catch (err) {
+    console.error('Generation error', err);
+    appendMessage('ai','Error generating reply: ' + (err && err.message ? err.message : String(err)));
+    updateStatus('Error');
+    try { if (worker) { worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){}
+    worker = null; workerReady = false;
+  } finally {
+    setRunState(false);
+  }
+});
 
-            // placeholder
-            const { div: aiDiv, tn: textNode } = appendAiPlaceholderNode();
-            let fullReply = '';
-            const start = performance.now();
-
-            // stream; note runWorkerChat retries once on failure
-            await runWorkerChat(windowMsgs, { max_new_tokens: 160, temperature: 0.2 }, (chunk) => {
-                fullReply += chunk;
-                textNode.nodeValue = fullReply;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
-
-            const durationSec = Math.max((performance.now() - start) / 1000, 0.0001);
-            const charsPerSec = (fullReply.length) / durationSec;
-            telemetry.avgCharsPerSec.push(charsPerSec);
-            if (telemetry.avgCharsPerSec.length > 50) telemetry.avgCharsPerSec.shift();
-            dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
-
-            // update history and persist
-            history.push({ role: 'user', content: text }, { role: 'assistant', content: fullReply });
-            if (history.length > 8) history = history.slice(-8);
-            assistantCountSinceSummary++;
-            await persistSession();
-
-            runCounter++;
-            // Auto-unload engine in worker after threshold reached to reduce memory bloat
-            if (runCounter >= AUTO_UNLOAD_AFTER_RUNS) {
-                runCounter = 0;
-                // unload asynchronously, don't block UI
-                setTimeout(() => {
-                    unloadEngineInWorker();
-                }, 80);
-            }
-
-            // background summarization
-            if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
-                summarizeHistory().catch(e => console.warn('background summarize failed', e));
-            }
-
-            updateStatus('Idle');
-        } catch (err) {
-            console.error('Generation error:', err);
-            appendMessage('ai', "Error generating reply. Attempting to recover...");
-            updateStatus('Error');
-            // best-effort: restart worker so next attempt is fresh
-            try {
-                await restartWorker();
-                appendMessage('ai', "[Recovery] Worker restarted. Please try again.");
-            } catch (e) {
-                appendMessage('ai', "[Recovery] Restart failed. Reload the page.");
-            }
-        } finally {
-            thinking.style.display = 'none';
-            setRunState(false);
-        }
-    }
-
-    sendBtn.onclick = runChat;
-    input.onkeypress = (e) => { if (e.key === 'Enter') runChat(); };
-
-    // Stop button: abort active generation
-    stopBtn.addEventListener('click', () => {
-        abortActiveRun();
-        setRunState(false);
-        thinking.style.display = 'none';
-    });
-
-    // Clear session button (improved)
-    clearBtn.addEventListener('click', async () => {
-        if (!confirm('Clear current session and local summary?')) return;
-        // Abort active run, shutdown worker, clear data from IndexedDB
-        try {
-            abortActiveRun();
-            if (worker) {
-                try { worker.postMessage({ type: 'shutdown' }); } catch (e) {}
-                worker.terminate();
-            }
-        } catch (e) { console.warn('clear: abort/terminate failed', e); }
-        worker = null;
-        workerReady = false;
-        pendingInit = null;
-        activeRun = null;
-
-        // reset session state
-        history = [];
-        summary = "The start of a fresh conversation.";
-        assistantCountSinceSummary = 0;
-        chatBox.innerHTML = '';
-        appendMessage('ai', "Session cleared. Hello! Ask me anything.");
-
-        // remove persisted keys
-        try {
-            await dbDelete(SESSION_STORE_KEY);
-            await dbDelete(TELEMETRY_KEY);
-        } catch (e) { console.warn('clear db delete failed', e); }
-        updateStatus('Idle');
-    });
-
-    // Abort active generation on unload or user navigation
-    window.addEventListener('beforeunload', async () => {
-        try { await persistSession(); await dbPut(TELEMETRY_KEY, telemetry); } catch(e){}
-        abortActiveRun();
-        try { await shutdownWorker(); } catch (e) {}
-    });
-
-    // Debug shortcut
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'm') {
-            console.log('Telemetry:', telemetry);
-            alert(`Telemetry sample: initTimes=${telemetry.initTimes.slice(-3).map(v=>Math.round(v))}ms, avgCPS=${(telemetry.avgCharsPerSec||[]).slice(-3).map(v=>Math.round(v))}`);
-        }
-    });
-
-    // Device hint
-    (function deviceHint() {
-        const dm = navigator.deviceMemory || 'unknown';
-        const gpu = !!navigator.gpu;
-        updateStatus(`Idle • deviceMemory=${dm}GB • webgpu=${gpu ? 'yes' : 'no'}`);
-    })();
+userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendBtn.click(); });
+window.addEventListener('beforeunload', async ()=>{ try { await dbPut(TELEMETRY_KEY, telemetry); await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() }); } catch(e){} try { if (worker){ worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){} });
 
 </script>
 </body>
