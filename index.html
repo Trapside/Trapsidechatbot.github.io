@@ -372,11 +372,13 @@
             cleaned = cleaned.replace(/<[^>]*>/g, '');
             
             // 3. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
+            // FIXED: Added pattern to catch self-generated questions followed by repeated answers
             const badPatterns = [
                 { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
                 { pattern: /\sHuman[:\s]/i, reason: 'new human' },
                 { pattern: /\sUser[:\s]/i, reason: 'new user' },
                 { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' },
+                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i, reason: 'self-generated Q&A' }, // CRITICAL FIX: Catches "Why...? Because..." repetitions
                 { pattern: /<\|/i, reason: 'special token' },
                 { pattern: /\n{3,}/, reason: 'excessive newlines' },
                 { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
