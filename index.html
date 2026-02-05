@@ -1,288 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wllama Chat (WASM)</title>
-  <style>
-    :root { --blue: #007AFF; --glass: rgba(255,255,255,0.85); }
-    body { margin:0; font-family: -apple-system, system-ui, sans-serif; background:linear-gradient(160deg,#a2c2e6,#d4e1f5); display:flex; min-height:100vh; align-items:center; justify-content:center; }
-    .card { width:95%; max-width:720px; background:var(--glass); border-radius:18px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between}
-    header h1{margin:0;font-size:18px}
-    .controls{display:flex;gap:8px;align-items:center}
-    #chat{height:60vh; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; margin-top:12px; background:transparent}
-    .msg{max-width:85%; padding:10px 14px;border-radius:14px; line-height:1.3; white-space:pre-wrap; word-break:break-word;}
-    .user{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px;}
-    .ai{align-self:flex-start;background:#fff;color:#111;border-bottom-left-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.04)}
-    .bar{display:flex;gap:8px; margin-top:12px; align-items:center}
-    input[type=text] { flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.06); }
-    button { background:var(--blue); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
-    .btn-stop{ background:#ff3b30 }
-    .small{font-size:12px;color:#444; margin-left:8px}
-    label{font-size:13px;color:#222; margin-right:6px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Chat GPT-2 (124M)</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f4f9; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-top: 0; font-size: 1.2rem; }
+        #chat-box { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; font-size: 0.9rem; white-space: pre-wrap; }
+        .input-area { display: flex; gap: 10px; }
+        textarea { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; resize: none; height: 50px; font-family: inherit; }
+        button { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-  <div class="card" role="application">
-    <header>
-      <h1>Wllama Chat (WASM)</h1>
-      <div class="controls">
-        <div class="meta" id="status">Idle</div>
-      </div>
-    </header>
 
-    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-      <label for="modelUrl">Model (repo, filename) or direct URL</label>
-      <input id="modelUrl" type="text" placeholder="owner/repo, model.gguf  — or — https://example.com/model.gguf" value="RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf, chat-GPT2.Q4_K.gguf" />
-      <button id="loadBtn">Load Model</button>
-      <button id="unloadBtn" title="Unload model to free memory">Unload</button>
+<div class="container">
+    <h2>Tiny Chat (GPT-2 124M)</h2>
+    <div id="status">Status: Initializing...</div>
+    <div id="chat-box">System: Waiting for model to load...</div>
+    
+    <div class="input-area">
+        <textarea id="user-input" placeholder="Type a simple question (e.g., What is Python?)" disabled></textarea>
+        <button id="send-btn" disabled>Chat</button>
     </div>
-
-    <div id="chat">
-      <div class="msg ai">Hello — load a model to start. Paste a Hugging Face repo+filename (comma-separated) like:<br><code>RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf, chat-GPT2.Q4_K.gguf</code><br>or a direct .gguf URL.</div>
-    </div>
-
-    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-      <input id="userInput" type="text" placeholder="Message" />
-      <button id="sendBtn">Send</button>
-      <button id="stopBtn" class="btn-stop" disabled>Stop</button>
-      <button id="clearBtn" title="Clear session">Clear</button>
-      <div class="small" id="charsRemaining"></div>
-    </div>
-    <div style="margin-top:8px; font-size:12px; color:#333;">
-      <span>Summarize after <strong id="summCount">6</strong> replies • Auto-unload after <strong id="autoUnload">20</strong> runs</span>
-    </div>
-  </div>
+</div>
 
 <script type="module">
-const WORKER_FILE = 'mlc-worker-llama.js';
-const AUTO_UNLOAD_AFTER_RUNS = 20;
-const SUMMARIZE_AFTER = 6;
-const MAX_INPUT_CHARS = 800;
+    // Using Wllama from CDN
+    import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-const modelUrlInput = document.getElementById('modelUrl');
-const loadBtn = document.getElementById('loadBtn');
-const unloadBtn = document.getElementById('unloadBtn');
-const sendBtn = document.getElementById('sendBtn');
-const stopBtn = document.getElementById('stopBtn');
-const clearBtn = document.getElementById('clearBtn');
-const statusEl = document.getElementById('status');
-const chat = document.getElementById('chat');
-const userInput = document.getElementById('userInput');
-const charsRemainingEl = document.getElementById('charsRemaining');
+    const statusEl = document.getElementById('status');
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
 
-let worker = null;
-let workerReady = false;
-let activeRunId = null;
-let history = [];
-let summary = "The start of a fresh conversation.";
-let assistantCountSinceSummary = 0;
-let runCounter = 0;
-let telemetry = { initTimes: [], avgCharsPerSec: [], memorySamples: [] };
+    // Configuration for WASM binaries
+    const CONFIG_PATHS = {
+        'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+        'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+    };
 
-// IndexedDB helpers (same as previously provided)
-const DB_NAME = 'chatbot-db';
-const DB_STORE = 'sessions';
-const SESSION_STORE_KEY = 'latest_session';
-const TELEMETRY_KEY = 'telemetry';
-function openDB(){ return new Promise((resolve,reject)=>{ const r = indexedDB.open(DB_NAME,1); r.onupgradeneeded = ()=> { const db = r.result; if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE); }; r.onsuccess = ()=> resolve(r.result); r.onerror = ()=> reject(r.error); });}
-async function dbPut(key,val){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(val,key); tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error); }); } catch(e){ console.warn('dbPut',e);} }
-async function dbGet(key){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readonly'); const r = tx.objectStore(DB_STORE).get(key); r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error); }); } catch(e){ console.warn('dbGet',e);} }
-async function dbDelete(key){ try { const db = await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); const r = tx.objectStore(DB_STORE).delete(key); r.onsuccess = ()=> res(); r.onerror = ()=> rej(r.error); }); } catch(e){ console.warn('dbDelete',e);} }
+    const wllama = new Wllama(CONFIG_PATHS);
 
-// UI helpers
-function appendMessage(role,text){ const d=document.createElement('div'); d.className='msg '+(role==='user'?'user':'ai'); d.innerText=text; chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d; }
-function appendAiPlaceholder(){ const d=document.createElement('div'); d.className='msg ai'; const tn=document.createTextNode(''); d.appendChild(tn); chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return {div:d, tn}; }
-function updateStatus(t){ statusEl.innerText = t; }
-
-// Worker wiring
-function ensureWorker(){
-  if (worker) return;
-  worker = new Worker(WORKER_FILE, { type:'module' });
-  worker.onmessage = (ev) => {
-    const m = ev.data;
-    if (m.type === 'ready') { workerReady = true; telemetry.initTimes.push(m.initTime); updateStatus('Model ready'); }
-    else if (m.type === 'token') { if (activeRunId === m.runId && activeRunCallback) activeRunCallback(m.token); }
-    else if (m.type === 'done') { if (activeRunId === m.runId && activeRunResolve) activeRunResolve(); activeRunCleanup(); }
-    else if (m.type === 'error') { console.error('Worker error', m); appendMessage('ai','[Error] '+(m.error||'unknown')); updateStatus('Worker error'); activeRunCleanup(); try { worker.terminate(); } catch(e){} worker=null; workerReady=false; }
-    else if (m.type === 'unloaded') { workerReady = false; updateStatus('Engine unloaded'); }
-    else if (m.type === 'shutdown') { updateStatus('Worker shutdown'); }
-    else if (m.type === 'log') { console.log('worker log:', m.msg); }
-  };
-  worker.onerror = (e) => { console.error('Worker onerror', e); updateStatus('Worker error'); try { worker.terminate(); } catch(e){} worker=null; workerReady=false; };
-}
-
-let activeRunCallback = null;
-let activeRunResolve = null;
-let activeRunReject = null;
-function activeRunCleanup(){ activeRunId=null; activeRunCallback=null; if (activeRunResolve) activeRunResolve=null; if (activeRunReject) activeRunReject=null; setRunState(false); }
-
-function setRunState(running){ sendBtn.disabled = running; stopBtn.disabled = !running; if (!running) activeRunCleanup(); }
-
-// Load button: accepts either "owner/repo, filename" OR a direct .gguf URL
-loadBtn.addEventListener('click', async () => {
-  const v = modelUrlInput.value.trim();
-  if (!v) { alert('Enter Hugging Face repo+filename (comma-separated) or a direct .gguf URL'); return; }
-  ensureWorker();
-  try {
-    // detect "repo, filename" (comma-separated)
-    if (v.includes(',') && !v.startsWith('http')) {
-      const [repo, file] = v.split(',').map(s=>s.trim());
-      if (!repo || !file) { alert('Provide repo and filename like: owner/repo, model.gguf'); return; }
-      updateStatus('Loading model from Hugging Face...');
-      worker.postMessage({ type:'init', modelRepo: repo, modelFile: file, opts: {} });
-    } else {
-      // assume direct URL
-      const url = v;
-      updateStatus('Loading model from URL...');
-      worker.postMessage({ type:'init', modelUrl: url, opts: {} });
-    }
-  } catch(e) {
-    console.error('load error', e);
-    updateStatus('Init failed');
-  }
-});
-
-// Unload engine
-unloadBtn.addEventListener('click', ()=>{
-  if (!worker) return;
-  try { worker.postMessage({ type:'unload' }); updateStatus('Unloading engine...'); } catch(e){ console.warn(e); }
-});
-
-// send/abort/clear
-function abortActive(){ if (!worker || !activeRunId) return; try{ worker.postMessage({ type:'abort', runId: activeRunId }); }catch(e){console.warn(e);} }
-stopBtn.addEventListener('click', ()=>{ abortActive(); setRunState(false); updateStatus('Aborted'); });
-
-clearBtn.addEventListener('click', async ()=>{
-  if (!confirm('Clear session and local storage?')) return;
-  abortActive();
-  try { if (worker) { worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){}
-  worker = null; workerReady = false;
-  history = []; summary = "The start of a fresh conversation."; assistantCountSinceSummary = 0; runCounter = 0;
-  chat.innerHTML = ''; appendMessage('ai','Session cleared. Load a model and say hello.');
-  try { await dbDelete(SESSION_STORE_KEY); await dbDelete(TELEMETRY_KEY); } catch(e){console.warn(e)}
-  updateStatus('Idle');
-});
-
-// input chars
-function updateCharsRemaining(){ charsRemainingEl.innerText = Math.max(0, MAX_INPUT_CHARS - (userInput.value||'').length) + ' chars'; }
-userInput.addEventListener('input', updateCharsRemaining);
-updateCharsRemaining();
-
-// persistence restore
-(async function restoreSession(){ const s = await dbGet(SESSION_STORE_KEY); if (s) { history = s.history || []; summary = s.summary || summary; assistantCountSinceSummary = s.assistantCountSinceSummary || assistantCountSinceSummary; chat.innerHTML=''; history.forEach(m=>appendMessage(m.role,m.content)); chat.scrollTop=chat.scrollHeight; } const t = await dbGet(TELEMETRY_KEY); if (t) telemetry = t; updateStatus('Idle'); })();
-
-function sampleMemory(){ const mem = { deviceMemoryGB: navigator.deviceMemory || null, time:Date.now() }; telemetry.memorySamples.push(mem); if (telemetry.memorySamples.length>50) telemetry.memorySamples.shift(); dbPut(TELEMETRY_KEY, telemetry).catch(()=>{}); }
-
-// runWorkerChat: ensures worker/model ready; streams tokens via onToken
-async function runWorkerChat(messages, opts = {}, onToken){
-  ensureWorker();
-  // If worker not yet ready, try to init using value in modelUrlInput (to support convenience)
-  if (!workerReady) {
-    const v = modelUrlInput.value.trim();
-    if (!v) throw new Error('Model not loaded. Enter model repo+filename or URL and click Load Model.');
-    // Wait for ready
-    await new Promise((resolve,reject)=>{
-      const tmp = (ev)=>{ const m=ev.data; if (m.type==='ready') { worker.removeEventListener('message', tmp); resolve(); } else if (m.type==='error'){ worker.removeEventListener('message', tmp); reject(new Error(m.error||'init-failed')); } };
-      worker.addEventListener('message', tmp);
-      // send init depending on format (this is safe if the main load already sent it; posting twice is benign)
-      if (v.includes(',') && !v.startsWith('http')) {
-        const [repo,file] = v.split(',').map(s=>s.trim());
-        worker.postMessage({ type:'init', modelRepo: repo, modelFile: file, opts: {} });
-      } else {
-        worker.postMessage({ type:'init', modelUrl: v, opts: {} });
-      }
-    });
-  }
-
-  const runId = 'r-'+Date.now()+'-'+Math.floor(Math.random()*1000);
-  activeRunId = runId;
-
-  return new Promise((resolve,reject)=>{
-    activeRunCallback = onToken;
-    activeRunResolve = resolve;
-    activeRunReject = reject;
-    setRunState(true);
-    try {
-      worker.postMessage({ type:'run', runId, messages, opts });
-    } catch(e){
-      activeRunCleanup();
-      reject(e);
-    }
-  });
-}
-
-// send flow
-sendBtn.addEventListener('click', async ()=>{
-  let text = (userInput.value||'').trim();
-  if (!text) return;
-  if (text.length > MAX_INPUT_CHARS) {
-    text = text.slice(0, MAX_INPUT_CHARS);
-    userInput.value = text;
-    updateCharsRemaining();
-    appendMessage('ai','[Note] Input truncated to limit.');
-  }
-  appendMessage('user', text);
-  userInput.value = '';
-  updateCharsRemaining();
-  updateStatus('Thinking...');
-  setRunState(true);
-
-  try {
-    const windowMsgs = [ { role:'system', content:`Context summary: ${summary}` }, ...history.slice(-2), { role:'user', content:text } ];
-    const {div, tn} = appendAiPlaceholder();
-    let full = '';
-    const start = performance.now();
-
-    await runWorkerChat(windowMsgs, { max_new_tokens: 160, temperature:0.2 }, (chunk) => {
-      full += chunk;
-      tn.nodeValue = full;
-      chat.scrollTop = chat.scrollHeight;
-    });
-
-    const dur = Math.max((performance.now()-start)/1000, 0.0001);
-    telemetry.avgCharsPerSec.push(full.length / dur);
-    if (telemetry.avgCharsPerSec.length>50) telemetry.avgCharsPerSec.shift();
-    dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
-
-    history.push({ role:'user', content:text }, { role:'assistant', content: full });
-    if (history.length > 8) history = history.slice(-8);
-    assistantCountSinceSummary++;
-    runCounter++;
-    await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() });
-
-    if (runCounter >= AUTO_UNLOAD_AFTER_RUNS) {
-      runCounter = 0;
-      if (worker) try { worker.postMessage({ type:'unload' }); updateStatus('Unloading engine to free memory...'); } catch(e){}
-    }
-
-    if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
-      (async ()=>{
+    async function init() {
         try {
-          updateStatus('Summarizing...');
-          let sText = '';
-          const msgs = [ { role:'system', content:'You are a concise summarizer.' }, { role:'user', content: history.map(h=>`${h.role}: ${h.content}`).join('\n\n') } ];
-          await runWorkerChat(msgs, { max_new_tokens: 96, temperature:0.1 }, (tok) => { sText += tok; });
-          if (sText.trim()) { summary = sText.trim(); history = history.slice(-2); assistantCountSinceSummary = 0; await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() }); updateStatus('Idle'); }
-        } catch(e) { console.warn('summarize failed', e); updateStatus('Idle'); }
-      })();
-    } else updateStatus('Idle');
+            statusEl.innerText = "Status: Downloading model (~113MB)...";
+            
+            // Loading the specific GGUF model you requested
+            await wllama.loadModelFromHF(
+                'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
+                'chat-GPT2.Q4_K.gguf', 
+                {
+                    progressCallback: ({ loaded, total }) => {
+                        const progress = Math.round((loaded / total) * 100);
+                        statusEl.innerText = `Status: Downloading ${progress}%`;
+                    }
+                }
+            );
 
-  } catch (err) {
-    console.error('Generation error', err);
-    appendMessage('ai','Error generating reply: ' + (err && err.message ? err.message : String(err)));
-    updateStatus('Error');
-    try { if (worker) { worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){}
-    worker = null; workerReady = false;
-  } finally {
-    setRunState(false);
-  }
-});
+            statusEl.innerText = "Status: Ready!";
+            chatBox.innerText = "System: Model loaded. Note: This is an 82M model, so keep questions simple!";
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+        } catch (err) {
+            statusEl.innerText = "Status: Error loading model.";
+            console.error(err);
+        }
+    }
 
-userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendBtn.click(); });
-window.addEventListener('beforeunload', async ()=>{ try { await dbPut(TELEMETRY_KEY, telemetry); await dbPut(SESSION_STORE_KEY, { history, summary, assistantCountSinceSummary, savedAt: Date.now() }); } catch(e){} try { if (worker){ worker.postMessage({ type:'shutdown' }); worker.terminate(); } } catch(e){} });
+    async function handleChat() {
+        const text = userInput.value.trim();
+        if (!text) return;
 
+        userInput.value = '';
+        sendBtn.disabled = true;
+        chatBox.innerText += `\n\nYou: ${text}\n\nAI: ...`;
+
+        // Arjun-G-Ravi model likes the "Question: Answer:" format
+        const prompt = `Question: ${text} Answer:`;
+
+        const response = await wllama.createCompletion(prompt, {
+            nPredict: 100,
+            sampling: { temp: 0.7, top_k: 40 }
+        });
+
+        // Append only the new response text
+        chatBox.innerText = chatBox.innerText.replace('AI: ...', `AI: ${response.trim()}`);
+        sendBtn.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', handleChat);
+    userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleChat(); });
+
+    init();
 </script>
+
 </body>
 </html>
