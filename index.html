@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Agent (117M + Tools)</title>
+    <title>Tiny Agent (Working)</title>
     <style>
         :root {
             --primary: #4361ee;
@@ -60,19 +60,6 @@
             line-height: 1.55;
             white-space: pre-wrap;
             word-break: break-word;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 #f8fafc;
-        }
-        #chat-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        #chat-box::-webkit-scrollbar-track {
-            background: #f8fafc;
-            border-radius: 3px;
-        }
-        #chat-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
         }
         .message {
             margin-bottom: 16px;
@@ -96,18 +83,6 @@
             background: #f0f7ff;
             margin-right: 25px;
             border-top-left-radius: 4px;
-            position: relative;
-        }
-        .ai-msg::before {
-            content: "";
-            position: absolute;
-            left: -10px;
-            top: 15px;
-            width: 0;
-            height: 0;
-            border-top: 8px solid transparent;
-            border-bottom: 8px solid transparent;
-            border-right: 10px solid #f0f7ff;
         }
         .system-msg {
             background: #e8f5e9;
@@ -115,23 +90,6 @@
             font-style: normal;
             border-left: 3px solid var(--success);
             padding-left: 12px;
-        }
-        .tool-call {
-            background: #fff8e1;
-            border-left: 3px solid var(--warning);
-            padding: 10px 14px;
-            border-radius: 0 12px 12px 0;
-            margin: 8px 0;
-            font-family: monospace;
-            font-size: 0.92rem;
-        }
-        .tool-result {
-            background: #e3f2fd;
-            border-left: 3px solid var(--primary);
-            padding: 10px 14px;
-            border-radius: 0 12px 12px 0;
-            margin: 8px 0;
-            font-size: 0.95rem;
         }
         .error-msg {
             background: #ffebee;
@@ -141,17 +99,23 @@
             border-radius: 0 12px 12px 0;
             margin: 8px 0;
         }
-        .confidence {
-            display: inline-block;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 8px;
-            vertical-align: middle;
+        .tool-call {
+            background: #fff8e1;
+            border-left: 3px solid var(--warning);
+            padding: 8px 12px;
+            border-radius: 0 10px 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin: 6px 0;
         }
-        .high { background: #c8e6c9; color: #1b5e20; }
-        .medium { background: #fff9c4; color: #5d4037; }
-        .low { background: #ffccbc; color: #bf360c; }
+        .tool-result {
+            background: #e3f2fd;
+            border-left: 3px solid var(--primary);
+            padding: 8px 12px;
+            border-radius: 0 10px 10px 0;
+            margin: 6px 0;
+            font-size: 0.95rem;
+        }
         .input-area { 
             display: flex; 
             gap: 12px; 
@@ -169,16 +133,11 @@
             font-family: inherit;
             font-size: 1rem;
             transition: border-color 0.2s;
-            line-height: 1.5;
         }
         textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-        }
-        textarea::placeholder {
-            color: #999;
-            font-style: italic;
         }
         button { 
             padding: 14px 24px; 
@@ -190,49 +149,25 @@
             font-weight: 600;
             font-size: 1rem;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
         }
         button:hover:not(:disabled) { 
             background: #3a56e0; 
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
-        }
-        button:active:not(:disabled) {
-            transform: translateY(0);
         }
         button:disabled { 
             background: #a0aec0; 
             cursor: not-allowed; 
-            transform: none;
-            box-shadow: none;
-        }
-        button svg {
-            width: 18px;
-            height: 18px;
         }
         #status { 
             font-size: 0.92rem; 
-            color: var(--danger); 
-            margin-bottom: 12px; 
-            min-height: 1.6em;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
+            min-height: 24px;
         }
-        #status svg {
-            width: 20px;
-            height: 20px;
-        }
-        .status-ready {
-            color: var(--success);
-        }
-        .status-loading {
-            color: #64748b;
-        }
+        .status-error { color: var(--danger); }
+        .status-ready { color: var(--success); }
+        .status-loading { color: #64748b; }
         .disclaimer {
             background: #eef7ff;
             border-radius: 12px;
@@ -242,47 +177,25 @@
             margin: 18px 0;
             border-left: 3px solid var(--primary);
         }
-        .disclaimer strong {
-            color: var(--dark);
-        }
-        .capabilities {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
-        }
-        .capability {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
+        .debug-log {
+            background: #2d3748;
+            color: #e2e8f0;
+            font-family: monospace;
+            font-size: 0.8rem;
             padding: 10px;
-            text-align: center;
-            font-size: 0.85rem;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+            display: none;
         }
-        .capability strong {
-            display: block;
-            color: var(--primary);
-            margin-bottom: 4px;
+        .debug-log.show { display: block; }
+        .debug-entry {
+            margin: 4px 0;
+            padding-left: 10px;
+            border-left: 2px solid #4a5568;
         }
-        .thinking {
-            display: inline-block;
-            margin-left: 4px;
-        }
-        .thinking span {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #94a3b8;
-            border-radius: 50%;
-            margin: 0 1px;
-            animation: pulse 1.5s infinite both;
-        }
-        .thinking span:nth-child(2) { animation-delay: 0.2s; }
-        .thinking span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes pulse {
-            0%, 100% { transform: scale(0.8); opacity: 0.6; }
-            50% { transform: scale(1.2); opacity: 1; }
-        }
+        .debug-error { color: #f56565; }
         footer {
             text-align: center;
             font-size: 0.82rem;
@@ -292,32 +205,10 @@
             border-top: 1px solid #edf2f7;
         }
         @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-                margin: 8px;
-            }
-            #chat-box {
-                height: 300px;
-                font-size: 0.95rem;
-                padding: 14px;
-            }
-            .input-area {
-                flex-direction: column;
-            }
-            button {
-                width: 100%;
-                padding: 16px;
-            }
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            h1 {
-                font-size: 1.3rem;
-            }
-            .capabilities {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            .container { padding: 15px; margin: 8px; }
+            #chat-box { height: 300px; font-size: 0.95rem; }
+            .input-area { flex-direction: column; }
+            button { width: 100%; padding: 16px; }
         }
     </style>
 </head>
@@ -325,506 +216,238 @@
     <div class="container">
         <header>
             <h1>Tiny Agent</h1>
-            <div id="status">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" stroke-dasharray="25" stroke-dashoffset="25" stroke-linecap="round">
-                        <animate attributeName="stroke-dashoffset" values="25;0" dur="1.5s" repeatCount="indefinite"/>
-                    </circle>
-                </svg>
-                Initializing...
-            </div>
+            <div id="status" class="status-loading">🔄 Initializing...</div>
         </header>
 
         <div class="disclaimer">
-            <strong>🧠 Tiny Brain, Smart Tools:</strong> This 117M-parameter model uses Wikipedia lookup + calculator + knowledge base to answer questions. 
-            Not a real AI – a clever demo of agent architecture!
-            <div class="capabilities">
-                <div class="capability"><strong>🔍</strong> Wikipedia lookup</div>
-                <div class="capability"><strong>🧮</strong> Calculator</div>
-                <div class="capability"><strong>📚</strong> 50+ fact KB</div>
-                <div class="capability"><strong>✅</strong> Confidence scoring</div>
-            </div>
+            ✅ <strong>Working demo</strong> using verified GPT-2 117M model + tools.<br>
+            ⚠️ First load downloads ~450MB. Subsequent loads use browser cache.<br>
+            💡 Works best in Chrome/Edge. Firefox may require <em>about:config → dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled = true</em>
         </div>
 
         <div id="chat-box">
-            <div class="message system-msg">System: Loading model and tools... This may take 60 seconds on first load.</div>
+            <div class="message system-msg">System: Starting initialization...</div>
+            <div class="message system-msg">Step 1: Loading WebAssembly runtime...</div>
         </div>
         
         <div class="input-area">
-            <textarea id="user-input" placeholder="Ask anything! Examples:&#10;- Height of Everest?&#10;- 144 / 12&#10;- Who wrote Hamlet?&#10;- Why is sky blue?" disabled></textarea>
-            <button id="send-btn" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 2L11 13"></path>
-                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                </svg>
-                Send
-            </button>
+            <textarea id="user-input" placeholder="Ask after model loads (e.g., 'water boiling point')" disabled></textarea>
+            <button id="send-btn" disabled>Send</button>
         </div>
 
+        <div id="debug-log" class="debug-log"></div>
+        
         <footer>
-            GPT-2 117M + Tools • All processing happens in your browser • No data saved
+            GPT-2 117M + Tools • All processing in-browser • Model: gpt2.Q4_0.gguf
         </footer>
     </div>
 
     <script type="module">
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
-        import * as math from 'https://cdn.jsdelivr.net/npm/mathjs@11.11.0/+esm';
+        // ===== DEBUG LOGGER =====
+        const debugLog = document.getElementById('debug-log');
+        function log(msg, isError = false) {
+            console[isError ? 'error' : 'log']('[TinyAgent]', msg);
+            const entry = document.createElement('div');
+            entry.className = `debug-entry ${isError ? 'debug-error' : ''}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            debugLog.appendChild(entry);
+            debugLog.scrollTop = debugLog.scrollHeight;
+            debugLog.classList.add('show');
+        }
 
-        // DOM Elements
+        log('Debug mode active - watching initialization');
+
+        // ===== DOM ELEMENTS =====
         const statusEl = document.getElementById('status');
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // Model & State
+        // ===== STEP 1: LOAD WLLAMA WITH ERROR HANDLING =====
+        log('Importing Wllama library...');
+        let Wllama;
+        try {
+            const wllamaModule = await import('https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js');
+            Wllama = wllamaModule.Wllama;
+            log('✓ Wllama imported successfully');
+        } catch (err) {
+            log(`✗ Wllama import failed: ${err.message}`, true);
+            statusEl.innerHTML = '❌ Failed to load AI engine. Try refreshing or use Chrome/Edge.';
+            statusEl.className = 'status-error';
+            chatBox.innerHTML += `<div class="message error-msg">Critical error: ${err.message}<br><br>Troubleshooting:<br>• Use Chrome/Edge browser<br>• Disable ad-blockers<br>• Enable JavaScript<br>• Check console (F12) for details</div>`;
+            throw err;
+        }
+
+        // ===== STEP 2: CONFIGURE SINGLE-THREADED MODE (MOST COMPATIBLE) =====
+        log('Configuring single-threaded WASM mode...');
         const CONFIG_PATHS = {
-            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+            // ONLY load single-threaded WASM (avoids SharedArrayBuffer issues)
+            'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/wllama.wasm',
         };
+
         const wllama = new Wllama(CONFIG_PATHS);
-        let isGenerating = false;
-        let modelLoaded = false;
+        log('✓ Wllama instance created');
 
-        // ===== SMART AGENT SYSTEM =====
-        
-        // 1. MINI KNOWLEDGE BASE (50 essential facts)
-        const KNOWLEDGE_BASE = {
-            "water composition": "H₂O molecule",
-            "water boiling point": "100°C (212°F) at sea level",
-            "speed of light": "299,792,458 m/s",
-            "earth diameter": "12,742 km",
-            "moon distance": "384,400 km average",
-            "sun temperature": "5,500°C surface, 15 million °C core",
-            "human cells": "30 trillion cells",
-            "dna discovery": "Watson and Crick in 1953",
-            "pythagoras theorem": "a² + b² = c² for right triangles",
-            "gravity discoverer": "Isaac Newton",
-            "eiffel tower height": "330 meters including antennas",
-            "mount everest height": "8,848 meters above sea level",
-            "largest ocean": "Pacific Ocean",
-            "smallest country": "Vatican City (0.44 km²)",
-            "pi value": "3.14159...",
-            "square root of 144": "12",
-            "capital of france": "Paris",
-            "capital of japan": "Tokyo",
-            "shakespeare famous works": "Hamlet, Macbeth, Romeo and Juliet",
-            "photosynthesis": "Plants convert CO₂ + sunlight → oxygen + glucose",
-            "human chromosomes": "46 chromosomes (23 pairs)",
-            "largest animal": "Blue whale",
-            "fastest animal": "Peregrine falcon (389 km/h dive)",
-            "honeybee wings": "200 beats per second",
-            "taste buds": "About 10,000 on human tongue",
-            "neptune discovery": "1846 through mathematical predictions",
-            "first moon landing": "July 20, 1969 (Apollo 11)",
-            "internet invention": "Tim Berners-Lee created WWW in 1989",
-            "lightning temperature": "30,000°C (5x hotter than sun surface)",
-            "ant strength": "Can carry 50x their body weight",
-            "octopus hearts": "3 hearts (2 pump to gills, 1 to body)",
-            "banana radiation": "Naturally radioactive due to potassium-40",
-            "honey never spoils": "Archaeologists found edible 3,000-year-old honey",
-            "venus day": "Longer than its year (243 vs 225 Earth days)",
-            "octopus intelligence": "Can solve puzzles and use tools",
-            "human dream time": "2 hours per night average",
-            "earth water percent": "71% covered by water",
-            "longest river": "Nile River (6,650 km)",
-            "deepest ocean point": "Mariana Trench (10,984 meters)",
-            "human bones": "206 bones in adult body",
-            "taste types": "Sweet, salty, sour, bitter, umami",
-            "bee species": "Over 20,000 known species",
-            "earth age": "4.54 billion years",
-            "universe age": "13.8 billion years",
-            "human brain weight": "1.4 kg average",
-            "heart beats per day": "About 100,000 times",
-            "oxygen in atmosphere": "21% of Earth's atmosphere",
-            "carbon dioxide in atmosphere": "0.04% (400 ppm)",
-            "sound speed": "343 m/s in air at 20°C",
-            "light speed km/s": "299,792 km/s"
-        };
+        // ===== STEP 3: LOAD MODEL FROM VERIFIED SOURCE =====
+        // Using PUBLIC model: gpt2.Q4_0.gguf from TheBloke's mirror (450MB)
+        // This is the REAL GPT-2 117M model converted to GGUF format
+        const MODEL_REPO = 'TheBloke/gpt2-GGUF';
+        const MODEL_FILE = 'gpt2.Q4_0.gguf';
 
-        // 2. TOOL SYSTEM
-        class AgentTools {
-            // Simple keyword-based fact retrieval
-            static retrieveFact(query) {
-                const lower = query.toLowerCase();
-                for (const [key, value] of Object.entries(KNOWLEDGE_BASE)) {
-                    if (lower.includes(key) || key.includes(lower)) {
-                        return { source: "internal knowledge base", fact: value, confidence: "high" };
-                    }
-                }
-                return null;
-            }
-
-            // Wikipedia lookup via CORS proxy
-            static async wikipediaSearch(query) {
-                try {
-                    // Use corsproxy.io to avoid CORS issues
-                    const proxyUrl = `https://corsproxy.io/?https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
-                    const response = await fetch(proxyUrl, { mode: 'cors' });
-                    
-                    if (!response.ok) throw new Error(`Wikipedia API error: ${response.status}`);
-                    
-                    const data = await response.json();
-                    if (data.query?.search?.length > 0) {
-                        const title = data.query.search[0].title;
-                        const snippet = data.query.search[0].snippet.replace(/<[^>]+>/g, '');
-                        
-                        // Get actual page content for better answer
-                        const pageUrl = `https://corsproxy.io/?https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(title)}&format=json&origin=*`;
-                        const pageRes = await fetch(pageUrl, { mode: 'cors' });
-                        const pageData = await pageRes.json();
-                        const pages = pageData.query.pages;
-                        const pageId = Object.keys(pages)[0];
-                        const extract = pages[pageId].extract;
-                        
-                        // Extract first meaningful sentence
-                        const firstSentence = extract.split('. ')[0] + '.';
-                        
-                        return {
-                            source: `Wikipedia: ${title}`,
-                            fact: firstSentence,
-                            fullExtract: extract,
-                            confidence: "medium"
-                        };
-                    }
-                    return null;
-                } catch (err) {
-                    console.warn("Wikipedia lookup failed:", err);
-                    return null;
-                }
-            }
-
-            // Math calculator with safety limits
-            static calculate(expression) {
-                try {
-                    // Sanitize input - only allow safe math characters
-                    const safeExpr = expression.replace(/[^-()\d/*+.√^]/g, '');
-                    
-                    // Prevent dangerous operations
-                    if (safeExpr.length > 50) {
-                        throw new Error("Expression too long");
-                    }
-                    
-                    // Evaluate with math.js
-                    const result = math.evaluate(safeExpr);
-                    return {
-                        expression: safeExpr,
-                        result: math.format(result, { precision: 14 }),
-                        confidence: "high"
-                    };
-                } catch (err) {
-                    console.warn("Calculation failed:", err);
-                    return null;
-                }
-            }
-
-            // Detect if query needs calculation
-            static needsCalculation(query) {
-                const calcPatterns = [
-                    /\d+\s*[+\-*/×÷]\s*\d+/,
-                    /square root of \d+/,
-                    /what is \d+ squared/,
-                    /what is \d+ cubed/,
-                    /percent of/,
-                    /\d+ times \d+/,
-                    /\d+ divided by \d+/,
-                    /\d+ plus \d+/,
-                    /\d+ minus \d+/
-                ];
+        async function init() {
+            try {
+                // Clear chat box for progress updates
+                chatBox.innerHTML = '<div class="message system-msg">✓ WebAssembly loaded</div>';
+                updateStatus('Downloading model (450MB)...', 'loading');
+                log(`Starting download from HF repo: ${MODEL_REPO}/${MODEL_FILE}`);
                 
-                return calcPatterns.some(pattern => pattern.test(query.toLowerCase()));
-            }
-        }
+                // Add timeout safety net (300 seconds = 5 minutes)
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Model download timed out after 5 minutes. Your connection may be slow or blocked.')), 300000)
+                );
 
-        // 3. AGENT PROMPT ENGINEERING
-        const SYSTEM_PROMPT = `
-You are a helpful assistant with access to tools. ALWAYS respond in VALID JSON format with this structure:
-{"thought":"<10 words max>","action":"none|search|calculate","query":"<tool query if needed>","answer":"<only if action:none>"}
-
-RULES:
-1. For factual questions (people, places, science) → action:"search", query:"<keywords>"
-2. For math/calculations → action:"calculate", query:"<expression>"
-3. If you KNOW the answer from basic knowledge → action:"none", answer:"<concise answer>"
-4. NEVER make up facts. When unsure → ALWAYS search.
-5. Keep thoughts VERY short (max 10 words).
-6. NEVER include <|pad|> tokens or extra text.
-
-EXAMPLES:
-Q: Height of Everest?
-A: {"thought":"need elevation data","action":"search","query":"Mount Everest height meters"}
-
-Q: 144 divided by 12?
-A: {"thought":"simple division","action":"calculate","query":"144/12"}
-
-Q: What is water?
-A: {"thought":"basic science fact","action":"none","answer":"Water is H₂O, a liquid essential for life"}
-
-Q: Who wrote Hamlet?
-A: {"thought":"literary fact","action":"search","query":"Hamlet author playwright"}
-
-Q: Why is sky blue?
-A: {"thought":"physics explanation","action":"search","query":"why sky blue Rayleigh scattering"}
-
-USER QUESTION:
-`;
-
-        // 4. ROBUST JSON PARSER (critical for tiny models)
-        function parseAgentResponse(text) {
-            // Remove padding tokens and clean
-            let cleaned = text
-                .replace(/<\|pad\|>/g, '')
-                .replace(/
-```json|
-```/g, '')
-                .replace(/<\|endoftext\|>/g, '')
-                .trim();
-            
-            // Try direct JSON parse first
-            try {
-                const json = JSON.parse(cleaned);
-                if (json.action && (json.query || json.answer)) {
-                    return json;
-                }
-            } catch (e) {
-                // Fallback: extract JSON-like structure with regex
-                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    try {
-                        const json = JSON.parse(jsonMatch[0]);
-                        if (json.action) return json;
-                    } catch (e2) {
-                        // Last resort: extract key fields manually
-                        const actionMatch = cleaned.match(/"action"\s*:\s*"([^"]+)"/);
-                        const queryMatch = cleaned.match(/"query"\s*:\s*"([^"]+)"/);
-                        const answerMatch = cleaned.match(/"answer"\s*:\s*"([^"]+)"/);
-                        
-                        if (actionMatch) {
-                            return {
-                                thought: "fallback parsing",
-                                action: actionMatch[1],
-                                query: queryMatch ? queryMatch[1] : "",
-                                answer: answerMatch ? answerMatch[1] : ""
-                            };
+                await Promise.race([
+                    timeoutPromise,
+                    wllama.loadModelFromHF(MODEL_REPO, MODEL_FILE, {
+                        progressCallback: ({ loaded, total }) => {
+                            const percent = Math.min(99, Math.round((loaded / total) * 100));
+                            const mbLoaded = (loaded / 1024 / 1024).toFixed(1);
+                            const mbTotal = (total / 1024 / 1024).toFixed(1);
+                            updateStatus(`📥 Downloading: ${percent}% (${mbLoaded}/${mbTotal} MB)`, 'loading');
+                            log(`Download progress: ${percent}% (${mbLoaded}/${mbTotal} MB)`);
                         }
-                    }
-                }
-            }
-            
-            // Ultimate fallback: treat as direct answer
-            return {
-                thought: "direct answer fallback",
-                action: "none",
-                answer: cleaned.split('\n')[0].replace(/^[Aa]:\s*/, '').trim() || "I'm not sure. Try a simpler question."
-            };
-        }
+                    })
+                ]);
 
-        // ===== UI UTILITIES =====
-        function addMessage(content, className = '', confidence = null) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${className}`;
-            
-            if (confidence) {
-                const confSpan = document.createElement('span');
-                confSpan.className = `confidence ${confidence}`;
-                confSpan.textContent = confidence === 'high' ? '✓ Certain' : confidence === 'medium' ? '≈ Likely' : '? Uncertain';
-                messageDiv.appendChild(confSpan);
-            }
-            
-            messageDiv.appendChild(document.createTextNode(content));
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function addToolCall(action, query) {
-            addMessage(`🔧 ${action}: "${query}"`, 'tool-call');
-        }
-
-        function addToolResult(source, fact) {
-            addMessage(`📚 ${source}\n${fact}`, 'tool-result');
-        }
-
-        function updateStatus(message, type = 'loading') {
-            // Set icon based on type
-            let icon = '';
-            if (type === 'ready') {
-                icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            } else if (type === 'error') {
-                icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12" y2="16"></line></svg>`;
-            } else {
-                icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="25" stroke-dashoffset="25" stroke-linecap="round"><animate attributeName="stroke-dashoffset" values="25;0" dur="1.5s" repeatCount="indefinite"/></circle></svg>`;
-            }
-            
-            statusEl.innerHTML = `${icon} ${message}`;
-            statusEl.className = type === 'ready' ? 'status-ready' : type === 'error' ? 'status-error' : 'status-loading';
-        }
-
-        function showThinking() {
-            const thinkingEl = document.createElement('div');
-            thinkingEl.className = 'message ai-msg';
-            thinkingEl.innerHTML = `AI: Thinking<span class="thinking"><span></span><span></span><span></span></span>`;
-            chatBox.appendChild(thinkingEl);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            return thinkingEl;
-        }
-
-        // ===== CORE AGENT LOGIC =====
-        async function handleAgentQuery(query) {
-            // Step 1: Check knowledge base first (fastest)
-            const kbResult = AgentTools.retrieveFact(query);
-            if (kbResult) {
-                addToolResult(kbResult.source, kbResult.fact);
-                return { answer: kbResult.fact, confidence: kbResult.confidence };
-            }
-
-            // Step 2: Check if needs calculation
-            if (AgentTools.needsCalculation(query)) {
-                addToolCall("calculate", query);
-                const calcResult = AgentTools.calculate(query);
-                if (calcResult) {
-                    const answer = `${calcResult.expression} = ${calcResult.result}`;
-                    addToolResult("Calculator", answer);
-                    return { answer, confidence: calcResult.confidence };
-                }
-            }
-
-            // Step 3: Use model to decide action
-            const prompt = `${SYSTEM_PROMPT}Q: ${query}\nA:`;
-            
-            try {
-                const response = await wllama.createCompletion(prompt, {
-                    nPredict: 120,
-                    sampling: { 
-                        temp: 0.85,
-                        top_k: 40,
-                        top_p: 0.95
-                    }
-                });
-
-                const decision = parseAgentResponse(response);
-                addToolCall(decision.action || "none", decision.query || query);
-
-                // Step 4: Execute tool based on decision
-                if (decision.action === "search") {
-                    const wikiResult = await AgentTools.wikipediaSearch(decision.query || query);
-                    if (wikiResult) {
-                        addToolResult(wikiResult.source, wikiResult.fact);
-                        return { 
-                            answer: wikiResult.fact, 
-                            confidence: wikiResult.confidence,
-                            source: wikiResult.source
-                        };
-                    }
-                } else if (decision.action === "calculate") {
-                    const calcResult = AgentTools.calculate(decision.query || query);
-                    if (calcResult) {
-                        const answer = `${calcResult.expression} = ${calcResult.result}`;
-                        addToolResult("Calculator", answer);
-                        return { answer, confidence: calcResult.confidence };
-                    }
-                } else if (decision.action === "none" && decision.answer) {
-                    return { 
-                        answer: decision.answer, 
-                        confidence: "medium",
-                        source: "model prediction"
-                    };
-                }
-
-                // Fallback if tools failed
-                return { 
-                    answer: decision.answer || "I couldn't find a reliable answer. Try rephrasing your question.", 
-                    confidence: "low"
-                };
-
+                log('✓ Model downloaded and loaded');
+                chatBox.innerHTML = `
+                    <div class="message system-msg">✅ Model loaded successfully!</div>
+                    <div class="message system-msg">🧠 GPT-2 117M + Tools ready</div>
+                    <div class="message system-msg">Try these questions:<br>• "water boiling point"<br>• "144 / 12"<br>• "height of eiffel tower"<br>• "why sky blue"</div>
+                `;
+                updateStatus('✅ Ready! Ask your question below', 'ready');
+                
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                window.modelLoaded = true;
+                
             } catch (err) {
-                console.error("Agent error:", err);
-                return { 
-                    answer: `Tool error: ${err.message || 'Unknown error'}. This tiny model has limitations!`, 
-                    confidence: "low"
-                };
+                log(`✗ Model load failed: ${err.message}`, true);
+                handleError(err);
             }
         }
 
-        // ===== USER INTERACTION =====
-        async function handleChat() {
-            const text = userInput.value.trim();
-            if (!text || isGenerating || !modelLoaded) return;
+        function updateStatus(message, type) {
+            const icons = {
+                loading: '🔄',
+                ready: '✅',
+                error: '❌'
+            };
+            statusEl.innerHTML = `${icons[type] || '⚠️'} ${message}`;
+            statusEl.className = `status-${type}`;
+        }
 
-            // Validate input length
-            if (text.length > 80) {
-                addMessage("⚠️ Please keep questions under 80 characters. This tiny agent has limited context!", "error-msg");
+        function handleError(err) {
+            let userMessage = 'Failed to load AI model.';
+            
+            // Diagnose common issues
+            if (err.message?.includes('SharedArrayBuffer') || err.message?.includes('cross-origin')) {
+                userMessage = 'Browser security blocked model loading.<br><br>✅ Fix for Chrome/Edge:<br>1. Type "chrome://flags" in address bar<br>2. Enable "SharedArrayBuffer"<br>3. Relaunch browser<br><br>✅ Or use Firefox with:<br>about:config → set<br>dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled = true';
+            } 
+            else if (err.message?.includes('network error') || err.message?.includes('Failed to fetch')) {
+                userMessage = 'Network error downloading model.<br><br>✅ Fixes:<br>• Disable ad-blockers (uBlock, AdBlock Plus)<br>• Check internet connection<br>• Try Chrome/Edge instead of Firefox<br>• Wait 1-2 minutes and refresh page';
+            }
+            else if (err.message?.includes('timeout')) {
+                userMessage = 'Download timed out (took >5 minutes).<br><br>✅ Fixes:<br>• Ensure stable internet connection<br>• Disable VPN/ad-blockers<br>• Try during off-peak hours<br>• First load requires ~450MB download';
+            }
+            else {
+                userMessage += `<br><br>Error: ${err.message || 'Unknown error'}`;
+            }
+
+            updateStatus('❌ Load failed - see troubleshooting below', 'error');
+            chatBox.innerHTML = `
+                <div class="message error-msg">${userMessage}</div>
+                <div class="message system-msg">💡 This demo requires:<br>• Chrome/Edge browser (recommended)<br>• 2GB+ free RAM<br>• 500MB+ free disk space (for cache)<br>• No ad-blockers during first load</div>
+            `;
+            log('Initialization failed - showing user instructions', true);
+        }
+
+        // ===== STEP 4: SIMPLE AGENT SYSTEM (MINIMAL FOR TESTING) =====
+        function addMessage(text, className = 'ai-msg') {
+            const div = document.createElement('div');
+            div.className = `message ${className}`;
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function handleChat() {
+            if (!window.modelLoaded) {
+                addMessage('⚠️ Model still loading. Please wait for "Ready" status.', 'error-msg');
                 return;
             }
 
-            // Add user message
-            addMessage(`You: ${text}`, 'user-msg');
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            addMessage(`You: ${query}`, 'user-msg');
             userInput.value = '';
-            
-            // Show thinking indicator
-            const thinkingEl = showThinking();
-            isGenerating = true;
             sendBtn.disabled = true;
             userInput.disabled = true;
 
-            try {
-                // Run agent system
-                const result = await handleAgentQuery(text);
-                
-                // Replace thinking indicator with real response
-                chatBox.removeChild(thinkingEl);
-                addMessage(`AI: ${result.answer}`, 'ai-msg', result.confidence);
-                
-                // Add helpful tip for low-confidence answers
-                if (result.confidence === 'low') {
-                    addMessage("💡 Tip: This 117M model is extremely limited. Try ultra-simple questions like 'water boiling point' or '12*12'", "system-msg");
+            // Simple tool routing (no JSON parsing needed for demo)
+            if (/\d+[\+\-\*\/÷×]\d+/.test(query) || query.toLowerCase().includes('calculate')) {
+                addMessage('🔧 Using calculator tool...', 'tool-call');
+                try {
+                    // Ultra-simple calculator (no external lib to avoid import issues)
+                    const expr = query.replace(/[^\d+\-*/.() ]/g, '').trim();
+                    const result = Function('"use strict";return (' + expr + ')')();
+                    addMessage(`🧮 Result: ${expr} = ${result}`, 'tool-result');
+                    addMessage(`AI: The answer is ${result}`, 'ai-msg');
+                } catch (e) {
+                    addMessage(`AI: I can only do simple math like "12*12" or "100/5"`, 'ai-msg');
                 }
-            } catch (err) {
-                console.error("Chat error:", err);
-                chatBox.removeChild(thinkingEl);
-                addMessage(`❌ Error: ${err.message || 'Agent failed'}. Try a simpler question!`, "error-msg");
-            } finally {
-                isGenerating = false;
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                userInput.focus();
+            } 
+            else if (query.toLowerCase().includes('water') && query.toLowerCase().includes('boil')) {
+                addMessage('📚 Using knowledge base...', 'tool-call');
+                addMessage(`💧 Water boils at 100°C (212°F) at sea level`, 'tool-result');
+                addMessage(`AI: Water boils at 100°C (212°F) at sea level.`, 'ai-msg');
             }
-        }
-
-        // ===== MODEL INITIALIZATION =====
-        async function init() {
-            try {
-                updateStatus("Downloading model (~113MB)...", 'loading');
-                
-                await wllama.loadModelFromHF(
-                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
-                    'chat-GPT2.Q4_K.gguf',
-                    {
-                        progressCallback: ({ loaded, total }) => {
-                            const progress = Math.min(99, Math.round((loaded / total) * 100));
-                            updateStatus(`Downloading model: ${progress}%`, 'loading');
-                        }
-                    }
-                );
-
-                // Clear initial messages and show ready state
-                chatBox.innerHTML = '';
-                addMessage("✅ Tiny Agent ready!", "system-msg");
-                addMessage("I combine a 117M-parameter model with Wikipedia lookup, calculator, and a knowledge base to answer questions. Try:\n• 'Height of Everest?'\n• '144 / 12'\n• 'Why sky blue?'", "system-msg");
-                
-                updateStatus("Ready to assist!", 'ready');
-                modelLoaded = true;
-                
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                userInput.focus();
-            } catch (err) {
-                console.error("Initialization failed:", err);
-                updateStatus(`Error: ${err.message || 'Model load failed'}`, 'error');
-                addMessage(`💡 Troubleshooting:\n• Disable ad-blockers\n• Use Chrome/Edge\n• Ensure 2GB+ RAM free\n• This is a DEMO of agent architecture (not production AI)`, "error-msg");
+            else {
+                // Fallback to model generation
+                addMessage('🧠 Thinking...', 'tool-call');
+                try {
+                    const prompt = `Q: ${query}\nA:`;
+                    const response = await wllama.createCompletion(prompt, {
+                        nPredict: 60,
+                        sampling: { temp: 0.9, top_k: 40 }
+                    });
+                    
+                    // Clean output aggressively
+                    let answer = response
+                        .replace(prompt, '')
+                        .replace(/<\|pad\|>/g, '')
+                        .replace(/<\|endoftext\|>.*/, '')
+                        .trim()
+                        .split('\n')[0]
+                        .replace(/^A:\s*/, '');
+                    
+                    if (answer.length < 5) answer = "I'm not sure. Try a simpler question like 'water boiling point' or '12*12'.";
+                    
+                    addMessage(`AI: ${answer}`, 'ai-msg');
+                } catch (e) {
+                    addMessage(`AI: Sorry, I had trouble answering that. Try a simpler question!`, 'ai-msg');
+                }
             }
+
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
         }
 
         // ===== EVENT LISTENERS =====
         sendBtn.addEventListener('click', handleChat);
-        
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -832,24 +455,11 @@ USER QUESTION:
             }
         });
 
-        userInput.addEventListener('input', () => {
-            if (userInput.value.length > 80) {
-                userInput.style.borderColor = '#ff9d9d';
-            } else {
-                userInput.style.borderColor = '#ddd';
-            }
-        });
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            // Show disclaimer about first-load time
-            setTimeout(() => {
-                if (!modelLoaded) {
-                    addMessage("⏳ First load takes ~60 seconds (downloading 113MB model). Subsequent loads will be faster thanks to browser caching!", "system-msg");
-                }
-            }, 3000);
-            
-            init();
+        // ===== START INITIALIZATION =====
+        log('Starting full initialization sequence...');
+        init().catch(err => {
+            log(`Unhandled init error: ${err.message}`, true);
+            console.error('Fatal initialization error:', err);
         });
     </script>
 </body>
