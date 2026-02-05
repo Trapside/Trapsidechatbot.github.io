@@ -194,7 +194,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~113MB)...
+                <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
             </div>
         </div>
         
@@ -219,10 +219,9 @@
         // Conversation history
         let conversationHistory = [];
         
-        // SMART AGENT PROMPT - Minimalist but effective guidance
-        // Critical: Avoid explicit "Reasoning:" tokens that leak into output
-        const SYSTEM_PROMPT = `You are a helpful AI assistant named TinyAgent. Provide accurate, concise answers. Think carefully before responding. If uncertain, say "I don't have enough information to answer accurately." Never repeat phrases or instructions in your response.`;
-
+        // System prompt
+        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
+        
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
@@ -260,7 +259,7 @@
             
             if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
-                // Keep history minimal (last 2 exchanges) for GPT-2's limited context
+                // Keep history manageable (last 4 messages)
                 if (conversationHistory.length > 4) {
                     conversationHistory.shift();
                 }
@@ -279,160 +278,129 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // CRITICAL FIX: Advanced cleaning specifically targeting "(1-2 sentences)" artifacts
+        // CRITICAL FIX: Clean model output from <|pad|> tokens and repetitions
         function cleanModelResponse(text) {
-            if (!text || typeof text !== 'string') return "I don't have enough information to answer accurately.";
+            if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
             
-            // 1. Remove ALL special tokens immediately
+            // 1. Remove all special tokens completely
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
                 .trim();
             
-            // 2. AGGRESSIVE ARTIFACT REMOVAL - Target specific problematic patterns
-            const artifactPatterns = [
-                // Remove instruction leakage patterns
-                /\([^)]*sentence[^)]*\)\.?/gi,  // "(1-2 sentences)", "(2-3 sentences)", etc.
-                /\([^)]*word[^)]*\)\.?/gi,      // "(5-7 words)"
-                /\([^)]*phrase[^)]*\)\.?/gi,    // "(short phrase)"
-                /\(be concise\)/gi,
-                /\(answer directly\)/gi,
-                /\(do not repeat\)/gi,
-                /\(think step by step\)/gi,
-                
-                // Remove meta-commentary
-                /I will follow up with you.*$/gi,
-                /to get a better understanding.*$/gi,
-                /Let me think carefully.*$/gi,
-                /First,.*?Next,.*?Finally,/gs,
-                /Reasoning:.*$/gi,
-                
-                // Remove repetitive fragments
-                /(?:\([^)]+\)\s*){2,}/g,  // Multiple parentheticals in a row
-                /\.{4,}/g,                // Excessive ellipses
-                /(?:, ){3,}/g             // Excessive commas
-            ];
-            
-            for (const pattern of artifactPatterns) {
-                cleaned = cleaned.replace(pattern, '');
-            }
-            
-            // 3. Truncate at first sign of degeneration
+            // 2. Truncate at first occurrence of problematic patterns
             const badPatterns = [
-                /\n\s*(?:Question|Human|User):/i,
-                /<\|/,
-                /\n{3,}/,
-                /\(1-2 sentences\)/i,
-                /I will follow up/i,
-                /to get a better understanding/i
+                { pattern: /\n\s*\n\s*Question:/i, reason: 'new question' },
+                { pattern: /\n\s*\n\s*Human:/i, reason: 'new human' },
+                { pattern: /\n\s*\n\s*User:/i, reason: 'new user' },
+                { pattern: /<\|/i, reason: 'special token' },
+                { pattern: /\n{3,}/, reason: 'excessive newlines' },
+                { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
             ];
             
-            for (const pattern of badPatterns) {
+            for (const { pattern } of badPatterns) {
                 const match = cleaned.match(pattern);
-                if (match && match.index > 15) { // Only truncate if we have meaningful content first
+                if (match && match.index > 20) { // Only truncate if we have meaningful content first
                     cleaned = cleaned.substring(0, match.index).trim();
-                    break;
+                    break; // Stop at first problematic pattern
                 }
             }
             
-            // 4. Remove trailing incomplete fragments
-            cleaned = cleaned
-                .replace(/\s+(and|but|because|although|however|though|if|when|while)$/i, '')
-                .replace(/\s+I will follow up.*$/i, '')
-                .replace(/\s+to get a better understanding.*$/i, '')
-                .replace(/\s+let me think.*$/i, '')
-                .replace(/\s+be concise.*$/i, '')
-                .trim();
+            // 3. Remove trailing repetitions (common GPT-2 degeneration)
+            // Remove sequences repeated 3+ times (e.g., "and and and")
+            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
+            // Remove longer phrase repetitions
+            cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
             
-            // 5. Remove repetitions aggressively
-            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1'); // "and and and" → "and"
-            cleaned = cleaned.replace(/(.{10,}?)\1{1,}/g, '$1');     // Longer repetitions
+            // 4. Ensure proper sentence ending
+            if (cleaned.length > 10) {
+                // If doesn't end with proper punctuation, find last sentence boundary
+                if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
+                    // Find last occurrence of sentence-ending punctuation followed by space/capital letter
+                    const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
+                    if (lastGoodBreak > cleaned.length - 30 && lastGoodBreak > 20) {
+                        cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
+                    } else if (lastGoodBreak > 10) {
+                        // Find next space after last period to avoid cutting mid-word
+                        const nextSpace = cleaned.indexOf(' ', lastGoodBreak);
+                        if (nextSpace > lastGoodBreak) {
+                            cleaned = cleaned.substring(0, nextSpace).trim();
+                        } else {
+                            cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
+                        }
+                    }
+                }
+            }
             
-            // 6. Final cleanup and quality enforcement
+            // 5. Final cleanup: collapse multiple spaces/newlines and trim
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
-                .replace(/\n{2,}/g, ' ')
-                .replace(/^[\s.,;:!?()]+|[\s.,;:!?()]+$/g, '')
+                .replace(/\n{2,}/g, '\n\n')
                 .trim();
             
-            // 7. Quality checks - reject low-quality outputs
-            if (
-                cleaned.includes('<|') || 
-                cleaned.length < 12 || 
-                cleaned.split(' ').length < 4 ||
-                /\(.*?\)/.test(cleaned) || // Still has parentheses artifacts
-                /^(OK|Yes|No|Sure|Hmm|Well|Ah|Oh|Um|Uh)[,.!?]?$/.test(cleaned) ||
-                cleaned.startsWith("I will") ||
-                cleaned.startsWith("Let me") ||
-                cleaned.includes("(1-2 sentences)")
-            ) {
-                return "I don't have enough information to answer accurately. Could you ask something more specific?";
+            // 6. Safety net: if still contains pad tokens or is too short, use fallback
+            if (cleaned.includes('<|') || cleaned.length < 5) {
+                return "I'm not sure how to answer that. Could you rephrase your question?";
             }
             
-            // 8. Ensure proper sentence ending
-            if (cleaned && !/[.!?]$/.test(cleaned.replace(/[")'\]]+$/, ''))) {
-                cleaned += '.';
-            }
-            
-            return cleaned || "I don't have enough information to answer accurately.";
+            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // Build minimal, effective prompt
+        // Build prompt with conversation history
         function buildPrompt(userMessage) {
-            // Minimal context - GPT-2 124M has very limited coherence window
             let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
             
-            // Only include most recent exchange for context
-            if (conversationHistory.length >= 2) {
-                const lastUser = conversationHistory[conversationHistory.length - 2];
-                const lastAI = conversationHistory[conversationHistory.length - 1];
-                if (lastUser.role === 'user' && lastAI.role === 'ai') {
-                    prompt += `User: ${lastUser.content}\n`;
-                    prompt += `TinyAgent: ${cleanModelResponse(lastAI.content)}\n\n`;
+            // Add last 2 exchanges for context (GPT-2 has limited context)
+            const historyCount = Math.min(2, conversationHistory.length);
+            for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
+                const msg = conversationHistory[i];
+                if (msg.role === 'user') {
+                    prompt += `Question: ${msg.content}\n`;
+                } else if (msg.role === 'ai') {
+                    // Clean previous AI response before adding to context
+                    const cleanResp = cleanModelResponse(msg.content);
+                    prompt += `Answer: ${cleanResp}\n\n`;
                 }
             }
             
-            // Simple, clean format the model expects
-            prompt += `User: ${userMessage}\nTinyAgent:`;
+            prompt += `Question: ${userMessage}\nAnswer:`;
             return prompt;
         }
 
         async function init() {
             try {
-                addMessage("Initializing AI agent with precision response filtering...", "system");
+                // Update status in chat
+                addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
                 
-                // Load model
+                // Load model with explicit token settings
                 await wllama.loadModelFromHF(
                     'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
                     'chat-GPT2.Q4_K.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            if (progress % 10 === 0 || progress === 100) {
-                                const existing = chatBox.querySelector('.download-progress');
-                                if (existing) {
-                                    existing.textContent = `Downloading AI agent: ${progress}%`;
-                                } else if (progress < 100) {
-                                    const el = document.createElement('div');
-                                    el.classList.add('system-message', 'download-progress');
-                                    el.textContent = `Downloading AI agent: ${progress}%`;
-                                    chatBox.appendChild(el);
-                                    chatBox.scrollTop = chatBox.scrollHeight;
+                            // Update chat with progress
+                            if (progress < 100) {
+                                const progressEl = chatBox.querySelector('.progress');
+                                if (progressEl) {
+                                    progressEl.textContent = `Downloading model: ${progress}%`;
+                                } else {
+                                    addMessage(`Downloading model: ${progress}%`, "system");
                                 }
                             }
                         }
                     }
                 );
 
-                addMessage("I'm ready. I provide concise, accurate answers without repetition or artifacts.", "ai");
-                addMessage("💡 Ask clear questions like 'What is gold?' or 'Explain photosynthesis'", "system");
+                addMessage("I'm ready to chat! My responses are now cleaned of tokenizer artifacts (<|pad|> tokens) and repetitions.", "ai");
+                addMessage("💡 Tip: Ask clear, specific questions for best results.", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             } catch (err) {
-                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
+                const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
             }
@@ -448,36 +416,36 @@
             userInput.style.height = 'auto';
             
             // Show loading indicator
-            const loadingEl = addMessage("Thinking...", 'ai', true);
+            const loadingEl = addMessage("Thinking", 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
             
             try {
                 const prompt = buildPrompt(text);
                 
-                // Generate response with artifact-prevention parameters
+                // Generate response with PAD-prevention parameters
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 90,  // Shorter = more coherent for 124M model
+                    nPredict: 120, // Reasonable length for 124M model
                     sampling: { 
-                        temp: 0.65,          // Balanced for accuracy
-                        top_k: 30,           // Focused token selection
-                        top_p: 0.88,         // Tight nucleus sampling
-                        repeat_penalty: 1.6, // STRONG repetition prevention
-                        frequency_penalty: 0.6 // Aggressive artifact suppression
+                        temp: 0.72,          // Balanced creativity
+                        top_k: 40,           // Focused diversity
+                        top_p: 0.9,          // Nucleus sampling
+                        repeat_penalty: 1.35, // CRITICAL: Higher penalty prevents repetitions
+                        frequency_penalty: 0.4 // Additional repetition control
                     }
                 });
                 
-                // CRITICAL: Clean response with artifact-specific filters
+                // CRITICAL: Clean the response before displaying
                 const cleanedResponse = cleanModelResponse(response);
                 
-                // Replace loading indicator with clean response
+                // Replace loading indicator with cleaned response
                 loadingEl.remove();
                 addMessage(cleanedResponse, 'ai');
                 
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage("I couldn't formulate a clear answer. Try asking something more specific.", "ai");
+                addMessage("I encountered an error while processing your request. Please try again.", "error");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
