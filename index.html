@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Tiny Chat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -26,54 +24,12 @@
             line-height: 1.5;
         }
         
-        /* iOS Status Bar */
-        .status-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 44px;
-            background: transparent;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 16px;
-            font-size: 16px;
-            pointer-events: none;
-        }
-        
-        .status-bar-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .status-bar-left span {
-            font-weight: 500;
-        }
-        
-        .status-bar-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .status-bar-icon {
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
         /* Main App Content */
         .container {
             height: 100vh;
             display: flex;
             flex-direction: column;
             position: relative;
-            padding-top: 44px;
             overflow: hidden;
         }
         
@@ -233,24 +189,6 @@
     </style>
 </head>
 <body>
-    <!-- iOS Status Bar -->
-    <div class="status-bar">
-        <div class="status-bar-left">
-            <span id="time">17:30</span>
-        </div>
-        <div class="status-bar-right">
-            <div class="status-bar-icon">
-                <i class="fas fa-signal"></i>
-            </div>
-            <div class="status-bar-icon">
-                <i class="fas fa-wifi"></i>
-            </div>
-            <div class="status-bar-icon">
-                <i class="fas fa-battery-full"></i>
-            </div>
-        </div>
-    </div>
-    
     <div class="container">
         <div class="header">New chat</div>
         
@@ -274,7 +212,6 @@
         // Using Wllama from CDN
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-        const statusEl = document.getElementById('status');
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
@@ -518,7 +455,7 @@
 
         sendBtn.addEventListener('click', handleChat);
         userInput.addEventListener('keypress', (e) => { 
-            if (e === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleChat();
             }
@@ -532,15 +469,6 @@
 
         // Initialize the app
         init();
-        
-        // Set realistic time (for demo purposes)
-        const timeEl = document.getElementById('time');
-        setInterval(() => {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            timeEl.textContent = `${hours}:${minutes}`;
-        }, 60000);
     </script>
 </body>
 </html>
