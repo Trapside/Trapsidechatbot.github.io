@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiny Chat • Smarter GPT-2</title>
+    <title>Tiny Chat • Fixed GPT-2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -101,6 +101,7 @@
             animation: fadeIn 0.3s ease-out;
             line-height: 1.6;
             font-size: 1.05rem;
+            word-wrap: break-word;
         }
         
         @keyframes fadeIn {
@@ -280,6 +281,10 @@
             h1 {
                 font-size: 1.5rem;
             }
+            
+            .subtitle {
+                font-size: 0.85rem;
+            }
         }
         
         /* Scrollbar styling */
@@ -300,13 +305,28 @@
         #chat-box::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        
+        .fix-badge {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-left: 3px solid #ef4444;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-robot"></i> Tiny Chat • Smarter GPT-2</h1>
-            <div class="subtitle">Enhanced interface with improved reasoning capabilities</div>
+            <h1><i class="fas fa-robot"></i> Tiny Chat • Fixed GPT-2 <span class="fix-badge">PAD-FIXED</span></h1>
+            <div class="subtitle">Tokenizer artifacts removed • Enhanced coherence</div>
         </header>
         
         <div class="chat-container">
@@ -320,7 +340,7 @@
         
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" placeholder="Ask a question... (e.g., What is photosynthesis?)" disabled></textarea>
+                <textarea id="user-input" placeholder="Ask a question... (e.g., Why is the sky blue?)" disabled></textarea>
                 <button id="send-btn" disabled>
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -328,7 +348,7 @@
         </div>
         
         <div class="disclaimer">
-            <i class="fas fa-info-circle"></i> This is a small language model (GPT-2 124M). For best results, ask clear, concise questions.
+            <i class="fas fa-info-circle"></i> Fixed tokenizer issues • Responses cleaned of &lt;|pad|&gt; tokens and repetitions
         </div>
     </div>
 
@@ -341,11 +361,11 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Conversation history (for UI only - model uses truncated context)
+        // Conversation history
         let conversationHistory = [];
         
-        // System prompt to guide model behavior
-        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant named TinyChat. Provide accurate, thoughtful answers while staying on topic. If you don't know something, say so honestly.";
+        // System prompt
+        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
         
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
@@ -369,41 +389,126 @@
                 } else {
                     // Format AI responses with paragraphs
                     const paragraphs = content.split('\n').filter(p => p.trim());
-                    messageEl.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+                    messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
                 }
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
+            } else if (role === 'error') {
+                messageEl.classList.add('error');
+                messageEl.innerHTML = `<strong>Error:</strong> ${escapeHtml(content)}`;
             }
             
             chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
             
-            // Store in history for UI (not used in prompt yet)
-            if (role !== 'system') {
+            if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
+                // Keep history manageable (last 4 messages)
+                if (conversationHistory.length > 4) {
+                    conversationHistory.shift();
+                }
             }
             
             return messageEl;
         }
         
-        // Build prompt with conversation history (truncated to fit context)
+        // Escape HTML to prevent XSS
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // CRITICAL FIX: Clean model output from <|pad|> tokens and repetitions
+        function cleanModelResponse(text) {
+            if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
+            
+            // 1. Remove all special tokens completely
+            let cleaned = text
+                .replace(/<\|pad\|>/g, '')
+                .replace(/<\|endoftext\|>/g, '')
+                .replace(/<\|unk\|>/g, '')
+                .trim();
+            
+            // 2. Truncate at first occurrence of problematic patterns
+            const badPatterns = [
+                { pattern: /\n\s*\n\s*Question:/i, reason: 'new question' },
+                { pattern: /\n\s*\n\s*Human:/i, reason: 'new human' },
+                { pattern: /\n\s*\n\s*User:/i, reason: 'new user' },
+                { pattern: /<\|/i, reason: 'special token' },
+                { pattern: /\n{3,}/, reason: 'excessive newlines' },
+                { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
+            ];
+            
+            for (const { pattern } of badPatterns) {
+                const match = cleaned.match(pattern);
+                if (match && match.index > 20) { // Only truncate if we have meaningful content first
+                    cleaned = cleaned.substring(0, match.index).trim();
+                    break; // Stop at first problematic pattern
+                }
+            }
+            
+            // 3. Remove trailing repetitions (common GPT-2 degeneration)
+            // Remove sequences repeated 3+ times (e.g., "and and and")
+            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
+            // Remove longer phrase repetitions
+            cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
+            
+            // 4. Ensure proper sentence ending
+            if (cleaned.length > 10) {
+                // If doesn't end with proper punctuation, find last sentence boundary
+                if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
+                    // Find last occurrence of sentence-ending punctuation followed by space/capital letter
+                    const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
+                    if (lastGoodBreak > cleaned.length - 30 && lastGoodBreak > 20) {
+                        cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
+                    } else if (lastGoodBreak > 10) {
+                        // Find next space after last period to avoid cutting mid-word
+                        const nextSpace = cleaned.indexOf(' ', lastGoodBreak);
+                        if (nextSpace > lastGoodBreak) {
+                            cleaned = cleaned.substring(0, nextSpace).trim();
+                        } else {
+                            cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
+                        }
+                    }
+                }
+            }
+            
+            // 5. Final cleanup: collapse multiple spaces/newlines and trim
+            cleaned = cleaned
+                .replace(/\s+/g, ' ')
+                .replace(/\n{2,}/g, '\n\n')
+                .trim();
+            
+            // 6. Safety net: if still contains pad tokens or is too short, use fallback
+            if (cleaned.includes('<|') || cleaned.length < 5) {
+                return "I'm not sure how to answer that. Could you rephrase your question?";
+            }
+            
+            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
+        }
+        
+        // Build prompt with conversation history
         function buildPrompt(userMessage) {
-            // Start with system prompt
             let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
             
-            // Add recent conversation history (last 2 exchanges to stay within context)
+            // Add last 2 exchanges for context (GPT-2 has limited context)
             const historyCount = Math.min(2, conversationHistory.length);
             for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
                 const msg = conversationHistory[i];
                 if (msg.role === 'user') {
                     prompt += `Question: ${msg.content}\n`;
                 } else if (msg.role === 'ai') {
-                    prompt += `Answer: ${msg.content}\n\n`;
+                    // Clean previous AI response before adding to context
+                    const cleanResp = cleanModelResponse(msg.content);
+                    prompt += `Answer: ${cleanResp}\n\n`;
                 }
             }
             
-            // Add current question
             prompt += `Question: ${userMessage}\nAnswer:`;
             return prompt;
         }
@@ -413,7 +518,7 @@
                 updateStatus("Downloading model (~113MB)...");
                 addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
                 
-                // Loading the specific GGUF model
+                // Load model with explicit token settings
                 await wllama.loadModelFromHF(
                     'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
                     'chat-GPT2.Q4_K.gguf', 
@@ -425,43 +530,41 @@
                     }
                 );
 
-                updateStatus("Model loaded successfully!");
-                addMessage("I'm ready to chat! I've been enhanced with better reasoning capabilities. Ask me anything!", "ai");
-                addMessage("💡 Tip: For best results, ask clear, specific questions.", "system");
+                updateStatus("Ready! Ask me anything.");
+                addMessage("I'm ready to chat! My responses are now cleaned of tokenizer artifacts (<|pad|> tokens) and repetitions.", "ai");
+                addMessage("💡 Tip: Ask clear, specific questions for best results.", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
                 
-                // Update status bar with model info
+                // Update status bar
                 statusEl.innerHTML = `
                     <div class="model-info">
-                        <span><i class="fas fa-microchip"></i> GPT-2 124M Parameters</span>
-                        <span><i class="fas fa-brain"></i> Enhanced Reasoning</span>
+                        <span><i class="fas fa-microchip"></i> GPT-2 124M • Fixed</span>
+                        <span><i class="fas fa-broom"></i> PAD tokens removed</span>
                     </div>
                 `;
             } catch (err) {
-                updateStatus("Error loading model. Please refresh the page.");
-                addMessage(`Error: ${err.message || 'Failed to load model'}`, "system");
+                const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
+                updateStatus("Error loading model");
+                addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
             }
         }
         
         function updateStatus(message) {
             statusEl.textContent = `Status: ${message}`;
-            // Also show in chat for important updates
-            if (message.includes("Error") || message.includes("successfully")) {
-                addMessage(`Status: ${message}`, "system");
-            }
         }
 
         async function handleChat() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Add user message to chat
+            // Add user message
             addMessage(text, 'user');
             userInput.value = '';
+            userInput.style.height = '56px';
             
             // Show loading indicator
             const loadingEl = addMessage("Thinking", 'ai', true);
@@ -469,45 +572,31 @@
             userInput.disabled = true;
             
             try {
-                // Build prompt with conversation history
                 const prompt = buildPrompt(text);
                 
-                // Generate response with optimized parameters
+                // Generate response with PAD-prevention parameters
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 150, // Increased for more complete answers
+                    nPredict: 120, // Reasonable length for 124M model
                     sampling: { 
-                        temp: 0.75,    // Slightly higher for creativity
-                        top_k: 45,     // Increased for better diversity
-                        top_p: 0.92,   // Added nucleus sampling
-                        repeat_penalty: 1.15 // Reduced repetition
+                        temp: 0.72,          // Balanced creativity
+                        top_k: 40,           // Focused diversity
+                        top_p: 0.9,          // Nucleus sampling
+                        repeat_penalty: 1.35, // CRITICAL: Higher penalty prevents repetitions
+                        frequency_penalty: 0.4 // Additional repetition control
                     }
                 });
                 
-                // Process and clean response
-                let cleanedResponse = response.trim();
+                // CRITICAL: Clean the response before displaying
+                const cleanedResponse = cleanModelResponse(response);
                 
-                // Remove any prompt leakage or incomplete sentences
-                if (cleanedResponse.includes("Question:")) {
-                    cleanedResponse = cleanedResponse.split("Question:")[0].trim();
-                }
-                
-                // Ensure response ends with proper punctuation
-                if (!/[.!?]$/.test(cleanedResponse)) {
-                    // Try to find last complete sentence
-                    const sentences = cleanedResponse.split(/(?<=[.!?])\s+/);
-                    if (sentences.length > 1) {
-                        cleanedResponse = sentences.slice(0, -1).join(' ');
-                    }
-                }
-                
-                // Replace loading indicator with actual response
+                // Replace loading indicator with cleaned response
                 loadingEl.remove();
-                addMessage(cleanedResponse || "I'm not sure how to answer that. Could you rephrase your question?", 'ai');
+                addMessage(cleanedResponse, 'ai');
                 
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage("I encountered an error while processing your request. Please try again.", "ai");
+                addMessage("I encountered an error while processing your request. Please try again.", "error");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
