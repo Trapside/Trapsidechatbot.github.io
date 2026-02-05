@@ -62,6 +62,7 @@
             line-height: 1.6;
             font-size: 16px;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
         
         .user-message {
@@ -186,6 +187,27 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* Code block styling */
+        .ai-message code {
+            display: block;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: 'Menlo', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        
+        .ai-message .language-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -194,7 +216,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
+                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~113MB)...
             </div>
         </div>
         
@@ -219,9 +241,41 @@
         // Conversation history
         let conversationHistory = [];
         
-        // System prompt
-        const SYSTEM_PROMPT = "You are a helpful, concise AI assistant. Provide accurate, thoughtful answers while staying on topic.";
+        // Domain detection keywords
+        const CODING_KEYWORDS = /\b(code|python|javascript|js|html|css|java|c\+\+|c#|ruby|go|rust|sql|algorithm|function|def|class|program|script|debug|fix this code)\b/i;
+        const MATH_KEYWORDS = /\b(calculate|solve|math|equation|formula|derivative|integral|probability|statistics)\b/i;
+        const STEP_KEYWORDS = /\b(step by step|how to|explain how|walk me through|break down)\b/i;
         
+        // Specialized system prompts per domain
+        const SYSTEM_PROMPTS = {
+            general: `You are TinyAgent, a concise AI assistant. Provide accurate, direct answers without meta-commentary. Never include instructions like "(1-2 sentences)" in your response.`,
+            
+            coding: `You are CodeAgent, an expert programmer. When asked to write code:
+1. Output ONLY valid code with no explanations
+2. Use proper indentation and syntax
+3. Include minimal necessary comments
+4. Never add meta-text like "here is the code"
+Example:
+def hello():
+    print("Hello")
+    
+User:`,
+            
+            math: `You are MathAgent. Solve problems step-by-step but output ONLY the final answer with minimal working. Be precise with numbers. Never add commentary like "the answer is".
+Example:
+User: What is 15 * 3?
+MathAgent: 45
+
+User:`,
+            
+            step: `You are StepAgent. Break down complex tasks into 3-4 clear, actionable steps. Number each step. Be concise but complete.
+Example:
+User: How to make coffee?
+StepAgent: 1. Boil water in a kettle. 2. Grind coffee beans freshly. 3. Place filter in dripper and add grounds. 4. Pour hot water slowly in circles.
+
+User:`
+        };
+
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
@@ -230,6 +284,18 @@
 
         const wllama = new Wllama(CONFIG_PATHS);
 
+        // Detect query domain for specialized handling
+        function detectDomain(query) {
+            const lower = query.toLowerCase();
+            
+            // Priority order: coding > math > step-by-step > general
+            if (CODING_KEYWORDS.test(query)) return 'coding';
+            if (MATH_KEYWORDS.test(query)) return 'math';
+            if (STEP_KEYWORDS.test(query) || lower.includes('how to') || lower.includes('explain')) return 'step';
+            
+            return 'general';
+        }
+        
         // Add message to chat UI
         function addMessage(content, role, isLoading = false) {
             const messageEl = document.createElement('div');
@@ -237,14 +303,21 @@
             
             if (role === 'user') {
                 messageEl.classList.add('user-message');
+                messageEl.textContent = content;
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
                 if (isLoading) {
                     messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
                 } else {
-                    // Format AI responses with paragraphs
-                    const paragraphs = content.split('\n').filter(p => p.trim());
-                    messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+                    // Detect if response contains code and format accordingly
+                    if (/\bdef\b|\bfunction\b|\bconst\b|console\.log|<html>|<div>|\{.*\}|^\s*[\d\w]+\s*[:=]/.test(content)) {
+                        // Simple code detection - wrap in code block
+                        messageEl.innerHTML = `<span class="language-label">Code:</span><code>${escapeHtml(content.trim())}</code>`;
+                    } else {
+                        // Regular text with paragraph formatting
+                        const paragraphs = content.split('\n').filter(p => p.trim());
+                        messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+                    }
                 }
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
@@ -259,7 +332,7 @@
             
             if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
-                // Keep history manageable (last 4 messages)
+                // Keep history minimal (last 2 exchanges) for GPT-2's limited context
                 if (conversationHistory.length > 4) {
                     conversationHistory.shift();
                 }
@@ -278,129 +351,121 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // CRITICAL FIX: Clean model output from <|pad|> tokens and repetitions
-        function cleanModelResponse(text) {
-            if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
+        // Advanced cleaning with domain-aware artifact removal
+        function cleanModelResponse(text, domain) {
+            if (!text || typeof text !== 'string') return "I cannot provide a complete answer with my current capabilities.";
             
-            // 1. Remove all special tokens completely
+            // 1. Remove ALL special tokens immediately
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
                 .trim();
             
-            // 2. Truncate at first occurrence of problematic patterns
-            const badPatterns = [
-                { pattern: /\n\s*\n\s*Question:/i, reason: 'new question' },
-                { pattern: /\n\s*\n\s*Human:/i, reason: 'new human' },
-                { pattern: /\n\s*\n\s*User:/i, reason: 'new user' },
-                { pattern: /<\|/i, reason: 'special token' },
-                { pattern: /\n{3,}/, reason: 'excessive newlines' },
-                { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
-            ];
-            
-            for (const { pattern } of badPatterns) {
-                const match = cleaned.match(pattern);
-                if (match && match.index > 20) { // Only truncate if we have meaningful content first
-                    cleaned = cleaned.substring(0, match.index).trim();
-                    break; // Stop at first problematic pattern
+            // 2. Domain-specific cleaning
+            if (domain === 'coding') {
+                // For code: preserve indentation but remove meta-text
+                cleaned = cleaned
+                    .replace(/^(?:Sure|Here|Okay|Yes|No|User:|TinyAgent:|CodeAgent:|MathAgent:|StepAgent:).*?\n/gim, '')
+                    .replace(/^(?:I can help|Let me write|Here is|Below is|This code).*?\n/gim, '')
+                    .replace(/(?:
+```[a-z]*\n?)/g, '') // Remove markdown code fences
+                    .replace(/(?:^|\n)\s*(?:User|Human|Assistant):.*<LaTex>id_5</LaTex>/gi,
+                    /to get a better understanding.*<LaTex>id_4</LaTex>/gi,
+                    /First,.*?Next,.*?Finally,/gs,
+                    /(?:be concise|answer directly|do not repeat)/gi,
+                    /^User:.*<LaTex>id_3</LaTex>/gm
+                ];
+                
+                for (const pattern of artifactPatterns) {
+                    cleaned = cleaned.replace(pattern, '');
                 }
             }
             
-            // 3. Remove trailing repetitions (common GPT-2 degeneration)
-            // Remove sequences repeated 3+ times (e.g., "and and and")
-            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
-            // Remove longer phrase repetitions
-            cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
-            
-            // 4. Ensure proper sentence ending
-            if (cleaned.length > 10) {
-                // If doesn't end with proper punctuation, find last sentence boundary
-                if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
-                    // Find last occurrence of sentence-ending punctuation followed by space/capital letter
-                    const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
-                    if (lastGoodBreak > cleaned.length - 30 && lastGoodBreak > 20) {
-                        cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
-                    } else if (lastGoodBreak > 10) {
-                        // Find next space after last period to avoid cutting mid-word
-                        const nextSpace = cleaned.indexOf(' ', lastGoodBreak);
-                        if (nextSpace > lastGoodBreak) {
-                            cleaned = cleaned.substring(0, nextSpace).trim();
-                        } else {
-                            cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
-                        }
-                    }
-                }
-            }
-            
-            // 5. Final cleanup: collapse multiple spaces/newlines and trim
+            // 3. Universal cleanup
             cleaned = cleaned
-                .replace(/\s+/g, ' ')
-                .replace(/\n{2,}/g, '\n\n')
-                .trim();
-            
-            // 6. Safety net: if still contains pad tokens or is too short, use fallback
-            if (cleaned.includes('<|') || cleaned.length < 5) {
-                return "I'm not sure how to answer that. Could you rephrase your question?";
+                .replace(/\s+/g, ' ')          // Collapse spaces
+                .replace(/\n{2,}/g, '\n\n')    // Clean newlines
+                .replace(/^[\s.,;:!?()]+|[\s.,;:!?()]+<LaTex>id_2</LaTex>/.test(cleaned) ||
+                cleaned.startsWith("I will") ||
+                cleaned.startsWith("Let me")
+            ) {
+                if (domain === 'coding') {
+                    return "I can only provide simple code snippets. Try asking for a specific small function.";
+                } else if (domain === 'math') {
+                    return "I can solve basic arithmetic but not complex equations.";
+                } else {
+                    return "I cannot provide a complete answer with my current capabilities. Try a simpler, more specific question.";
+                }
             }
             
-            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
+            // 5. Ensure proper ending (non-code only)
+            if (domain !== 'coding' && cleaned && !/[.!?]<LaTex>id_1</LaTex>/, ''))) {
+                cleaned += '.';
+            }
+            
+            return cleaned || "I cannot provide a complete answer with my current capabilities.";
         }
         
-        // Build prompt with conversation history
+        // Build domain-optimized prompt
         function buildPrompt(userMessage) {
-            let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
+            const domain = detectDomain(userMessage);
+            let prompt = `${SYSTEM_PROMPTS[domain] || SYSTEM_PROMPTS.general}\n\n`;
             
-            // Add last 2 exchanges for context (GPT-2 has limited context)
-            const historyCount = Math.min(2, conversationHistory.length);
-            for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
-                const msg = conversationHistory[i];
-                if (msg.role === 'user') {
-                    prompt += `Question: ${msg.content}\n`;
-                } else if (msg.role === 'ai') {
-                    // Clean previous AI response before adding to context
-                    const cleanResp = cleanModelResponse(msg.content);
-                    prompt += `Answer: ${cleanResp}\n\n`;
+            // For coding/math: minimal context (GPT-2 struggles with complex context)
+            if (domain === 'coding' || domain === 'math') {
+                prompt += `${userMessage}\n${domain === 'coding' ? 'CodeAgent:' : (domain === 'math' ? 'MathAgent:' : 'TinyAgent:')}`;
+                return prompt;
+            }
+            
+            // For general: include minimal recent context
+            if (conversationHistory.length >= 2) {
+                const lastUser = conversationHistory[conversationHistory.length - 2];
+                const lastAI = conversationHistory[conversationHistory.length - 1];
+                if (lastUser.role === 'user' && lastAI.role === 'ai') {
+                    prompt += `User: ${lastUser.content}\nTinyAgent: ${cleanModelResponse(lastAI.content, 'general')}\n\n`;
                 }
             }
             
-            prompt += `Question: ${userMessage}\nAnswer:`;
+            prompt += `User: ${userMessage}\nTinyAgent:`;
             return prompt;
         }
 
         async function init() {
             try {
-                // Update status in chat
-                addMessage("Model is downloading. This may take 30-60 seconds depending on your connection speed.", "system");
+                addMessage("Initializing AI agent with multi-domain intelligence...", "system");
                 
-                // Load model with explicit token settings
+                // Load model
                 await wllama.loadModelFromHF(
                     'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
                     'chat-GPT2.Q4_K.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            // Update chat with progress
-                            if (progress < 100) {
-                                const progressEl = chatBox.querySelector('.progress');
-                                if (progressEl) {
-                                    progressEl.textContent = `Downloading model: ${progress}%`;
-                                } else {
-                                    addMessage(`Downloading model: ${progress}%`, "system");
+                            if (progress % 10 === 0 || progress === 100) {
+                                const existing = chatBox.querySelector('.download-progress');
+                                if (existing) {
+                                    existing.textContent = `Downloading AI agent: ${progress}%`;
+                                } else if (progress < 100) {
+                                    const el = document.createElement('div');
+                                    el.classList.add('system-message', 'download-progress');
+                                    el.textContent = `Downloading AI agent: ${progress}%`;
+                                    chatBox.appendChild(el);
+                                    chatBox.scrollTop = chatBox.scrollHeight;
                                 }
                             }
                         }
                     }
                 );
 
-                addMessage("I'm ready to chat! My responses are now cleaned of tokenizer artifacts (<|pad|> tokens) and repetitions.", "ai");
-                addMessage("💡 Tip: Ask clear, specific questions for best results.", "system");
+                addMessage("I'm ready. I can handle general questions, simple code snippets, basic math, and step-by-step explanations.", "ai");
+                addMessage("💡 Try: 'Write a Python function to reverse a string' or 'Explain photosynthesis in 3 steps'", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             } catch (err) {
-                const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
+                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
             }
@@ -410,42 +475,49 @@
             const text = userInput.value.trim();
             if (!text) return;
 
+            // Detect domain for specialized handling
+            const domain = detectDomain(text);
+            
             // Add user message
             addMessage(text, 'user');
             userInput.value = '';
             userInput.style.height = 'auto';
             
-            // Show loading indicator
-            const loadingEl = addMessage("Thinking", 'ai', true);
+            // Show domain-aware loading message
+            const loadingText = domain === 'coding' ? 'Writing code...' : 
+                               domain === 'math' ? 'Calculating...' : 
+                               domain === 'step' ? 'Breaking down steps...' : 'Thinking...';
+            const loadingEl = addMessage(loadingText, 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
             
             try {
                 const prompt = buildPrompt(text);
+                const domain = detectDomain(text);
                 
-                // Generate response with PAD-prevention parameters
-                const response = await wllama.createCompletion(prompt, {
-                    nPredict: 120, // Reasonable length for 124M model
+                // Domain-optimized generation parameters
+                const params = {
+                    nPredict: domain === 'coding' ? 100 : 85, // Slightly longer for code
                     sampling: { 
-                        temp: 0.72,          // Balanced creativity
-                        top_k: 40,           // Focused diversity
-                        top_p: 0.9,          // Nucleus sampling
-                        repeat_penalty: 1.35, // CRITICAL: Higher penalty prevents repetitions
-                        frequency_penalty: 0.4 // Additional repetition control
+                        temp: domain === 'math' ? 0.3 : (domain === 'coding' ? 0.5 : 0.65),
+                        top_k: domain === 'math' ? 20 : 30,
+                        top_p: 0.88,
+                        repeat_penalty: 1.65, // Strong repetition prevention
+                        frequency_penalty: 0.65
                     }
-                });
+                };
                 
-                // CRITICAL: Clean the response before displaying
-                const cleanedResponse = cleanModelResponse(response);
+                const response = await wllama.createCompletion(prompt, params);
+                const cleanedResponse = cleanModelResponse(response, domain);
                 
-                // Replace loading indicator with cleaned response
+                // Replace loading indicator with clean response
                 loadingEl.remove();
                 addMessage(cleanedResponse, 'ai');
                 
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage("I encountered an error while processing your request. Please try again.", "error");
+                addMessage("I couldn't formulate a clear answer. Try a simpler, more specific question.", "ai");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
