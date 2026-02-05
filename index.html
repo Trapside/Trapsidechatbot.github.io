@@ -62,7 +62,6 @@
             line-height: 1.6;
             font-size: 16px;
             word-wrap: break-word;
-            white-space: pre-wrap;
         }
         
         .user-message {
@@ -188,36 +187,27 @@
             scrollbar-width: none;
         }
         
-        /* Code block styling */
-        .ai-message code {
-            display: block;
-            background: #1a1a1a;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 8px 0;
-            font-family: 'Menlo', 'Monaco', monospace;
+        /* Status indicator */
+        .status-container {
+            text-align: center;
+            padding: 8px;
             font-size: 14px;
-            line-height: 1.5;
-            overflow-x: auto;
-            white-space: pre;
-        }
-        
-        .ai-message .language-label {
-            font-size: 12px;
             color: #666;
-            margin-bottom: 6px;
-            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">New chat</div>
+        <div class="header">Tiny Chat</div>
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~113MB)...
+                <strong>System:</strong> Initializing GPT-2 (124M) model. This may take a moment as the model downloads (~113MB)...
             </div>
+        </div>
+        
+        <div class="status-container" id="status-bar">
+            Status: Loading model...
         </div>
         
         <div class="input-area">
@@ -231,71 +221,31 @@
     </div>
 
     <script type="module">
-        // Using Wllama from CDN
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+        // Using Wllama from CDN with proper error handling
+        import { Wllama, WllamaError } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
+        const statusBar = document.getElementById('status-bar');
         
         // Conversation history
         let conversationHistory = [];
         
-        // Domain detection keywords
-        const CODING_KEYWORDS = /\b(code|python|javascript|js|html|css|java|c\+\+|c#|ruby|go|rust|sql|algorithm|function|def|class|program|script|debug|fix this code)\b/i;
-        const MATH_KEYWORDS = /\b(calculate|solve|math|equation|formula|derivative|integral|probability|statistics)\b/i;
-        const STEP_KEYWORDS = /\b(step by step|how to|explain how|walk me through|break down)\b/i;
+        // System prompt optimized for base GPT-2
+        const SYSTEM_PROMPT = "You are a helpful AI assistant. Provide concise, accurate answers.";
         
-        // Specialized system prompts per domain
-        const SYSTEM_PROMPTS = {
-            general: `You are TinyAgent, a concise AI assistant. Provide accurate, direct answers without meta-commentary. Never include instructions like "(1-2 sentences)" in your response.`,
-            
-            coding: `You are CodeAgent, an expert programmer. When asked to write code:
-1. Output ONLY valid code with no explanations
-2. Use proper indentation and syntax
-3. Include minimal necessary comments
-4. Never add meta-text like "here is the code"
-Example:
-def hello():
-    print("Hello")
-    
-User:`,
-            
-            math: `You are MathAgent. Solve problems step-by-step but output ONLY the final answer with minimal working. Be precise with numbers. Never add commentary like "the answer is".
-Example:
-User: What is 15 * 3?
-MathAgent: 45
-
-User:`,
-            
-            step: `You are StepAgent. Break down complex tasks into 3-4 clear, actionable steps. Number each step. Be concise but complete.
-Example:
-User: How to make coffee?
-StepAgent: 1. Boil water in a kettle. 2. Grind coffee beans freshly. 3. Place filter in dripper and add grounds. 4. Pour hot water slowly in circles.
-
-User:`
-        };
-
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+            'single-thread/wllama-simd.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama-simd.wasm',
+            'multi-thread/wllama-simd.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama-simd.wasm'
         };
 
-        const wllama = new Wllama(CONFIG_PATHS);
+        let wllama;
+        let modelLoaded = false;
 
-        // Detect query domain for specialized handling
-        function detectDomain(query) {
-            const lower = query.toLowerCase();
-            
-            // Priority order: coding > math > step-by-step > general
-            if (CODING_KEYWORDS.test(query)) return 'coding';
-            if (MATH_KEYWORDS.test(query)) return 'math';
-            if (STEP_KEYWORDS.test(query) || lower.includes('how to') || lower.includes('explain')) return 'step';
-            
-            return 'general';
-        }
-        
         // Add message to chat UI
         function addMessage(content, role, isLoading = false) {
             const messageEl = document.createElement('div');
@@ -309,15 +259,9 @@ User:`
                 if (isLoading) {
                     messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
                 } else {
-                    // Detect if response contains code and format accordingly
-                    if (/\bdef\b|\bfunction\b|\bconst\b|console\.log|<html>|<div>|\{.*\}|^\s*[\d\w]+\s*[:=]/.test(content)) {
-                        // Simple code detection - wrap in code block
-                        messageEl.innerHTML = `<span class="language-label">Code:</span><code>${escapeHtml(content.trim())}</code>`;
-                    } else {
-                        // Regular text with paragraph formatting
-                        const paragraphs = content.split('\n').filter(p => p.trim());
-                        messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                    }
+                    // Format AI responses with paragraphs
+                    const paragraphs = content.split('\n').filter(p => p.trim());
+                    messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
                 }
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
@@ -332,7 +276,7 @@ User:`
             
             if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
-                // Keep history minimal (last 2 exchanges) for GPT-2's limited context
+                // Keep history manageable (last 4 messages)
                 if (conversationHistory.length > 4) {
                     conversationHistory.shift();
                 }
@@ -343,6 +287,7 @@ User:`
         
         // Escape HTML to prevent XSS
         function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
             return unsafe
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
@@ -351,173 +296,183 @@ User:`
                 .replace(/'/g, "&#039;");
         }
         
-        // Advanced cleaning with domain-aware artifact removal
-        function cleanModelResponse(text, domain) {
-            if (!text || typeof text !== 'string') return "I cannot provide a complete answer with my current capabilities.";
+        // CRITICAL FIX: Clean model output from special tokens and repetitions
+        function cleanModelResponse(text) {
+            if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
             
-            // 1. Remove ALL special tokens immediately
+            // 1. Remove all special tokens completely
             let cleaned = text
-                .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
+                .replace(/<\|pad\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
+                .replace(/<\|EOS\|>/g, '')
                 .trim();
             
-            // 2. Domain-specific cleaning
-            if (domain === 'coding') {
-                // For code: preserve indentation but remove meta-text
-                cleaned = cleaned
-                    .replace(/^(?:Sure|Here|Okay|Yes|No|User:|TinyAgent:|CodeAgent:|MathAgent:|StepAgent:).*?\n/gim, '')
-                    .replace(/^(?:I can help|Let me write|Here is|Below is|This code).*?\n/gim, '')
-                    .replace(/(?:
-```[a-z]*\n?)/g, '') // Remove markdown code fences
-                    .replace(/(?:^|\n)\s*(?:User|Human|Assistant):.*<LaTex>id_5</LaTex>/gi,
-                    /to get a better understanding.*<LaTex>id_4</LaTex>/gi,
-                    /First,.*?Next,.*?Finally,/gs,
-                    /(?:be concise|answer directly|do not repeat)/gi,
-                    /^User:.*<LaTex>id_3</LaTex>/gm
-                ];
-                
-                for (const pattern of artifactPatterns) {
-                    cleaned = cleaned.replace(pattern, '');
+            // 2. Truncate at first occurrence of problematic patterns
+            const badPatterns = [
+                { pattern: /\n\s*\n\s*(Question|Human|User):/i, reason: 'new question' },
+                { pattern: /<\|/i, reason: 'special token' },
+                { pattern: /\n{3,}/, reason: 'excessive newlines' },
+                { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
+            ];
+            
+            for (const { pattern } of badPatterns) {
+                const match = cleaned.match(pattern);
+                if (match && match.index > 20) { // Only truncate if we have meaningful content first
+                    cleaned = cleaned.substring(0, match.index).trim();
+                    break; // Stop at first problematic pattern
                 }
             }
             
-            // 3. Universal cleanup
+            // 3. Remove trailing repetitions (common GPT-2 degeneration)
+            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
+            cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
+            
+            // 4. Ensure proper sentence ending
+            if (cleaned.length > 10) {
+                if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
+                    const lastPeriod = cleaned.lastIndexOf('.');
+                    const lastQuestion = cleaned.lastIndexOf('?');
+                    const lastExclaim = cleaned.lastIndexOf('!');
+                    const lastSentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclaim);
+                    
+                    if (lastSentenceEnd > cleaned.length - 50 && lastSentenceEnd > 20) {
+                        cleaned = cleaned.substring(0, lastSentenceEnd + 1).trim();
+                    }
+                }
+            }
+            
+            // 5. Final cleanup
             cleaned = cleaned
-                .replace(/\s+/g, ' ')          // Collapse spaces
-                .replace(/\n{2,}/g, '\n\n')    // Clean newlines
-                .replace(/^[\s.,;:!?()]+|[\s.,;:!?()]+<LaTex>id_2</LaTex>/.test(cleaned) ||
-                cleaned.startsWith("I will") ||
-                cleaned.startsWith("Let me")
-            ) {
-                if (domain === 'coding') {
-                    return "I can only provide simple code snippets. Try asking for a specific small function.";
-                } else if (domain === 'math') {
-                    return "I can solve basic arithmetic but not complex equations.";
-                } else {
-                    return "I cannot provide a complete answer with my current capabilities. Try a simpler, more specific question.";
-                }
+                .replace(/\s+/g, ' ')
+                .replace(/\n{2,}/g, '\n\n')
+                .trim();
+            
+            // 6. Safety net
+            if (cleaned.includes('<|') || cleaned.length < 5 || cleaned.startsWith('Answer:')) {
+                return "I'm not sure how to answer that. Could you rephrase your question?";
             }
             
-            // 5. Ensure proper ending (non-code only)
-            if (domain !== 'coding' && cleaned && !/[.!?]<LaTex>id_1</LaTex>/, ''))) {
-                cleaned += '.';
-            }
-            
-            return cleaned || "I cannot provide a complete answer with my current capabilities.";
+            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // Build domain-optimized prompt
+        // Build prompt with conversation history
         function buildPrompt(userMessage) {
-            const domain = detectDomain(userMessage);
-            let prompt = `${SYSTEM_PROMPTS[domain] || SYSTEM_PROMPTS.general}\n\n`;
+            // Base GPT-2 works better with natural conversation format
+            let prompt = `${SYSTEM_PROMPT}\n\n`;
             
-            // For coding/math: minimal context (GPT-2 struggles with complex context)
-            if (domain === 'coding' || domain === 'math') {
-                prompt += `${userMessage}\n${domain === 'coding' ? 'CodeAgent:' : (domain === 'math' ? 'MathAgent:' : 'TinyAgent:')}`;
-                return prompt;
-            }
-            
-            // For general: include minimal recent context
-            if (conversationHistory.length >= 2) {
-                const lastUser = conversationHistory[conversationHistory.length - 2];
-                const lastAI = conversationHistory[conversationHistory.length - 1];
-                if (lastUser.role === 'user' && lastAI.role === 'ai') {
-                    prompt += `User: ${lastUser.content}\nTinyAgent: ${cleanModelResponse(lastAI.content, 'general')}\n\n`;
+            // Add conversation history
+            conversationHistory.forEach(msg => {
+                if (msg.role === 'user') {
+                    prompt += `User: ${msg.content}\n`;
+                } else if (msg.role === 'ai') {
+                    prompt += `AI: ${cleanModelResponse(msg.content)}\n`;
                 }
-            }
+            });
             
-            prompt += `User: ${userMessage}\nTinyAgent:`;
+            prompt += `User: ${userMessage}\nAI:`;
             return prompt;
         }
 
         async function init() {
             try {
-                addMessage("Initializing AI agent with multi-domain intelligence...", "system");
+                statusBar.textContent = "Status: Initializing engine...";
+                wllama = new Wllama(CONFIG_PATHS);
                 
-                // Load model
+                // Update status in chat
+                addMessage("Downloading GPT-2 model (113MB). This may take 30-60 seconds...", "system");
+                
+                // Load the CORRECT GPT-2 model that exists on HuggingFace
                 await wllama.loadModelFromHF(
-                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
-                    'chat-GPT2.Q4_K.gguf', 
+                    'TheBloke/gpt2-GGUF', 
+                    'gpt2.Q4_K_M.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
-                            const progress = Math.round((loaded / total) * 100);
-                            if (progress % 10 === 0 || progress === 100) {
-                                const existing = chatBox.querySelector('.download-progress');
-                                if (existing) {
-                                    existing.textContent = `Downloading AI agent: ${progress}%`;
-                                } else if (progress < 100) {
-                                    const el = document.createElement('div');
-                                    el.classList.add('system-message', 'download-progress');
-                                    el.textContent = `Downloading AI agent: ${progress}%`;
-                                    chatBox.appendChild(el);
-                                    chatBox.scrollTop = chatBox.scrollHeight;
-                                }
-                            }
-                        }
+                            const progress = Math.min(99, Math.round((loaded / total) * 100));
+                            statusBar.textContent = `Status: Downloading model (${progress}%)...`;
+                        },
+                        // Critical: GPT-2 requires these specific settings
+                        nCtx: 512,
+                        nBatch: 128
                     }
                 );
-
-                addMessage("I'm ready. I can handle general questions, simple code snippets, basic math, and step-by-step explanations.", "ai");
-                addMessage("💡 Try: 'Write a Python function to reverse a string' or 'Explain photosynthesis in 3 steps'", "system");
+                
+                modelLoaded = true;
+                statusBar.textContent = "Status: Ready!";
+                
+                addMessage("✅ Model loaded successfully! I'm ready to chat.", "ai");
+                addMessage("💡 Tip: Ask clear, specific questions for best results with this small model.", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             } catch (err) {
-                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
-                addMessage(errorMsg, "error");
-                console.error("Model loading error:", err);
+                console.error("Critical error during initialization:", err);
+                const errorMsg = err.message || 'Failed to load model. This might be due to:';
+                addMessage(`${errorMsg}<br><br>
+                    • Browser compatibility issues (Chrome/Firefox recommended)<br>
+                    • Network problems or ad-blockers<br>
+                    • Insufficient device memory<br><br>
+                    Please try refreshing the page or using a different browser.`, "error");
+                statusBar.textContent = "Status: Failed to load model";
             }
         }
         
         async function handleChat() {
+            if (!modelLoaded) {
+                addMessage("Model is still loading. Please wait...", "error");
+                return;
+            }
+            
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Detect domain for specialized handling
-            const domain = detectDomain(text);
-            
             // Add user message
             addMessage(text, 'user');
             userInput.value = '';
             userInput.style.height = 'auto';
             
-            // Show domain-aware loading message
-            const loadingText = domain === 'coding' ? 'Writing code...' : 
-                               domain === 'math' ? 'Calculating...' : 
-                               domain === 'step' ? 'Breaking down steps...' : 'Thinking...';
-            const loadingEl = addMessage(loadingText, 'ai', true);
+            // Show loading indicator
+            const loadingEl = addMessage("Thinking", 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
             
             try {
                 const prompt = buildPrompt(text);
-                const domain = detectDomain(text);
+                statusBar.textContent = "Status: Generating response...";
                 
-                // Domain-optimized generation parameters
-                const params = {
-                    nPredict: domain === 'coding' ? 100 : 85, // Slightly longer for code
+                // Generate response with GPT-2 optimized parameters
+                const response = await wllama.createCompletion(prompt, {
+                    nPredict: 150, // Slightly longer for coherence
                     sampling: { 
-                        temp: domain === 'math' ? 0.3 : (domain === 'coding' ? 0.5 : 0.65),
-                        top_k: domain === 'math' ? 20 : 30,
-                        top_p: 0.88,
-                        repeat_penalty: 1.65, // Strong repetition prevention
-                        frequency_penalty: 0.65
-                    }
-                };
+                        temp: 0.85,          // Better creativity for small model
+                        top_k: 45,           // Wider token selection
+                        top_p: 0.92,         // Nucleus sampling
+                        repeat_penalty: 1.2, // Prevent immediate repetitions
+                        frequency_penalty: 0.3
+                    },
+                    // Critical: Stop sequences for GPT-2
+                    stopTokens: ['User:', 'Human:', '\n\n']
+                });
                 
-                const response = await wllama.createCompletion(prompt, params);
-                const cleanedResponse = cleanModelResponse(response, domain);
+                // Clean and display response
+                const cleanedResponse = cleanModelResponse(response);
                 
-                // Replace loading indicator with clean response
+                // Replace loading indicator with cleaned response
                 loadingEl.remove();
                 addMessage(cleanedResponse, 'ai');
+                statusBar.textContent = "Status: Ready!";
                 
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage("I couldn't formulate a clear answer. Try a simpler, more specific question.", "ai");
+                
+                if (err instanceof WllamaError) {
+                    addMessage(`Model error: ${err.message || 'Unknown error'}`, "error");
+                } else {
+                    addMessage("I encountered an error while processing your request. Please try again.", "error");
+                }
+                statusBar.textContent = "Status: Error occurred";
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
@@ -525,7 +480,9 @@ User:`
             }
         }
 
+        // Event listeners
         sendBtn.addEventListener('click', handleChat);
+        
         userInput.addEventListener('keypress', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -540,7 +497,11 @@ User:`
         });
 
         // Initialize the app
-        init();
+        init().catch(err => {
+            console.error("Unhandled initialization error:", err);
+            statusBar.textContent = "Status: Critical initialization error";
+            addMessage("Failed to start application. Please check console for details.", "error");
+        });
     </script>
 </body>
 </html>
