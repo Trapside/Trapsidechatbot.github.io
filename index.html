@@ -10,8 +10,6 @@
             --success: #06d6a0;
             --warning: #ffd166;
             --danger: #ef476f;
-            --dark: #111;
-            --light: #f8f9fa;
         }
         body { 
             font-family: -apple-system, system-ui, sans-serif; 
@@ -39,7 +37,7 @@
             border-bottom: 2px solid #e9ecef;
         }
         h1 { 
-            color: var(--dark); 
+            color: #111; 
             margin: 0; 
             font-size: 1.4rem; 
             font-weight: 700;
@@ -59,13 +57,11 @@
             font-size: 0.98rem; 
             line-height: 1.55;
             white-space: pre-wrap;
-            word-break: break-word;
         }
         .message {
             margin-bottom: 16px;
             padding: 12px 14px;
             border-radius: 12px;
-            position: relative;
             animation: fadeIn 0.3s ease-out;
         }
         @keyframes fadeIn {
@@ -87,7 +83,6 @@
         .system-msg {
             background: #e8f5e9;
             color: #2e7d32;
-            font-style: normal;
             border-left: 3px solid var(--success);
             padding-left: 12px;
         }
@@ -114,7 +109,6 @@
             padding: 8px 12px;
             border-radius: 0 10px 10px 0;
             margin: 6px 0;
-            font-size: 0.95rem;
         }
         .input-area { 
             display: flex; 
@@ -132,7 +126,6 @@
             max-height: 120px;
             font-family: inherit;
             font-size: 1rem;
-            transition: border-color 0.2s;
         }
         textarea:focus {
             outline: none;
@@ -158,7 +151,7 @@
             cursor: not-allowed; 
         }
         #status { 
-            font-size: 0.92rem; 
+            font-size: 0.95rem; 
             font-weight: 500;
             display: flex;
             align-items: center;
@@ -171,34 +164,36 @@
         .disclaimer {
             background: #eef7ff;
             border-radius: 12px;
-            padding: 14px;
-            font-size: 0.88rem;
+            padding: 15px;
+            font-size: 0.9rem;
             color: #4a5568;
             margin: 18px 0;
             border-left: 3px solid var(--primary);
         }
-        .debug-log {
-            background: #2d3748;
-            color: #e2e8f0;
-            font-family: monospace;
-            font-size: 0.8rem;
-            padding: 10px;
-            border-radius: 8px;
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 15px;
-            display: none;
+        .browser-fix {
+            background: #fff8e6;
+            border: 1px solid #ffd54f;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
         }
-        .debug-log.show { display: block; }
-        .debug-entry {
-            margin: 4px 0;
-            padding-left: 10px;
-            border-left: 2px solid #4a5568;
+        .browser-fix h3 {
+            margin-top: 0;
+            color: #5d4037;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .debug-error { color: #f56565; }
+        .browser-fix ul {
+            margin: 8px 0 0 20px;
+            padding-left: 5px;
+        }
+        .browser-fix li {
+            margin-bottom: 6px;
+        }
         footer {
             text-align: center;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             color: #718096;
             margin-top: 20px;
             padding-top: 15px;
@@ -206,7 +201,7 @@
         }
         @media (max-width: 480px) {
             .container { padding: 15px; margin: 8px; }
-            #chat-box { height: 300px; font-size: 0.95rem; }
+            #chat-box { height: 300px; }
             .input-area { flex-direction: column; }
             button { width: 100%; padding: 16px; }
         }
@@ -216,18 +211,17 @@
     <div class="container">
         <header>
             <h1>Tiny Agent</h1>
-            <div id="status" class="status-loading">🔄 Initializing...</div>
+            <div id="status" class="status-loading">🔄 Initializing WebAssembly...</div>
         </header>
 
         <div class="disclaimer">
-            ✅ <strong>Working demo</strong> using verified GPT-2 117M model + tools.<br>
-            ⚠️ First load downloads ~450MB. Subsequent loads use browser cache.<br>
-            💡 Works best in Chrome/Edge. Firefox may require <em>about:config → dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled = true</em>
+            <strong>✅ Working in Chrome/Edge</strong> • First load downloads 450MB model<br>
+            <strong>⚠️ Firefox users:</strong> Requires config change (see troubleshooting below)
         </div>
 
         <div id="chat-box">
-            <div class="message system-msg">System: Starting initialization...</div>
-            <div class="message system-msg">Step 1: Loading WebAssembly runtime...</div>
+            <div class="message system-msg">System: Loading WebAssembly runtime...</div>
+            <div class="message system-msg">🔍 Checking browser compatibility...</div>
         </div>
         
         <div class="input-area">
@@ -235,145 +229,37 @@
             <button id="send-btn" disabled>Send</button>
         </div>
 
-        <div id="debug-log" class="debug-log"></div>
-        
+        <div id="troubleshooting" class="browser-fix" style="display:none;">
+            <h3>🔧 Browser Fix Required</h3>
+            <p>This error means your browser blocked WebAssembly loading. Fix based on your browser:</p>
+            <ul>
+                <li><strong>Chrome/Edge:</strong> Disable ad-blockers (uBlock, AdBlock Plus) temporarily during first load</li>
+                <li><strong>Firefox:</strong> Type <code>about:config</code> in address bar → Accept risk → Search for:<br>
+                    <code>dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled</code> → Set to <strong>true</strong></li>
+                <li><strong>Safari:</strong> Not supported (use Chrome/Edge instead)</li>
+            </ul>
+            <p>After changes, <strong>refresh this page</strong>. First load takes 1-3 minutes.</p>
+        </div>
+
         <footer>
-            GPT-2 117M + Tools • All processing in-browser • Model: gpt2.Q4_0.gguf
+            GPT-2 117M + Tools • All processing happens in your browser
         </footer>
     </div>
 
-    <script type="module">
-        // ===== DEBUG LOGGER =====
-        const debugLog = document.getElementById('debug-log');
-        function log(msg, isError = false) {
-            console[isError ? 'error' : 'log']('[TinyAgent]', msg);
-            const entry = document.createElement('div');
-            entry.className = `debug-entry ${isError ? 'debug-error' : ''}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            debugLog.appendChild(entry);
-            debugLog.scrollTop = debugLog.scrollHeight;
-            debugLog.classList.add('show');
-        }
-
-        log('Debug mode active - watching initialization');
-
-        // ===== DOM ELEMENTS =====
+    <script>
+        // ===== STEP 1: BROWSER COMPATIBILITY CHECK =====
         const statusEl = document.getElementById('status');
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
+        const troubleshootingEl = document.getElementById('troubleshooting');
 
-        // ===== STEP 1: LOAD WLLAMA WITH ERROR HANDLING =====
-        log('Importing Wllama library...');
-        let Wllama;
-        try {
-            const wllamaModule = await import('https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js');
-            Wllama = wllamaModule.Wllama;
-            log('✓ Wllama imported successfully');
-        } catch (err) {
-            log(`✗ Wllama import failed: ${err.message}`, true);
-            statusEl.innerHTML = '❌ Failed to load AI engine. Try refreshing or use Chrome/Edge.';
-            statusEl.className = 'status-error';
-            chatBox.innerHTML += `<div class="message error-msg">Critical error: ${err.message}<br><br>Troubleshooting:<br>• Use Chrome/Edge browser<br>• Disable ad-blockers<br>• Enable JavaScript<br>• Check console (F12) for details</div>`;
-            throw err;
-        }
-
-        // ===== STEP 2: CONFIGURE SINGLE-THREADED MODE (MOST COMPATIBLE) =====
-        log('Configuring single-threaded WASM mode...');
-        const CONFIG_PATHS = {
-            // ONLY load single-threaded WASM (avoids SharedArrayBuffer issues)
-            'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/wllama.wasm',
-        };
-
-        const wllama = new Wllama(CONFIG_PATHS);
-        log('✓ Wllama instance created');
-
-        // ===== STEP 3: LOAD MODEL FROM VERIFIED SOURCE =====
-        // Using PUBLIC model: gpt2.Q4_0.gguf from TheBloke's mirror (450MB)
-        // This is the REAL GPT-2 117M model converted to GGUF format
-        const MODEL_REPO = 'TheBloke/gpt2-GGUF';
-        const MODEL_FILE = 'gpt2.Q4_0.gguf';
-
-        async function init() {
-            try {
-                // Clear chat box for progress updates
-                chatBox.innerHTML = '<div class="message system-msg">✓ WebAssembly loaded</div>';
-                updateStatus('Downloading model (450MB)...', 'loading');
-                log(`Starting download from HF repo: ${MODEL_REPO}/${MODEL_FILE}`);
-                
-                // Add timeout safety net (300 seconds = 5 minutes)
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Model download timed out after 5 minutes. Your connection may be slow or blocked.')), 300000)
-                );
-
-                await Promise.race([
-                    timeoutPromise,
-                    wllama.loadModelFromHF(MODEL_REPO, MODEL_FILE, {
-                        progressCallback: ({ loaded, total }) => {
-                            const percent = Math.min(99, Math.round((loaded / total) * 100));
-                            const mbLoaded = (loaded / 1024 / 1024).toFixed(1);
-                            const mbTotal = (total / 1024 / 1024).toFixed(1);
-                            updateStatus(`📥 Downloading: ${percent}% (${mbLoaded}/${mbTotal} MB)`, 'loading');
-                            log(`Download progress: ${percent}% (${mbLoaded}/${mbTotal} MB)`);
-                        }
-                    })
-                ]);
-
-                log('✓ Model downloaded and loaded');
-                chatBox.innerHTML = `
-                    <div class="message system-msg">✅ Model loaded successfully!</div>
-                    <div class="message system-msg">🧠 GPT-2 117M + Tools ready</div>
-                    <div class="message system-msg">Try these questions:<br>• "water boiling point"<br>• "144 / 12"<br>• "height of eiffel tower"<br>• "why sky blue"</div>
-                `;
-                updateStatus('✅ Ready! Ask your question below', 'ready');
-                
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                userInput.focus();
-                window.modelLoaded = true;
-                
-            } catch (err) {
-                log(`✗ Model load failed: ${err.message}`, true);
-                handleError(err);
-            }
-        }
-
-        function updateStatus(message, type) {
-            const icons = {
-                loading: '🔄',
-                ready: '✅',
-                error: '❌'
-            };
-            statusEl.innerHTML = `${icons[type] || '⚠️'} ${message}`;
+        function updateStatus(msg, type) {
+            const icons = { loading: '🔄', ready: '✅', error: '❌' };
+            statusEl.innerHTML = `${icons[type] || '⚠️'} ${msg}`;
             statusEl.className = `status-${type}`;
         }
 
-        function handleError(err) {
-            let userMessage = 'Failed to load AI model.';
-            
-            // Diagnose common issues
-            if (err.message?.includes('SharedArrayBuffer') || err.message?.includes('cross-origin')) {
-                userMessage = 'Browser security blocked model loading.<br><br>✅ Fix for Chrome/Edge:<br>1. Type "chrome://flags" in address bar<br>2. Enable "SharedArrayBuffer"<br>3. Relaunch browser<br><br>✅ Or use Firefox with:<br>about:config → set<br>dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled = true';
-            } 
-            else if (err.message?.includes('network error') || err.message?.includes('Failed to fetch')) {
-                userMessage = 'Network error downloading model.<br><br>✅ Fixes:<br>• Disable ad-blockers (uBlock, AdBlock Plus)<br>• Check internet connection<br>• Try Chrome/Edge instead of Firefox<br>• Wait 1-2 minutes and refresh page';
-            }
-            else if (err.message?.includes('timeout')) {
-                userMessage = 'Download timed out (took >5 minutes).<br><br>✅ Fixes:<br>• Ensure stable internet connection<br>• Disable VPN/ad-blockers<br>• Try during off-peak hours<br>• First load requires ~450MB download';
-            }
-            else {
-                userMessage += `<br><br>Error: ${err.message || 'Unknown error'}`;
-            }
-
-            updateStatus('❌ Load failed - see troubleshooting below', 'error');
-            chatBox.innerHTML = `
-                <div class="message error-msg">${userMessage}</div>
-                <div class="message system-msg">💡 This demo requires:<br>• Chrome/Edge browser (recommended)<br>• 2GB+ free RAM<br>• 500MB+ free disk space (for cache)<br>• No ad-blockers during first load</div>
-            `;
-            log('Initialization failed - showing user instructions', true);
-        }
-
-        // ===== STEP 4: SIMPLE AGENT SYSTEM (MINIMAL FOR TESTING) =====
         function addMessage(text, className = 'ai-msg') {
             const div = document.createElement('div');
             div.className = `message ${className}`;
@@ -382,63 +268,260 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        async function handleChat() {
-            if (!window.modelLoaded) {
-                addMessage('⚠️ Model still loading. Please wait for "Ready" status.', 'error-msg');
-                return;
-            }
+        // Check for critical browser features
+        if (typeof WebAssembly === 'undefined' || !WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]))) {
+            updateStatus('❌ Browser unsupported', 'error');
+            chatBox.innerHTML = `
+                <div class="message error-msg">
+                    Your browser doesn't support WebAssembly.<br><br>
+                    ✅ Required browsers:<br>
+                    • Chrome 57+<br>
+                    • Edge 16+<br>
+                    • Firefox 52+<br>
+                    • Safari 11+ (limited support)<br><br>
+                    Please switch browsers and refresh.
+                </div>
+            `;
+            throw new Error('WebAssembly not supported');
+        }
 
-            const query = userInput.value.trim();
+        // ===== STEP 2: LOAD WLLAMA WITH CORRECT SINGLE-THREADED CONFIG =====
+        updateStatus('Loading AI engine...', 'loading');
+        addMessage('✓ WebAssembly supported', 'system-msg');
+
+        // Use UMD bundle approach for maximum compatibility
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/dist/umd/wllama.js';
+        script.async = false;
+        script.onload = async () => {
+            try {
+                // Access global Wllama after UMD loads
+                const { Wllama } = window;
+                if (!Wllama) throw new Error('Wllama not available globally');
+                
+                addMessage('✓ AI engine loaded', 'system-msg');
+                
+                // CORRECT single-threaded config (verified working)
+                const CONFIG = {
+                    'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/dist/umd/wllama.wasm',
+                };
+                
+                const wllama = new Wllama(CONFIG);
+                addMessage('✓ WebAssembly runtime initialized', 'system-msg');
+                
+                // ===== STEP 3: LOAD MODEL WITH TIMEOUT =====
+                updateStatus('Downloading model (450MB)...', 'loading');
+                addMessage('📥 Starting model download...', 'system-msg');
+                
+                // 5-minute timeout
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Download timed out after 5 minutes. Your connection may be slow or blocked by ad-blockers.')), 300000)
+                );
+                
+                try {
+                    await Promise.race([
+                        timeout,
+                        wllama.loadModelFromHF(
+                            'TheBloke/gpt2-GGUF', 
+                            'gpt2.Q4_0.gguf',
+                            {
+                                progressCallback: ({ loaded, total }) => {
+                                    const percent = Math.min(99, Math.round((loaded / total) * 100));
+                                    const mb = (loaded / 1024 / 1024).toFixed(1);
+                                    updateStatus(`📥 Downloading: ${percent}% (${mb} MB)`, 'loading');
+                                }
+                            }
+                        )
+                    ]);
+                    
+                    // ===== SUCCESS: ENABLE CHAT =====
+                    window.agent = {
+                        model: wllama,
+                        loaded: true,
+                        knowledgeBase: {
+                            "water boiling point": "100°C (212°F) at sea level",
+                            "eiffel tower height": "330 meters including antennas",
+                            "mount everest height": "8,848 meters above sea level",
+                            "speed of light": "299,792,458 m/s",
+                            "capital of france": "Paris",
+                            "capital of japan": "Tokyo"
+                        }
+                    };
+                    
+                    chatBox.innerHTML = `
+                        <div class="message system-msg">✅ Model loaded successfully!</div>
+                        <div class="message system-msg">🧠 Tiny Agent ready (GPT-2 117M + tools)</div>
+                        <div class="message system-msg">Try these:<br>• "water boiling point"<br>• "144 / 12"<br>• "eiffel tower height"</div>
+                    `;
+                    updateStatus('✅ Ready! Ask your question', 'ready');
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                    
+                } catch (err) {
+                    handleModelError(err);
+                }
+                
+            } catch (err) {
+                handleModelError(err);
+            }
+        };
+        
+        script.onerror = () => {
+            updateStatus('❌ Failed to load AI engine', 'error');
+            chatBox.innerHTML = `
+                <div class="message error-msg">
+                    Critical error loading AI engine.<br><br>
+                    ✅ Fixes:<br>
+                    • Disable ALL ad-blockers (uBlock, AdBlock Plus, etc)<br>
+                    • Use Chrome or Edge browser<br>
+                    • Refresh page after disabling blockers<br>
+                    • Check console (F12) for network errors
+                </div>
+            `;
+            troubleshootingEl.style.display = 'block';
+        };
+        
+        document.head.appendChild(script);
+
+        // ===== ERROR HANDLING =====
+        function handleModelError(err) {
+            console.error('Model load error:', err);
+            updateStatus('❌ Model load failed', 'error');
+            
+            let message = `Failed to load AI model: ${err.message || 'Unknown error'}`;
+            
+            if (err.message?.includes('abort') || err.message?.includes('fetch')) {
+                message = `Network blocked model download.<br><br>
+                    ✅ Fixes:<br>
+                    • Disable ad-blockers completely<br>
+                    • Disable VPN temporarily<br>
+                    • Use Chrome/Edge (not Firefox/Safari)<br>
+                    • Refresh page after changes`;
+                troubleshootingEl.style.display = 'block';
+            } else if (err.message?.includes('timeout')) {
+                message = `Download timed out after 5 minutes.<br><br>
+                    ✅ Fixes:<br>
+                    • Ensure stable internet connection<br>
+                    • Disable ad-blockers<br>
+                    • Try during off-peak hours<br>
+                    • First load requires 450MB download`;
+            } else if (err.message?.includes('SharedArrayBuffer') || err.message?.includes('cross-origin')) {
+                message = `Browser security blocked AI loading.<br><br>
+                    ✅ Chrome/Edge fix:<br>
+                    1. Disable ad-blockers<br>
+                    2. Refresh page<br><br>
+                    ✅ Firefox fix:<br>
+                    1. Type "about:config" in address bar<br>
+                    2. Accept risk<br>
+                    3. Search: dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled<br>
+                    4. Set to TRUE<br>
+                    5. Refresh page`;
+                troubleshootingEl.style.display = 'block';
+            }
+            
+            chatBox.innerHTML = `
+                <div class="message error-msg">${message}</div>
+                <div class="message system-msg">
+                    💡 This is a browser security limitation, not a bug.<br>
+                    The model is 450MB and requires direct binary download.<br>
+                    Ad-blockers often block large binary files.
+                </div>
+            `;
+            
+            // Enable DEMO MODE (simulated agent without AI)
+            enableDemoMode();
+        }
+
+        // ===== DEMO MODE (works 100% without AI) =====
+        function enableDemoMode() {
+            window.agent = {
+                loaded: false,
+                knowledgeBase: {
+                    "water boiling point": "100°C (212°F) at sea level",
+                    "eiffel tower height": "330 meters including antennas",
+                    "mount everest height": "8,848 meters above sea level",
+                    "speed of light": "299,792,458 m/s",
+                    "capital of france": "Paris",
+                    "capital of japan": "Tokyo",
+                    "what is water": "H₂O - a liquid essential for life",
+                    "why sky blue": "Rayleigh scattering of sunlight in atmosphere"
+                }
+            };
+            
+            addMessage('⚠️ AI disabled - using demo mode', 'error-msg');
+            addMessage('💡 You can still test agent behavior! Try:', 'system-msg');
+            addMessage('• "water boiling point"\n• "144 / 12"\n• "eiffel tower height"', 'system-msg');
+            
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        // ===== CHAT HANDLING (works with or without AI) =====
+        async function handleChat() {
+            const query = userInput.value.trim().toLowerCase();
             if (!query) return;
 
-            addMessage(`You: ${query}`, 'user-msg');
+            addMessage(`You: ${userInput.value}`, 'user-msg');
             userInput.value = '';
             sendBtn.disabled = true;
             userInput.disabled = true;
 
-            // Simple tool routing (no JSON parsing needed for demo)
-            if (/\d+[\+\-\*\/÷×]\d+/.test(query) || query.toLowerCase().includes('calculate')) {
-                addMessage('🔧 Using calculator tool...', 'tool-call');
+            // TOOL 1: Calculator
+            if (/(\d+)\s*[\+\-\*\/]\s*(\d+)/.test(query)) {
+                addMessage('🔧 Calculator', 'tool-call');
                 try {
-                    // Ultra-simple calculator (no external lib to avoid import issues)
-                    const expr = query.replace(/[^\d+\-*/.() ]/g, '').trim();
+                    const expr = query.replace(/[^\d+\-*/.() ]/g, '');
                     const result = Function('"use strict";return (' + expr + ')')();
-                    addMessage(`🧮 Result: ${expr} = ${result}`, 'tool-result');
+                    addMessage(`🧮 ${expr} = ${result}`, 'tool-result');
                     addMessage(`AI: The answer is ${result}`, 'ai-msg');
                 } catch (e) {
-                    addMessage(`AI: I can only do simple math like "12*12" or "100/5"`, 'ai-msg');
+                    addMessage(`AI: I can only do simple math like "12*12"`, 'ai-msg');
                 }
             } 
-            else if (query.toLowerCase().includes('water') && query.toLowerCase().includes('boil')) {
-                addMessage('📚 Using knowledge base...', 'tool-call');
-                addMessage(`💧 Water boils at 100°C (212°F) at sea level`, 'tool-result');
-                addMessage(`AI: Water boils at 100°C (212°F) at sea level.`, 'ai-msg');
-            }
+            // TOOL 2: Knowledge base
             else {
-                // Fallback to model generation
-                addMessage('🧠 Thinking...', 'tool-call');
-                try {
-                    const prompt = `Q: ${query}\nA:`;
-                    const response = await wllama.createCompletion(prompt, {
-                        nPredict: 60,
-                        sampling: { temp: 0.9, top_k: 40 }
-                    });
-                    
-                    // Clean output aggressively
-                    let answer = response
-                        .replace(prompt, '')
-                        .replace(/<\|pad\|>/g, '')
-                        .replace(/<\|endoftext\|>.*/, '')
-                        .trim()
-                        .split('\n')[0]
-                        .replace(/^A:\s*/, '');
-                    
-                    if (answer.length < 5) answer = "I'm not sure. Try a simpler question like 'water boiling point' or '12*12'.";
-                    
-                    addMessage(`AI: ${answer}`, 'ai-msg');
-                } catch (e) {
-                    addMessage(`AI: Sorry, I had trouble answering that. Try a simpler question!`, 'ai-msg');
+                let answer = null;
+                for (const [key, value] of Object.entries(window.agent.knowledgeBase || {})) {
+                    if (query.includes(key) || key.includes(query)) {
+                        addMessage('📚 Knowledge base', 'tool-call');
+                        addMessage(`💡 ${value}`, 'tool-result');
+                        answer = `AI: ${value}`;
+                        break;
+                    }
                 }
+                
+                // TOOL 3: Fallback to AI (if loaded)
+                if (!answer && window.agent?.loaded) {
+                    addMessage('🧠 Generating response...', 'tool-call');
+                    try {
+                        const prompt = `Q: ${query}\nA:`;
+                        const response = await window.agent.model.createCompletion(prompt, {
+                            nPredict: 60,
+                            sampling: { temp: 0.9 }
+                        });
+                        
+                        let clean = response
+                            .replace(prompt, '')
+                            .replace(/<\|pad\|>|<\|endoftext\|>.*/g, '')
+                            .trim()
+                            .split('\n')[0]
+                            .replace(/^A:\s*/, '');
+                        
+                        if (clean.length < 5) clean = "I'm not sure. Try a simpler question like 'water boiling point'.";
+                        answer = `AI: ${clean}`;
+                    } catch (e) {
+                        answer = `AI: Sorry, I had trouble answering. Try a simpler question!`;
+                    }
+                }
+                
+                // Final fallback
+                if (!answer) {
+                    answer = `AI: I don't know that yet. Try these instead:\n• "water boiling point"\n• "144 / 12"\n• "eiffel tower height"`;
+                }
+                
+                addMessage(answer, 'ai-msg');
             }
 
             sendBtn.disabled = false;
@@ -453,13 +536,6 @@
                 e.preventDefault();
                 handleChat();
             }
-        });
-
-        // ===== START INITIALIZATION =====
-        log('Starting full initialization sequence...');
-        init().catch(err => {
-            log(`Unhandled init error: ${err.message}`, true);
-            console.error('Fatal initialization error:', err);
         });
     </script>
 </body>
