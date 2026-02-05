@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SmolLM2 Air — Mobile</title>
+    <title>Arjun-G-Ravi/chat-GPT-2 — Mobile</title>
     <script type="importmap">
         { "imports": { "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm" } }
     </script>
@@ -49,6 +49,9 @@
         button:active { transform: scale(0.9); }
         .small { font-size: 12px; color: #666; margin-left: 8px; }
 
+        .btn-stop { background: #ff3b30; width: auto; padding: 6px 10px; height: auto; border-radius: 12px; font-size: 13px; display: inline-block; color: white; border: none; cursor: pointer; }
+        .btn-stop[disabled] { opacity: 0.5; cursor: default; }
+
         @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
         @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -57,7 +60,7 @@
 
 <div class="app-card">
     <header>
-        <h1>SmolLM2 Air — Mobile</h1>
+        <h1>Arjun-G-Ravi/chat-GPT-2 — Mobile</h1>
         <div class="controls">
             <div class="status" id="status">Initializing...</div>
             <button id="clearBtn" class="btn-clear" title="Clear session">Clear session</button>
@@ -75,25 +78,28 @@
     <div class="input-bar">
         <input type="text" id="userInput" placeholder="Message">
         <button id="sendBtn">↑</button>
+        <button id="stopBtn" class="btn-stop" disabled title="Stop generation">Stop</button>
         <div class="small" id="charsRemaining"></div>
     </div>
 </div>
 
 <script type="module">
     // Main thread: UI, IndexedDB, telemetry and worker messaging
-    const MODEL_DEFAULT = "SmolLM2-360M-Instruct-q4f16_1-MLC";
+    const MODEL_DEFAULT = "Arjun-G-Ravi/chat-GPT-2";
     const MAX_INPUT_CHARS = 800;
     const SUMMARIZE_AFTER = 6;
     const DB_NAME = 'chatbot-db';
     const DB_STORE = 'sessions';
     const SESSION_STORE_KEY = 'latest_session';
     const TELEMETRY_KEY = 'telemetry';
+    const AUTO_UNLOAD_AFTER_RUNS = 20; // auto-unload engine in worker after N runs to avoid memory bloat
 
     // UI
     const chatBox = document.getElementById('chat-box');
     const thinking = document.getElementById('thinking');
     const input = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
+    const stopBtn = document.getElementById('stopBtn');
     const statusEl = document.getElementById('status');
     const charsRemainingEl = document.getElementById('charsRemaining');
     const clearBtn = document.getElementById('clearBtn');
@@ -107,7 +113,7 @@
     let workerReady = false;
     let pendingInit = null;
     let activeRun = null; // {runId, resolveDone}
-    let persistedTelemetry = null;
+    let runCounter = 0; // counts completed runs since last unload/restart
 
     // IndexedDB helpers (same as before + delete)
     function openDB() {
@@ -223,6 +229,10 @@
                 dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
                 updateStatus('Model ready (worker)');
                 sampleMemory();
+            } else if (m.type === 'unloaded') {
+                // engine inside worker unloaded — will be re-initialized on next initEngine()
+                workerReady = false;
+                updateStatus('Engine unloaded (worker)');
             } else if (m.type === 'token') {
                 if (activeRun && activeRun.runId === m.runId) {
                     activeRun.onToken && activeRun.onToken(m.token);
@@ -344,10 +354,24 @@
         });
     }
 
+    // Ask worker to unload the model (keep worker alive)
+    function unloadEngineInWorker() {
+        if (!worker) return;
+        try {
+            worker.postMessage({ type: 'unload' });
+            // mark workerReady false; 'unloaded' will also come via message
+            workerReady = false;
+            updateStatus('Unloading engine (worker)...');
+        } catch (e) {
+            console.warn('unloadEngineInWorker failed', e);
+        }
+    }
+
     // Abort active run
     function abortActiveRun() {
         if (activeRun && worker) {
             worker.postMessage({ type: 'abort', runId: activeRun.runId });
+            updateStatus('Aborted');
         }
     }
 
@@ -362,6 +386,7 @@
         worker = null;
         workerReady = false;
         pendingInit = null;
+        activeRun = null;
         // small delay before recreating
         await new Promise(r => setTimeout(r, 150));
         ensureWorker();
@@ -440,6 +465,12 @@
     input.addEventListener('input', updateCharsRemaining);
     updateCharsRemaining();
 
+    // UI helper to set run state
+    function setRunState(running) {
+        sendBtn.disabled = running;
+        stopBtn.disabled = !running;
+    }
+
     // Main chat flow using worker
     async function runChat() {
         let text = (input.value || '').trim();
@@ -455,7 +486,7 @@
         updateCharsRemaining();
         thinking.style.display = 'block';
         updateStatus('Thinking (worker)...');
-        sendBtn.disabled = true;
+        setRunState(true);
 
         try {
             // ensure worker + model ready
@@ -492,6 +523,16 @@
             assistantCountSinceSummary++;
             await persistSession();
 
+            runCounter++;
+            // Auto-unload engine in worker after threshold reached to reduce memory bloat
+            if (runCounter >= AUTO_UNLOAD_AFTER_RUNS) {
+                runCounter = 0;
+                // unload asynchronously, don't block UI
+                setTimeout(() => {
+                    unloadEngineInWorker();
+                }, 80);
+            }
+
             // background summarization
             if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
                 summarizeHistory().catch(e => console.warn('background summarize failed', e));
@@ -511,12 +552,19 @@
             }
         } finally {
             thinking.style.display = 'none';
-            sendBtn.disabled = false;
+            setRunState(false);
         }
     }
 
     sendBtn.onclick = runChat;
     input.onkeypress = (e) => { if (e.key === 'Enter') runChat(); };
+
+    // Stop button: abort active generation
+    stopBtn.addEventListener('click', () => {
+        abortActiveRun();
+        setRunState(false);
+        thinking.style.display = 'none';
+    });
 
     // Clear session button (improved)
     clearBtn.addEventListener('click', async () => {
@@ -525,7 +573,6 @@
         try {
             abortActiveRun();
             if (worker) {
-                // request worker to shutdown and then terminate it
                 try { worker.postMessage({ type: 'shutdown' }); } catch (e) {}
                 worker.terminate();
             }
