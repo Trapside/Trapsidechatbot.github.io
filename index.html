@@ -246,11 +246,11 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Conversation history - CRITICAL: Store ONLY last user message for context
+        // Store ONLY last user message for rewriting follow-ups
         let lastUserMessage = null;
         
-        // System prompt - explicit instruction for follow-ups
-        const SYSTEM_PROMPT = "You are a helpful AI assistant. When asked 'why' or follow-up questions, refer to your previous answer. Keep responses concise and natural.";
+        // System prompt - single-turn focused
+        const SYSTEM_PROMPT = "You are a helpful AI assistant. Answer questions directly and concisely.";
         
         // Configuration for WASM binaries
         const CONFIG_PATHS = {
@@ -269,7 +269,7 @@
                 messageEl.classList.add('user-message');
                 const paragraphs = content.split('\n').filter(p => p.trim());
                 messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                // Store ONLY the last user message for context (not bot responses)
+                // Store for follow-up rewriting
                 lastUserMessage = content;
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
@@ -351,20 +351,21 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // CRITICAL FIX: Clean model output from <|pad|> tokens, repetitions, HTML tags, AND PAD hallucinations
+        // CRITICAL FIX: Aggressive cleanup for ALL hallucination patterns
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
             
-            // 1. Remove all special tokens completely
+            // 1. Remove special tokens AND hallucinated prefixes
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
+                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN|Creating a plan|USER|ASSISTANT)\b[:\s]*/gi, '')
+                .replace(/\[Previous answer\]/gi, '')
                 .trim();
             
-            // 2. CRITICAL FIX: Strip HTML/XML tags AND PAD hallucinations
+            // 2. Strip HTML/XML tags
             cleaned = cleaned.replace(/<[^>]*>/g, '');
-            cleaned = cleaned.replace(/\bPAD[:\s]*/gi, ''); // Remove "PAD:" hallucinations
             
             // 3. AGGRESSIVE TRUNCATION: Stop at FIRST sign of degeneration
             const badPatterns = [
@@ -374,7 +375,7 @@
                 { pattern: /\sUser[:\s]/i, reason: 'new user' },
                 { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' },
                 { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i, reason: 'self-generated Q&A' },
-                { pattern: /Creating a (plan|Plan) [A-Z]\?/i, reason: 'plan hallucination' }, // CRITICAL: Catch "Creating a plan B?" loops
+                { pattern: /Creating a (plan|Plan) [A-Z]\?/i, reason: 'plan hallucination' },
                 { pattern: /<\|/i, reason: 'special token' },
                 { pattern: /\n{3,}/, reason: 'excessive newlines' },
                 { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
@@ -392,57 +393,60 @@
             cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
             cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
             
-            // 5. Ensure proper sentence ending
-            if (cleaned.length > 10) {
-                if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
-                    const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
-                    if (lastGoodBreak > cleaned.length - 30 && lastGoodBreak > 20) {
-                        cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
-                    } else if (lastGoodBreak > 10) {
-                        const nextSpace = cleaned.indexOf(' ', lastGoodBreak);
-                        if (nextSpace > lastGoodBreak) {
-                            cleaned = cleaned.substring(0, nextSpace).trim();
-                        } else {
-                            cleaned = cleaned.substring(0, lastGoodBreak + 1).trim();
-                        }
-                    }
-                }
-            }
-            
-            // 6. Final cleanup
+            // 5. Final cleanup
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
                 .replace(/\n{2,}/g, '\n\n')
                 .trim();
             
-            // 7. Safety net
-            if (cleaned.includes('<|') || cleaned.length < 5 || cleaned.includes('PAD')) {
+            // 6. Safety net
+            if (cleaned.includes('<|') || cleaned.length < 5 || /\b(PAD|HARDWARE)\b/i.test(cleaned)) {
                 return "I'm not sure how to answer that. Could you rephrase your question?";
             }
             
             return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // Build prompt with conversation history - CRITICAL: Only use last user message + explicit follow-up handling
-        function buildPrompt(userMessage) {
-            // Detect follow-up questions that need context
-            const isFollowUp = /^(why|how|what about|and|also|but)\b/i.test(userMessage.trim());
+        // CRITICAL FIX: Rewrite follow-ups into standalone questions
+        function rewriteFollowUp(currentQuestion) {
+            const followUpPatterns = [
+                /^\s*(why|how|what (is|are|was|were)|when|where|who|which|can you|could you|would you|tell me more about)\b/i,
+                /^\s*(and|also|but|so|then)\b/i,
+                /^\s*(explain|describe|elaborate)/i
+            ];
             
-            let prompt = `SYSTEM: ${SYSTEM_PROMPT}\n\n`;
+            // Check if this is a follow-up question
+            const isFollowUp = followUpPatterns.some(pattern => pattern.test(currentQuestion.trim()));
             
+            // Rewrite if we have previous context AND it's a follow-up
             if (isFollowUp && lastUserMessage) {
-                // For follow-ups: inject previous question explicitly
-                prompt += `USER: ${lastUserMessage}\n`;
-                prompt += `ASSISTANT: [Previous answer]\n\n`; // Placeholder tells model to refer back
-                prompt += `USER: ${userMessage}\nASSISTANT: (Refer to previous answer about "${lastUserMessage}") `;
-            } else {
-                // Fresh question: no context needed (prevents confusion)
-                prompt += `USER: ${userMessage}\nASSISTANT:`;
-                // Reset context since this is a new topic
-                lastUserMessage = userMessage;
+                // Simple but effective rewriting strategies
+                if (/^\s*why\b/i.test(currentQuestion.trim())) {
+                    return `Why ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
+                } else if (/^\s*how\b/i.test(currentQuestion.trim())) {
+                    return `How ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
+                } else if (/^\s*what about\b/i.test(currentQuestion.trim())) {
+                    return currentQuestion.replace(/what about/i, lastUserMessage + ' and');
+                } else {
+                    // Generic fallback: append to previous question
+                    return `${lastUserMessage} ${currentQuestion}`;
+                }
             }
             
-            return prompt;
+            return currentQuestion; // Not a follow-up - use as-is
+        }
+        
+        // Build prompt - SINGLE TURN ONLY (no context injection)
+        function buildPrompt(userMessage) {
+            // Rewrite follow-ups BEFORE sending to model
+            const rewrittenQuestion = rewriteFollowUp(userMessage);
+            
+            // Show rewrite in UI for transparency (optional but helpful)
+            if (rewrittenQuestion !== userMessage) {
+                addMessage(`🔍 Rewrote as: "${rewrittenQuestion}"`, "system");
+            }
+            
+            return `SYSTEM: ${SYSTEM_PROMPT}\n\nUSER: ${rewrittenQuestion}\nASSISTANT:`;
         }
 
         async function init() {
@@ -465,7 +469,6 @@
                     }
                 );
 
-                // Welcome message has no original question - retry disabled
                 addMessage("Hi. Welcome to trapside how can i help.?", "ai");
                 
                 userInput.disabled = false;
@@ -494,13 +497,13 @@
                 const prompt = buildPrompt(text);
                 
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 100, // Shorter to avoid degeneration
+                    nPredict: 90,
                     sampling: { 
-                        temp: 0.55, // Much lower for consistency
-                        top_k: 30,  // More focused
+                        temp: 0.5,
+                        top_k: 25,
                         top_p: 0.85,
-                        repeat_penalty: 1.5, // Strongest repetition prevention
-                        frequency_penalty: 0.6
+                        repeat_penalty: 1.6,
+                        frequency_penalty: 0.7
                     }
                 });
                 
