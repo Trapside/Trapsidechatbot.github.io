@@ -17,7 +17,7 @@ self.onmessage = async (ev) => {
             // Initialize engine once
             const t0 = performance.now();
             try {
-                engine = await webllm.CreateMLCEngine(m.modelId || "SmolLM2-360M-Instruct-q4f16_1-MLC", {
+                engine = await webllm.CreateMLCEngine(m.modelId || "Arjun-G-Ravi/chat-GPT-2", {
                     initProgressCallback: (p) => {
                         // forward progress logs if needed
                         postLog(JSON.stringify(p));
@@ -80,6 +80,20 @@ self.onmessage = async (ev) => {
                 currentRun.aborted = true;
             } else if (currentRun) {
                 currentRun.aborted = true;
+            }
+        } else if (m.type === 'unload') {
+            // Unload engine but keep worker alive. Main will re-init when needed.
+            try {
+                if (engine) {
+                    await engine.unload();
+                    engine = null;
+                    self.postMessage({ type: 'unloaded' });
+                } else {
+                    self.postMessage({ type: 'unloaded' });
+                }
+            } catch (e) {
+                postLog('engine unload failed during unload: ' + e);
+                self.postMessage({ type: 'error', error: 'unload-failed: ' + (e && e.message ? e.message : String(e)) });
             }
         } else if (m.type === 'shutdown') {
             try {
