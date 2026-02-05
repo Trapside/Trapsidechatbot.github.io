@@ -373,12 +373,14 @@
             
             // 3. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
             // FIXED: Added pattern to catch self-generated questions followed by repeated answers
+            // FIXED: Added pattern to catch numbered list degeneration (7., 8., 9., etc.)
             const badPatterns = [
+                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i, reason: 'numbered list degeneration' }, // CRITICAL FIX: Catches "7. No,", "8. They", etc.
                 { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
                 { pattern: /\sHuman[:\s]/i, reason: 'new human' },
                 { pattern: /\sUser[:\s]/i, reason: 'new user' },
                 { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' },
-                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i, reason: 'self-generated Q&A' }, // CRITICAL FIX: Catches "Why...? Because..." repetitions
+                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i, reason: 'self-generated Q&A' },
                 { pattern: /<\|/i, reason: 'special token' },
                 { pattern: /\n{3,}/, reason: 'excessive newlines' },
                 { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
