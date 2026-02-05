@@ -14,20 +14,28 @@ self.onmessage = async (ev) => {
     const m = ev.data;
     try {
         if (m.type === 'init') {
+            // Initialize engine once
             const t0 = performance.now();
-            engine = await webllm.CreateMLCEngine(m.modelId || "SmolLM2-360M-Instruct-q4f16_1-MLC", {
-                initProgressCallback: (p) => {
-                    // forward progress logs
-                    postLog(JSON.stringify(p));
-                }
-            });
-            const initTime = Math.round(performance.now() - t0);
-            self.postMessage({ type: 'ready', initTime });
+            try {
+                engine = await webllm.CreateMLCEngine(m.modelId || "SmolLM2-360M-Instruct-q4f16_1-MLC", {
+                    initProgressCallback: (p) => {
+                        // forward progress logs if needed
+                        postLog(JSON.stringify(p));
+                    }
+                });
+                const initTime = Math.round(performance.now() - t0);
+                self.postMessage({ type: 'ready', initTime });
+            } catch (err) {
+                // Initialization may fail due to WebGPU / memory
+                const msg = (err && err.message) ? err.message : String(err);
+                self.postMessage({ type: 'error', error: 'init-failed: ' + msg });
+            }
         } else if (m.type === 'run' || m.type === 'summarize') {
             if (!engine) {
-                throw new Error('Engine not initialized');
+                self.postMessage({ type: 'error', runId: m.runId, error: 'engine-not-initialized' });
+                return;
             }
-            // If there's already a run, mark it aborted (we will break its loop)
+            // abort any existing run
             if (currentRun && !currentRun.aborted) currentRun.aborted = true;
             const runId = m.runId;
             currentRun = { runId, aborted: false };
@@ -36,12 +44,13 @@ self.onmessage = async (ev) => {
             const params = {
                 messages: m.messages,
                 stream: true,
-                max_new_tokens: opts.max_new_tokens || 256,
+                max_new_tokens: opts.max_new_tokens || 160,
                 temperature: opts.temperature || 0.2,
                 top_p: opts.top_p || 0.95
             };
 
             try {
+                // Stream token-by-token; if engine errors, attempt to unload to free memory
                 const chunks = await engine.chat.completions.create(params);
                 for await (const chunk of chunks) {
                     if (currentRun.aborted) break;
@@ -50,23 +59,27 @@ self.onmessage = async (ev) => {
                         self.postMessage({ type: 'token', runId, token: delta });
                     }
                 }
-                if (!currentRun.aborted) {
-                    self.postMessage({ type: 'done', runId });
-                } else {
-                    self.postMessage({ type: 'done', runId }); // treat aborted as done for main thread cleanup
-                }
+                // report done (even if aborted, main will clean up)
+                self.postMessage({ type: 'done', runId });
             } catch (err) {
-                self.postMessage({ type: 'error', runId, error: (err && err.message) ? err.message : String(err) });
+                const msg = (err && err.message) ? err.message : String(err);
+                // Attempt to unload engine on fatal errors to free memory and allow main to restart
+                try {
+                    await engine.unload();
+                    engine = null;
+                    postLog('Engine unloaded after error');
+                } catch (e) {
+                    postLog('Engine unload failed after error: ' + e);
+                }
+                self.postMessage({ type: 'error', runId, error: msg });
             } finally {
-                // clear currentRun if it's this run
                 if (currentRun && currentRun.runId === runId) currentRun = null;
             }
         } else if (m.type === 'abort') {
             if (currentRun && currentRun.runId === m.runId) {
                 currentRun.aborted = true;
-            } else {
-                // best-effort: if different runId, still set aborted to ensure stop
-                if (currentRun) currentRun.aborted = true;
+            } else if (currentRun) {
+                currentRun.aborted = true;
             }
         } else if (m.type === 'shutdown') {
             try {
@@ -75,13 +88,17 @@ self.onmessage = async (ev) => {
                     engine = null;
                 }
             } catch (e) {
-                postLog('engine unload failed: ' + e);
+                postLog('engine unload failed during shutdown: ' + e);
             }
             self.postMessage({ type: 'shutdown' });
-            // optionally self.close() to terminate worker from inside
+            // Fully close worker if requested
+            try {
+                self.close();
+            } catch (e) { /* ignore */ }
         }
     } catch (err) {
         const runId = m && m.runId ? m.runId : null;
-        self.postMessage({ type: 'error', runId, error: (err && err.message) ? err.message : String(err) });
+        const msg = (err && err.message) ? err.message : String(err);
+        self.postMessage({ type: 'error', runId, error: msg });
     }
 };
