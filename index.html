@@ -375,7 +375,7 @@
             // FIXED: Added pattern to catch self-generated questions followed by repeated answers
             // FIXED: Added pattern to catch numbered list degeneration (7., 8., 9., etc.)
             const badPatterns = [
-                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i, reason: 'numbered list degeneration' }, // CRITICAL FIX: Catches "7. No,", "8. They", etc.
+                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i, reason: 'numbered list degeneration' },
                 { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
                 { pattern: /\sHuman[:\s]/i, reason: 'new human' },
                 { pattern: /\sUser[:\s]/i, reason: 'new user' },
@@ -429,22 +429,25 @@
             return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // Build prompt with conversation history
+        // Build prompt with conversation history - CRITICAL FIX: Optimized for chat continuity
         function buildPrompt(userMessage) {
-            let prompt = `System: ${SYSTEM_PROMPT}\n\n`;
+            // Use natural chat format matching the model's fine-tuning
+            let prompt = `${SYSTEM_PROMPT}\n\n`;
             
-            const historyCount = Math.min(2, conversationHistory.length);
+            // Include last 2 exchanges (4 messages) for context
+            const historyCount = Math.min(4, conversationHistory.length);
             for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
                 const msg = conversationHistory[i];
                 if (msg.role === 'user') {
-                    prompt += `Question: ${msg.content}\n`;
+                    prompt += `User: ${msg.content}\n`;
                 } else if (msg.role === 'ai') {
-                    const cleanResp = cleanModelResponse(msg.content);
-                    prompt += `Answer: ${cleanResp}\n\n`;
+                    // Use ORIGINAL response (not cleaned) for context continuity
+                    prompt += `Assistant: ${msg.content}\n`;
                 }
             }
             
-            prompt += `Question: ${userMessage}\nAnswer:`;
+            // Current turn
+            prompt += `User: ${userMessage}\nAssistant:`;
             return prompt;
         }
 
@@ -499,9 +502,9 @@
                 const response = await wllama.createCompletion(prompt, {
                     nPredict: 120,
                     sampling: { 
-                        temp: 0.72,
+                        temp: 0.68, // Slightly lower for conversation consistency
                         top_k: 40,
-                        top_p: 0.9,
+                        top_p: 0.92,
                         repeat_penalty: 1.35,
                         frequency_penalty: 0.4
                     }
