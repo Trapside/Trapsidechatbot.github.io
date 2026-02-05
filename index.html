@@ -23,15 +23,16 @@
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 20px 50px rgba(0,0,0,0.1);
         }
-        header { padding: 20px; text-align: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-        h1 { margin: 0; font-size: 18px; font-weight: 600; color: #1d1d1f; }
+        header { padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+        h1 { margin: 0; font-size: 16px; font-weight: 600; color: #1d1d1f; }
+        .status { font-size: 12px; color: #444; opacity: 0.9; text-align: right; }
         
         #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
         /* Message Bubbles */
-        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; line-height: 1.4; animation: spring 0.4s ease-out; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; line-height: 1.4; animation: spring 0.4s ease-out; word-break: break-word; white-space: pre-wrap; }
         .user { align-self: flex-end; background: var(--apple-blue); color: white; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: rgba(255,255,255,0.8); color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .ai { align-self: flex-start; background: rgba(255,255,255,0.9); color: #1d1d1f; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
         /* Thinking Animation */
         .thinking { display: none; padding: 12px; }
@@ -40,10 +41,11 @@
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
 
-        .input-bar { padding: 15px; background: rgba(255,255,255,0.5); display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; border: none; padding: 12px 18px; border-radius: 25px; background: white; outline: none; font-size: 16px; }
+        .input-bar { padding: 12px 15px; background: rgba(255,255,255,0.5); display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; border: none; padding: 10px 14px; border-radius: 20px; background: white; outline: none; font-size: 15px; }
         button { background: var(--apple-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: transform 0.2s; }
         button:active { transform: scale(0.9); }
+        .small { font-size: 12px; color: #666; margin-left: 8px; }
 
         @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
         @keyframes spring { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -52,33 +54,261 @@
 <body>
 
 <div class="app-card">
-    <header><h1>Qwen 0.5B Air</h1></header>
+    <header>
+        <h1>SmolLM2 Air — Mobile</h1>
+        <div class="status" id="status">Initializing...</div>
+    </header>
+
     <div id="chat-box">
-        <div class="msg ai">Hello! I'm optimized for your phone. Ask me anything.</div>
+        <div class="msg ai">Hello! I'm optimized for phones. Ask me anything.</div>
     </div>
     
-    <div id="thinking" class="thinking">
+    <div id="thinking" class="thinking" aria-hidden="true">
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </div>
 
     <div class="input-bar">
         <input type="text" id="userInput" placeholder="Message">
         <button id="sendBtn">↑</button>
+        <div class="small" id="charsRemaining"></div>
     </div>
 </div>
 
 <script type="module">
     import * as webllm from "@mlc-ai/web-llm";
 
+    // Configuration
+    const MODEL_DEFAULT = "SmolLM2-360M-Instruct-q4f16_1-MLC";
+    const MAX_INPUT_CHARS = 800;              // truncate longer user inputs
+    const SUMMARIZE_AFTER = 6;                // number of assistant replies before summarizing
+    const SUMMARIZE_MAX_TOKENS = 128;         // summarization token budget
+    const SESSION_STORE_KEY = 'latest_session';
+    const DB_NAME = 'chatbot-db';
+    const DB_STORE = 'sessions';
+    const TELEMETRY_KEY = 'telemetry';
+
+    // UI elements
     const chatBox = document.getElementById('chat-box');
     const thinking = document.getElementById('thinking');
     const input = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
+    const statusEl = document.getElementById('status');
+    const charsRemainingEl = document.getElementById('charsRemaining');
 
-    let history = []; 
+    // State
+    let engine = null;
+    let engineReady = false;
+    let history = []; // alternating user/assistant objects: {role, content}
     let summary = "The start of a fresh conversation.";
+    let assistantCountSinceSummary = 0;
+    let currentController = null;
+    let telemetry = { initTimes: [], avgCharsPerSec: [], memorySamples: [] };
 
-    async function appendMessage(role, text) {
+    // --- IndexedDB helpers (minimal) ---
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(DB_STORE)) {
+                    db.createObjectStore(DB_STORE);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function dbPut(key, value) {
+        try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, 'readwrite');
+                const store = tx.objectStore(DB_STORE);
+                store.put(value, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        } catch (e) { console.warn('dbPut error', e); }
+    }
+
+    async function dbGet(key) {
+        try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, 'readonly');
+                const store = tx.objectStore(DB_STORE);
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (e) { console.warn('dbGet error', e); }
+    }
+
+    // Load saved session & telemetry on startup
+    (async function restoreSession() {
+        try {
+            const s = await dbGet(SESSION_STORE_KEY);
+            if (s) {
+                history = s.history || [];
+                summary = s.summary || summary;
+                assistantCountSinceSummary = s.assistantCountSinceSummary || assistantCountSinceSummary;
+                // render loaded history into chat box (lightweight)
+                chatBox.innerHTML = '';
+                for (const m of history) {
+                    const div = document.createElement('div');
+                    div.className = `msg ${m.role === 'user' ? 'user' : 'ai'}`;
+                    div.innerText = m.content;
+                    chatBox.appendChild(div);
+                }
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+            const t = await dbGet(TELEMETRY_KEY);
+            if (t) telemetry = t;
+            updateStatus('Idle');
+        } catch (e) {
+            console.warn('restoreSession failed', e);
+            updateStatus('Idle');
+        }
+    })();
+
+    function updateStatus(text) { statusEl.innerText = text; }
+
+    // Simple device/memory telemetry
+    function sampleMemory() {
+        const mem = {
+            deviceMemoryGB: navigator.deviceMemory || null,
+            performanceMemory: performance?.memory ? {
+                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+                totalJSHeapSize: performance.memory.totalJSHeapSize,
+                usedJSHeapSize: performance.memory.usedJSHeapSize
+            } : null,
+            time: Date.now()
+        };
+        telemetry.memorySamples.push(mem);
+        if (telemetry.memorySamples.length > 50) telemetry.memorySamples.shift();
+        dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
+    }
+
+    // --- Engine lifecycle & telemetry ---
+    async function initEngine(modelId = MODEL_DEFAULT) {
+        if (engineReady) return engine;
+        updateStatus('Loading model...');
+        const t0 = performance.now();
+        try {
+            engine = await webllm.CreateMLCEngine(modelId, {
+                initProgressCallback: (p) => {
+                    // optionally show progress text
+                    if (p && p.text) updateStatus(p.text);
+                    console.log('initProgress', p);
+                }
+            });
+            const t1 = performance.now();
+            const initMs = t1 - t0;
+            telemetry.initTimes.push(initMs);
+            if (telemetry.initTimes.length > 20) telemetry.initTimes.shift();
+            await dbPut(TELEMETRY_KEY, telemetry);
+            engineReady = true;
+            updateStatus('Model ready');
+            sampleMemory();
+            return engine;
+        } catch (e) {
+            console.error('Engine init failed', e);
+            updateStatus('Model failed to load');
+            throw e;
+        }
+    }
+
+    async function shutdownEngine() {
+        if (!engine) return;
+        try {
+            await engine.unload();
+        } catch (e) { console.warn('unload failed', e); }
+        engine = null;
+        engineReady = false;
+    }
+
+    // --- Utility: efficient streaming append with batching ---
+    async function streamReply(messages, onChunk, onDone, opts = {}) {
+        if (!engineReady) throw new Error('Engine not ready');
+        const chunks = await engine.chat.completions.create({
+            messages,
+            stream: true,
+            max_new_tokens: opts.max_new_tokens || 256,
+            temperature: opts.temperature || 0.2,
+            top_p: opts.top_p || 0.95
+        });
+
+        let buffer = '';
+        let lastFlush = performance.now();
+        const FLUSH_MS = 60;
+        let totalChars = 0;
+        const start = performance.now();
+
+        for await (const chunk of chunks) {
+            if (currentController?.signal?.aborted) break;
+            const delta = chunk.choices?.[0]?.delta?.content || "";
+            if (!delta) continue;
+            buffer += delta;
+            totalChars += delta.length;
+            const now = performance.now();
+            if (now - lastFlush >= FLUSH_MS) {
+                onChunk(buffer);
+                buffer = '';
+                lastFlush = now;
+            }
+        }
+        if (buffer) onChunk(buffer);
+        const durationSec = Math.max((performance.now() - start) / 1000, 0.0001);
+        const charsPerSec = totalChars / durationSec;
+        telemetry.avgCharsPerSec = telemetry.avgCharsPerSec || [];
+        telemetry.avgCharsPerSec.push(charsPerSec);
+        if (telemetry.avgCharsPerSec.length > 50) telemetry.avgCharsPerSec.shift();
+        await dbPut(TELEMETRY_KEY, telemetry).catch(()=>{});
+        onDone && onDone();
+    }
+
+    // --- Summarize history to keep context small ---
+    async function summarizeHistory() {
+        if (!engineReady) {
+            try { await initEngine(); } catch(e){ return; }
+        }
+        updateStatus('Summarizing...');
+        const messages = [
+            { role: "system", content: "You are a concise summarization assistant. Produce a short summary of the conversation focusing on facts and user intent." },
+            { role: "user", content: `Summarize the following conversation briefly:\n\n${history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n')}` }
+        ];
+        let newSummary = '';
+        const controllerBackup = currentController;
+        currentController = { signal: { aborted: false } }; // dummy controller for summarization
+        try {
+            await streamReply(messages, (chunk) => { newSummary += chunk; }, () => {});
+            if (newSummary.trim()) {
+                summary = newSummary.trim();
+                // shrink history: keep only the last 2 messages plus the summary marker
+                history = history.slice(-2);
+                assistantCountSinceSummary = 0;
+                await persistSession();
+                updateStatus('Summarized');
+            } else {
+                updateStatus('Idle');
+            }
+        } catch (e) {
+            console.warn('summarizeHistory failed', e);
+            updateStatus('Idle');
+        } finally {
+            currentController = controllerBackup;
+        }
+    }
+
+    // --- Persist session (history & summary) ---
+    async function persistSession() {
+        const s = { history, summary, assistantCountSinceSummary, savedAt: Date.now() };
+        await dbPut(SESSION_STORE_KEY, s).catch(e => console.warn('persistSession failed', e));
+    }
+
+    // --- UI helpers ---
+    function appendMessage(role, text) {
         const div = document.createElement('div');
         div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
         div.innerText = text;
@@ -86,59 +316,124 @@
         chatBox.scrollTop = chatBox.scrollHeight;
         return div;
     }
+    function appendAiPlaceholderNode() {
+        const div = document.createElement('div');
+        div.className = 'msg ai';
+        const tn = document.createTextNode('');
+        div.appendChild(tn);
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return { div, tn };
+    }
 
+    // --- Input truncation UI ---
+    function updateCharsRemaining() {
+        const remaining = Math.max(0, MAX_INPUT_CHARS - (input.value || '').length);
+        charsRemainingEl.innerText = `${remaining} chars`;
+    }
+    input.addEventListener('input', updateCharsRemaining);
+    updateCharsRemaining();
+
+    // --- Main chat flow ---
     async function runChat() {
-        const text = input.value.trim();
+        let text = (input.value || '').trim();
         if (!text) return;
-        
-        input.value = '';
+        // Enforce truncation
+        if (text.length > MAX_INPUT_CHARS) {
+            text = text.slice(0, MAX_INPUT_CHARS);
+            // briefly show feedback
+            input.value = text;
+            updateCharsRemaining();
+            // optional: inform user
+            appendMessage('ai', '[Note] Your input was truncated to fit limits.');
+        }
+
+        // append user message
         appendMessage('user', text);
+        input.value = '';
+        updateCharsRemaining();
         thinking.style.display = 'block';
+        updateStatus('Thinking...');
+        sendBtn.disabled = true;
 
-        // 1. Thinking Vibe + Method 4 Load
-        const vibeTimer = new Promise(r => setTimeout(r, 3000));
-        
         try {
-            const engine = await webllm.CreateMLCEngine("SmolLM2-360M-Instruct-q4f16_1-MLC", {
-                initProgressCallback: (p) => console.log(p.text)
-            });
+            // init engine if needed (measures init time)
+            await initEngine();
 
-            // 2. Sliding Window Context
-            const messages = [
+            // Prepare messages with summary and sliding window
+            const windowMsgs = [
                 { role: "system", content: `Context summary: ${summary}` },
-                ...history.slice(-2),
+                ...history.slice(-4), // keep small sliding window
                 { role: "user", content: text }
             ];
 
-            await vibeTimer; // Ensure at least 3s of "Thinking" dots
-            thinking.style.display = 'none';
+            // Append AI placeholder
+            const { div: aiDiv, tn: textNode } = appendAiPlaceholderNode();
 
-            const aiMsgDiv = await appendMessage('ai', '...');
-            let fullReply = "";
+            // cancellation
+            if (currentController) {
+                currentController.signal.aborted = true; // best-effort abort previous
+            }
+            currentController = new AbortController();
 
-            const chunks = await engine.chat.completions.create({ messages, stream: true });
-            for await (const chunk of chunks) {
-                fullReply += chunk.choices[0]?.delta?.content || "";
-                aiMsgDiv.innerText = fullReply;
+            // stream reply
+            let fullReply = '';
+            await streamReply(windowMsgs, (chunk) => {
+                // append cheaply
+                fullReply += chunk;
+                textNode.nodeValue = fullReply;
                 chatBox.scrollTop = chatBox.scrollHeight;
+            }, () => {}, { max_new_tokens: 256 });
+
+            // update session history
+            history.push({ role: 'user', content: text }, { role: 'assistant', content: fullReply });
+            if (history.length > 12) history = history.slice(-12);
+
+            assistantCountSinceSummary++;
+            await persistSession();
+
+            // Periodic summarization
+            if (assistantCountSinceSummary >= SUMMARIZE_AFTER) {
+                // run summarization in background but don't block UI
+                summarizeHistory().catch(e => console.warn('background summarize failed', e));
             }
 
-            // 3. HARD RESET (Kill memory immediately)
-            await engine.unload();
-
-            // 4. Update history and keep it tiny
-            history.push({ role: "user", content: text }, { role: "assistant", content: fullReply });
-            if (history.length > 4) history = history.slice(-4);
-
+            updateStatus('Idle');
         } catch (err) {
             console.error(err);
-            appendMessage('ai', "Memory full or WebGPU error. Please refresh.");
+            appendMessage('ai', "Error generating reply. Please try again or refresh.");
+            updateStatus('Error');
+        } finally {
             thinking.style.display = 'none';
+            sendBtn.disabled = false;
+            currentController = null;
         }
     }
 
     sendBtn.onclick = runChat;
-    input.onkeypress = (e) => { if(e.key === 'Enter') runChat(); };
+    input.onkeypress = (e) => { if (e.key === 'Enter') runChat(); };
+
+    // Persist telemetry & shutdown on unload
+    window.addEventListener('beforeunload', async () => {
+        try { await persistSession(); await dbPut(TELEMETRY_KEY, telemetry); } catch(e){}
+        try { await shutdownEngine(); } catch(e){}
+    });
+
+    // Expose a debug keyboard shortcut: Ctrl+M to print telemetry to console
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'm') {
+            console.log('Telemetry:', telemetry);
+            alert(`Telemetry sample: initTimes=${telemetry.initTimes.slice(-3).map(v=>Math.round(v))}ms, avgCPS=${(telemetry.avgCharsPerSec||[]).slice(-3).map(v=>Math.round(v))}`);
+        }
+    });
+
+    // Initial device-aware hint (no automatic model switch here; model already chosen)
+    (function deviceHint() {
+        const dm = navigator.deviceMemory || 'unknown';
+        const gpu = !!navigator.gpu;
+        updateStatus(`Idle • deviceMemory=${dm}GB • webgpu=${gpu ? 'yes' : 'no'}`);
+    })();
+
 </script>
 </body>
 </html>
