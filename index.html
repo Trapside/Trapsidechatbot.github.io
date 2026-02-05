@@ -357,7 +357,7 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // CRITICAL FIX: Clean model output from <|pad|> tokens and repetitions
+        // CRITICAL FIX: Clean model output from <|pad|> tokens, repetitions, AND HTML tags
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
             
@@ -368,7 +368,10 @@
                 .replace(/<\|unk\|>/g, '')
                 .trim();
             
-            // 2. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
+            // 2. CRITICAL FIX: Strip HTML/XML tags (e.g., </div>, <br/>, etc.)
+            cleaned = cleaned.replace(/<[^>]*>/g, '');
+            
+            // 3. AGGRESSIVE TRUNCATION: Stop at FIRST sign of template repetition
             const badPatterns = [
                 { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
                 { pattern: /\sHuman[:\s]/i, reason: 'new human' },
@@ -387,11 +390,11 @@
                 }
             }
             
-            // 3. Remove trailing repetitions
+            // 4. Remove trailing repetitions
             cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
             cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
             
-            // 4. Ensure proper sentence ending
+            // 5. Ensure proper sentence ending
             if (cleaned.length > 10) {
                 if (!/[.!?]$/g.test(cleaned.replace(/[")'\]]+$/, ''))) {
                     const lastGoodBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
@@ -408,13 +411,13 @@
                 }
             }
             
-            // 5. Final cleanup
+            // 6. Final cleanup
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
                 .replace(/\n{2,}/g, '\n\n')
                 .trim();
             
-            // 6. Safety net
+            // 7. Safety net
             if (cleaned.includes('<|') || cleaned.length < 5) {
                 return "I'm not sure how to answer that. Could you rephrase your question?";
             }
