@@ -78,7 +78,7 @@
             border-bottom-left-radius: 6px;
         }
         
- .system-message {
+        .system-message {
             align-self: center;
             background: #222222;
             color: #999999;
@@ -212,6 +212,10 @@
             background: #333333;
             color: #ffffff;
         }
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -256,8 +260,8 @@
 
         const wllama = new Wllama(CONFIG_PATHS);
 
-        // Add message to chat UI
-        function addMessage(content, role, isLoading = false) {
+        // Add message to chat UI - UPDATED: Added originalQuestion parameter for AI messages
+        function addMessage(content, role, isLoading = false, originalQuestion = null) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message');
             
@@ -276,46 +280,51 @@
                 }
                 
                 // NEW: Add action buttons under AI messages
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'message-actions';
-                actionsDiv.innerHTML = `
-                    <button class="action-btn copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
-                    <button class="action-btn like-btn" title="Like"><i class="fas fa-thumbs-up"></i></button>
-                    <button class="action-btn dislike-btn" title="Dislike"><i class="fas fa-thumbs-down"></i></button>
-                    <button class="action-btn share-btn" title="Share"><i class="fas fa-share"></i></button>
-                    <button class="action-btn retry-btn" title="Retry"><i class="fas fa-redo"></i></button>
-                    <button class="action-btn more-btn" title="More"><i class="fas fa-ellipsis-h"></i></button>
-                `;
-                messageEl.appendChild(actionsDiv);
-                
-                // Add event listeners for action buttons
-                const copyBtn = actionsDiv.querySelector('.copy-btn');
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(content).then(() => {
-                        const originalIcon = copyBtn.innerHTML;
-                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => {
-                            copyBtn.innerHTML = originalIcon;
-                        }, 1500);
-                    });
-                });
-                
-                const retryBtn = actionsDiv.querySelector('.retry-btn');
-                retryBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    userInput.value = content;
-                    handleChat();
-                });
-                
-                // Minimal behavior for other buttons (just log for now)
-                ['like', 'dislike', 'share', 'more'].forEach(type => {
-                    const btn = actionsDiv.querySelector(`.${type}-btn`);
-                    btn.addEventListener('click', (e) => {
+                if (!isLoading) {
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'message-actions';
+                    actionsDiv.innerHTML = `
+                        <button class="action-btn copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
+                        <button class="action-btn like-btn" title="Like"><i class="fas fa-thumbs-up"></i></button>
+                        <button class="action-btn dislike-btn" title="Dislike"><i class="fas fa-thumbs-down"></i></button>
+                        <button class="action-btn share-btn" title="Share"><i class="fas fa-share"></i></button>
+                        <button class="action-btn retry-btn" title="Retry" ${originalQuestion ? '' : 'disabled'}><i class="fas fa-redo"></i></button>
+                        <button class="action-btn more-btn" title="More"><i class="fas fa-ellipsis-h"></i></button>
+                    `;
+                    messageEl.appendChild(actionsDiv);
+                    
+                    // Add event listeners for action buttons
+                    const copyBtn = actionsDiv.querySelector('.copy-btn');
+                    copyBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log(`Button clicked: ${type}`);
+                        navigator.clipboard.writeText(content).then(() => {
+                            const originalIcon = copyBtn.innerHTML;
+                            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                            setTimeout(() => {
+                                copyBtn.innerHTML = originalIcon;
+                            }, 1500);
+                        });
                     });
-                });
+                    
+                    // FIXED: Retry now uses originalQuestion instead of AI response
+                    const retryBtn = actionsDiv.querySelector('.retry-btn');
+                    if (originalQuestion) {
+                        retryBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            userInput.value = originalQuestion;
+                            handleChat();
+                        });
+                    }
+                    
+                    // Minimal behavior for other buttons (just log for now)
+                    ['like', 'dislike', 'share', 'more'].forEach(type => {
+                        const btn = actionsDiv.querySelector(`.${type}-btn`);
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            console.log(`Button clicked: ${type}`);
+                        });
+                    });
+                }
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
@@ -410,7 +419,7 @@
                 return "I'm not sure how to answer that. Could you rephrase your question?";
             }
             
-            return cleaned || "I'm not sure how to answer that. Could you rephrase question?";
+            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
         // Build prompt with conversation history
@@ -452,6 +461,7 @@
                     }
                 );
 
+                // Welcome message has no original question - retry disabled
                 addMessage("Hi. Welcome to trapside how can i help.?", "ai");
                 
                 userInput.disabled = false;
@@ -492,7 +502,8 @@
                 
                 const cleanedResponse = cleanModelResponse(response);
                 loadingEl.remove();
-                addMessage(cleanedResponse, 'ai');
+                // FIXED: Pass original question to enable proper retry behavior
+                addMessage(cleanedResponse, 'ai', false, text);
                 
             } catch (err) {
                 console.error("Error generating response:", err);
