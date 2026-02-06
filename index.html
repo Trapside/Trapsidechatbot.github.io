@@ -238,7 +238,7 @@
         </div>
     </div>
 
-    <script type="module>
+    <script type="module">
         // Using Wllama from CDN
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
@@ -246,9 +246,8 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Store LAST user question AND bot's cleaned response for follow-ups
-        let lastUserQuestion = null;
-        let lastBotResponse = null; // Cleaned, truncated to 1 sentence
+        // Store ONLY last user message for rewriting follow-ups
+        let lastUserMessage = null;
         
         // System prompt - single-turn focused
         const SYSTEM_PROMPT = "You are a helpful AI assistant. Answer questions directly and concisely.";
@@ -261,7 +260,7 @@
 
         const wllama = new Wllama(CONFIG_PATHS);
 
-        // Add message to chat UI - UPDATED: Store bot responses for follow-ups
+        // Add message to chat UI - UPDATED: Added originalQuestion parameter for AI messages
         function addMessage(content, role, isLoading = false, originalQuestion = null) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message');
@@ -270,8 +269,8 @@
                 messageEl.classList.add('user-message');
                 const paragraphs = content.split('\n').filter(p => p.trim());
                 messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                // Store for follow-up context
-                lastUserQuestion = content;
+                // Store for follow-up rewriting
+                lastUserMessage = content;
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
                 if (isLoading) {
@@ -280,8 +279,6 @@
                     // Format AI responses with paragraphs
                     const paragraphs = content.split('\n').filter(p => p.trim());
                     messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                    // CRITICAL: Store CLEANED response for follow-ups (first sentence only)
-                    lastBotResponse = extractFirstSentence(content);
                 }
                 
                 // NEW: Add action buttons under AI messages
@@ -354,36 +351,6 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // Extract FIRST SENTENCE only (critical for tiny model stability)
-        function extractFirstSentence(text) {
-            if (!text || typeof text !== 'string') return "";
-            
-            // Clean first
-            let cleaned = text
-                .replace(/<\|pad\|>/g, '')
-                .replace(/<\|endoftext\|>/g, '')
-                .replace(/<[^>]*>/g, '')
-                .trim();
-            
-            // Split by sentence boundaries, take first meaningful sentence
-            const sentences = cleaned.split(/(?<=[.!?])\s+/);
-            if (sentences.length === 0) return cleaned.substring(0, 25) + "...";
-            
-            let first = sentences[0].trim();
-            // If first "sentence" is too short (<5 words), take first two
-            if (first.split(/\s+/).length < 5 && sentences.length > 1) {
-                first = (sentences[0] + " " + sentences[1]).trim();
-            }
-            
-            // Truncate to max 12 words to avoid overwhelming model
-            const words = first.split(/\s+/);
-            if (words.length > 12) {
-                first = words.slice(0, 12).join(' ') + "...";
-            }
-            
-            return first.replace(/[.!?]+$/, '').trim();
-        }
-        
         // CRITICAL FIX: Aggressive cleanup for ALL hallucination patterns
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
@@ -440,49 +407,44 @@
             return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
         }
         
-        // CRITICAL FIX: Rewrite follow-ups using BOT'S ACTUAL PREVIOUS ANSWER
+        // CRITICAL FIX: Rewrite follow-ups into standalone questions
         function rewriteFollowUp(currentQuestion) {
-            const q = currentQuestion.trim().toLowerCase();
+            const followUpPatterns = [
+                /^\s*(why|how|what (is|are|was|were)|when|where|who|which|can you|could you|would you|tell me more about)\b/i,
+                /^\s*(and|also|but|so|then)\b/i,
+                /^\s*(explain|describe|elaborate)/i
+            ];
             
-            // Only rewrite clear follow-ups that need previous context
-            const isWhyFollowUp = /^\s*(why|how come|how does that)\b/i.test(q);
-            const isExplainFollowUp = /^\s*(explain that|what do you mean|elaborate)\b/i.test(q);
+            // Check if this is a follow-up question
+            const isFollowUp = followUpPatterns.some(pattern => pattern.test(currentQuestion.trim()));
             
-            // Skip rewriting for topic switches or ambiguous short responses
-            const topicSwitchWords = /\b(nevermind|actually|forget|regardless|anyway|btw|by the way|on another topic|new topic)\b/i;
-            const veryShort = q.length <= 3 || /^(yes|no|ok|okay|sure|nah|yeah|yep|nope)$/i.test(q);
-            
-            if (topicSwitchWords.test(q) || veryShort || (!isWhyFollowUp && !isExplainFollowUp)) {
-                return currentQuestion; // Fresh question - no rewriting
-            }
-            
-            // CRITICAL: Only rewrite if we have a CLEAN previous bot response
-            if (lastBotResponse && lastBotResponse.length > 5) {
-                // For "why" questions: Embed the bot's statement as the thing being questioned
-                if (isWhyFollowUp) {
-                    // "Why?" + last response "Photosynthesis converts sunlight..." 
-                    // → "Why does photosynthesis convert sunlight into energy?"
-                    return `Why ${lastBotResponse.toLowerCase().replace(/^(is|are|was|were|do|does|did)\s+/i, '')}?`;
-                }
-                
-                // For "explain that": Make it explicit
-                if (isExplainFollowUp) {
-                    return `Explain: "${lastBotResponse}"`;
+            // Rewrite if we have previous context AND it's a follow-up
+            if (isFollowUp && lastUserMessage) {
+                // Simple but effective rewriting strategies
+                if (/^\s*why\b/i.test(currentQuestion.trim())) {
+                    return `Why ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
+                } else if (/^\s*how\b/i.test(currentQuestion.trim())) {
+                    return `How ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
+                } else if (/^\s*what about\b/i.test(currentQuestion.trim())) {
+                    return currentQuestion.replace(/what about/i, lastUserMessage + ' and');
+                } else {
+                    // Generic fallback: append to previous question
+                    return `${lastUserMessage} ${currentQuestion}`;
                 }
             }
             
-            return currentQuestion; // No context available - send as-is
+            return currentQuestion; // Not a follow-up - use as-is
         }
         
-        // Build prompt - SINGLE TURN ONLY (no raw context injection)
+        // Build prompt - SINGLE TURN ONLY (no context injection)
         function buildPrompt(userMessage) {
-            // Rewrite follow-ups using bot's previous answer
+            // Rewrite follow-ups BEFORE sending to model
             const rewrittenQuestion = rewriteFollowUp(userMessage);
             
-            // Optional debug: Show rewrite in UI (commented out for clean UX)
-            // if (rewrittenQuestion !== userMessage) {
-            //     addMessage(`💡 Using previous answer: "${lastBotResponse}"`, "system");
-            // }
+            // Show rewrite in UI for transparency (optional but helpful)
+            if (rewrittenQuestion !== userMessage) {
+                addMessage(`🔍 Rewrote as: "${rewrittenQuestion}"`, "system");
+            }
             
             return `SYSTEM: ${SYSTEM_PROMPT}\n\nUSER: ${rewrittenQuestion}\nASSISTANT:`;
         }
@@ -577,4 +539,3 @@
     </script>
 </body>
 </html>
-
