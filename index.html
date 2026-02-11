@@ -24,7 +24,6 @@
             line-height: 1.5;
         }
         
-        /* Main App Content */
         .container {
             height: 100vh;
             display: flex;
@@ -33,7 +32,6 @@
             overflow: hidden;
         }
         
-        /* Header */
         .header {
             padding: 16px;
             text-align: center;
@@ -43,7 +41,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        /* Chat Area */
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -53,7 +50,6 @@
             gap: 16px;
         }
         
-        /* Messages */
         .message {
             max-width: 85%;
             padding: 14px 18px;
@@ -108,7 +104,6 @@
             60%, 100% { content: '...'; }
         }
         
-        /* Input Area */
         .input-area {
             padding: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -177,7 +172,6 @@
             font-size: 18px;
         }
         
-        /* Hide default scrollbar */
         .chat-area::-webkit-scrollbar {
             display: none;
         }
@@ -187,7 +181,6 @@
             scrollbar-width: none;
         }
         
-        /* NEW: Message action buttons */
         .message-actions {
             display: flex;
             gap: 8px;
@@ -224,7 +217,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                The AI is currently downloading its knowledge files (113MB). Think of this as the model getting its thoughts in order before it starts talking.<br>⏳ Almost Ready<br>It should be finished and ready to use in about a minute or less.
+                The AI is currently downloading its knowledge files (250MB). Think of this as the model getting its thoughts in order before it starts talking.<br>⏳ Almost Ready<br>It should be finished and ready to use in about a minute or less.
             </div>
         </div>
         
@@ -239,28 +232,24 @@
     </div>
 
     <script type="module">
-        // Using Wllama from CDN
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Store ONLY last user message for rewriting follow-ups
-        let lastUserMessage = null;
+        // Store ONLY last bot response (first sentence) for follow-ups
+        let lastBotResponse = null;
         
-        // System prompt - single-turn focused
-        const SYSTEM_PROMPT = "You are a helpful AI assistant. Answer questions directly and concisely.";
+        const SYSTEM_PROMPT = "You are a helpful AI assistant. Answer directly and concisely.";
         
-        // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         };
 
         const wllama = new Wllama(CONFIG_PATHS);
 
-        // Add message to chat UI - UPDATED: Added originalQuestion parameter for AI messages
         function addMessage(content, role, isLoading = false, originalQuestion = null) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message');
@@ -269,19 +258,17 @@
                 messageEl.classList.add('user-message');
                 const paragraphs = content.split('\n').filter(p => p.trim());
                 messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                // Store for follow-up rewriting
-                lastUserMessage = content;
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
                 if (isLoading) {
                     messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
                 } else {
-                    // Format AI responses with paragraphs
                     const paragraphs = content.split('\n').filter(p => p.trim());
                     messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+                    // Store CLEAN first sentence for follow-ups (max 12 words)
+                    lastBotResponse = extractFirstSentence(content);
                 }
                 
-                // NEW: Add action buttons under AI messages
                 if (!isLoading) {
                     const actionsDiv = document.createElement('div');
                     actionsDiv.className = 'message-actions';
@@ -295,7 +282,6 @@
                     `;
                     messageEl.appendChild(actionsDiv);
                     
-                    // Add event listeners for action buttons
                     const copyBtn = actionsDiv.querySelector('.copy-btn');
                     copyBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -305,10 +291,9 @@
                             setTimeout(() => {
                                 copyBtn.innerHTML = originalIcon;
                             }, 1500);
-                        });
+                        }).catch(() => {});
                     });
                     
-                    // FIXED: Retry now uses originalQuestion instead of AI response
                     const retryBtn = actionsDiv.querySelector('.retry-btn');
                     if (originalQuestion) {
                         retryBtn.addEventListener('click', (e) => {
@@ -318,12 +303,10 @@
                         });
                     }
                     
-                    // Minimal behavior for other buttons (just log for now)
                     ['like', 'dislike', 'share', 'more'].forEach(type => {
                         const btn = actionsDiv.querySelector(`.${type}-btn`);
                         btn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            console.log(`Button clicked: ${type}`);
                         });
                     });
                 }
@@ -341,7 +324,6 @@
             return messageEl;
         }
         
-        // Escape HTML to prevent XSS
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -351,34 +333,55 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // CRITICAL FIX: Aggressive cleanup for ALL hallucination patterns
+        // Extract FIRST SENTENCE only (max 12 words) - critical for stability
+        function extractFirstSentence(text) {
+            if (!text || typeof text !== 'string') return "";
+            
+            let cleaned = text
+                .replace(/<\|pad\|>/g, '')
+                .replace(/<\|endoftext\|>/g, '')
+                .replace(/<[^>]*>/g, '')
+                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN)\b[:\s]*/gi, '')
+                .trim();
+            
+            // Get first sentence boundary
+            const match = cleaned.match(/^[^.!?]+[.!?]?/);
+            let first = match ? match[0].trim() : cleaned.substring(0, 40) + "...";
+            
+            // Truncate to 12 words MAX
+            const words = first.split(/\s+/);
+            if (words.length > 12) {
+                first = words.slice(0, 12).join(' ');
+                if (!/[.!?]$/.test(first)) first += "...";
+            }
+            
+            return first.replace(/[.!?]+$/, '').trim();
+        }
+        
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
             
-            // 1. Remove special tokens AND hallucinated prefixes
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
-                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN|Creating a plan|USER|ASSISTANT)\b[:\s]*/gi, '')
+                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN|Creating a plan|USER|ASSISTANT|HARDWARE)\b[:\s]*/gi, '')
                 .replace(/\[Previous answer\]/gi, '')
+                .replace(/<[^>]*>/g, '')
                 .trim();
             
-            // 2. Strip HTML/XML tags
-            cleaned = cleaned.replace(/<[^>]*>/g, '');
-            
-            // 3. AGGRESSIVE TRUNCATION: Stop at FIRST sign of degeneration
+            // Aggressive truncation patterns
             const badPatterns = [
-                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i, reason: 'numbered list degeneration' },
-                { pattern: /\sQuestion[:\s]/i, reason: 'new question' },
-                { pattern: /\sHuman[:\s]/i, reason: 'new human' },
-                { pattern: /\sUser[:\s]/i, reason: 'new user' },
-                { pattern: /\sAnswer[:\s]/i, reason: 'repeated answer' },
-                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i, reason: 'self-generated Q&A' },
-                { pattern: /Creating a (plan|Plan) [A-Z]\?/i, reason: 'plan hallucination' },
-                { pattern: /<\|/i, reason: 'special token' },
-                { pattern: /\n{3,}/, reason: 'excessive newlines' },
-                { pattern: /(?:[.!?]\s*["']?\s*){3,}/, reason: 'excessive punctuation' }
+                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i },
+                { pattern: /\sQuestion[:\s]/i },
+                { pattern: /\sHuman[:\s]/i },
+                { pattern: /\sUser[:\s]/i },
+                { pattern: /\sAnswer[:\s]/i },
+                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i },
+                { pattern: /Creating a (plan|Plan) [A-Z]\?/i },
+                { pattern: /<\|/i },
+                { pattern: /\n{3,}/ },
+                { pattern: /\bwhy\s+is\s+a\s+plan\s+[A-Z]\?/i }
             ];
             
             for (const { pattern } of badPatterns) {
@@ -389,80 +392,78 @@
                 }
             }
             
-            // 4. Remove trailing repetitions
+            // Remove repetitions
             cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
             cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
             
-            // 5. Final cleanup
+            // Final cleanup
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
-                .replace(/\n{2,}/g, '\n\n')
+                .replace(/\n{2,}/g, ' ')
                 .trim();
             
-            // 6. Safety net
-            if (cleaned.includes('<|') || cleaned.length < 5 || /\b(PAD|HARDWARE)\b/i.test(cleaned)) {
-                return "I'm not sure how to answer that. Could you rephrase your question?";
+            // Safety net
+            if (cleaned.includes('<|') || cleaned.length < 5 || /\b(PAD|HARDWARE|PLAN)\b/i.test(cleaned)) {
+                return "I'm not sure how to answer that. Could you rephrase?";
             }
             
-            return cleaned || "I'm not sure how to answer that. Could you rephrase your question?";
+            return cleaned || "I'm not sure how to answer that. Could you rephrase?";
         }
         
-        // CRITICAL FIX: Rewrite follow-ups into standalone questions
-        function rewriteFollowUp(currentQuestion) {
-            const followUpPatterns = [
-                /^\s*(why|how|what (is|are|was|were)|when|where|who|which|can you|could you|would you|tell me more about)\b/i,
-                /^\s*(and|also|but|so|then)\b/i,
-                /^\s*(explain|describe|elaborate)/i
-            ];
+        // SMART query rewriting using BOT'S OWN previous answer
+        function rewriteFollowUp(question) {
+            const q = question.trim().toLowerCase();
             
-            // Check if this is a follow-up question
-            const isFollowUp = followUpPatterns.some(pattern => pattern.test(currentQuestion.trim()));
+            // Detect follow-ups needing context
+            const isWhy = /^\s*(why|how come|how does that)\b/i.test(q);
+            const isExplain = /^\s*(explain that|what do you mean|elaborate|tell me more)\b/i.test(q);
             
-            // Rewrite if we have previous context AND it's a follow-up
-            if (isFollowUp && lastUserMessage) {
-                // Simple but effective rewriting strategies
-                if (/^\s*why\b/i.test(currentQuestion.trim())) {
-                    return `Why ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
-                } else if (/^\s*how\b/i.test(currentQuestion.trim())) {
-                    return `How ${lastUserMessage.toLowerCase().replace(/[.?]$/, '')}?`;
-                } else if (/^\s*what about\b/i.test(currentQuestion.trim())) {
-                    return currentQuestion.replace(/what about/i, lastUserMessage + ' and');
-                } else {
-                    // Generic fallback: append to previous question
-                    return `${lastUserMessage} ${currentQuestion}`;
+            // Skip rewriting for topic switches or short responses
+            const topicSwitch = /\b(nevermind|actually|forget|anyway|btw|by the way|new topic|different topic)\b/i;
+            const veryShort = q.length <= 3 || /^(yes|no|ok|sure|nah|yeah|yep|nope)$/i.test(q);
+            
+            if (topicSwitch.test(q) || veryShort || (!isWhy && !isExplain)) {
+                return question; // Fresh question
+            }
+            
+            // ONLY rewrite if we have a clean previous bot response
+            if (lastBotResponse && lastBotResponse.length > 8) {
+                if (isWhy) {
+                    // "Why?" + last response "Photosynthesis converts sunlight..."
+                    // → "Why does photosynthesis convert sunlight?"
+                    let rewritten = `Why ${lastBotResponse.toLowerCase()}`;
+                    rewritten = rewritten.replace(/^(is|are|was|were|do|does|did)\s+/, '');
+                    return rewritten.endsWith('?') ? rewritten : rewritten + '?';
+                }
+                
+                if (isExplain) {
+                    return `Explain this: "${lastBotResponse}"`;
                 }
             }
             
-            return currentQuestion; // Not a follow-up - use as-is
+            return question; // No context - send as-is
         }
         
-        // Build prompt - SINGLE TURN ONLY (no context injection)
         function buildPrompt(userMessage) {
-            // Rewrite follow-ups BEFORE sending to model
-            const rewrittenQuestion = rewriteFollowUp(userMessage);
-            
-            // Show rewrite in UI for transparency (optional but helpful)
-            if (rewrittenQuestion !== userMessage) {
-                addMessage(`🔍 Rewrote as: "${rewrittenQuestion}"`, "system");
-            }
-            
-            return `SYSTEM: ${SYSTEM_PROMPT}\n\nUSER: ${rewrittenQuestion}\nASSISTANT:`;
+            const rewritten = rewriteFollowUp(userMessage);
+            return `SYSTEM: ${SYSTEM_PROMPT}\n\nUSER: ${rewritten}\nASSISTANT:`;
         }
 
         async function init() {
             try {
+                // CRITICAL CHANGE: Load Pythia-410M-deduped instead of GPT-2
                 await wllama.loadModelFromHF(
-                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
-                    'chat-GPT2.Q4_K.gguf', 
+                    'TheBloke/pythia-410m-deduped-GGUF', 
+                    'pythia-410m-deduped.Q4_K_M.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
                             if (progress < 100) {
-                                const progressEl = chatBox.querySelector('.progress');
-                                if (progressEl) {
-                                    progressEl.textContent = `Downloading model: ${progress}%`;
-                                } else {
+                                if (!chatBox.querySelector('.download-progress')) {
                                     addMessage(`Downloading model: ${progress}%`, "system");
+                                    chatBox.lastElementChild.classList.add('download-progress');
+                                } else {
+                                    chatBox.querySelector('.download-progress').innerHTML = `Downloading model: ${progress}%`;
                                 }
                             }
                         }
@@ -470,12 +471,11 @@
                 );
 
                 addMessage("Hi. Welcome to trapside how can i help.?", "ai");
-                
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             } catch (err) {
-                const errorMsg = err.message || 'Failed to load model. This might be due to browser restrictions (try Chrome/Firefox) or network issues.';
+                const errorMsg = err.message || 'Failed to load model. Requires iPhone 6S+ (2GB RAM) or Android 7.0+ with 2GB RAM.';
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
             }
@@ -497,13 +497,13 @@
                 const prompt = buildPrompt(text);
                 
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 90,
+                    nPredict: 85,   // Shorter to avoid degeneration
                     sampling: { 
-                        temp: 0.5,
+                        temp: 0.45,   // Ultra-conservative for stability
                         top_k: 25,
                         top_p: 0.85,
-                        repeat_penalty: 1.6,
-                        frequency_penalty: 0.7
+                        repeat_penalty: 1.65, // Maximum repetition prevention
+                        frequency_penalty: 0.75
                     }
                 });
                 
@@ -514,7 +514,7 @@
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage("I encountered an error while processing your request. Please try again.", "error");
+                addMessage("I encountered an error. Please try again.", "error");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
@@ -539,3 +539,4 @@
     </script>
 </body>
 </html>
+
