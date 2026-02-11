@@ -7,60 +7,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, sans-serif; background: #0b0b0b; color: #fff; height: 100vh; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0b0b0b; color: #fff; height: 100vh; overflow: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; position: relative; }
         
-        /* Header */
         .header { padding: 16px; border-bottom: 1px solid #222; display: flex; justify-content: center; align-items: center; background: #111; }
-        .brand { font-weight: bold; font-size: 20px; color: #007bff; letter-spacing: 1px; }
+        .brand { font-weight: 800; font-size: 18px; color: #007bff; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* Chat View */
-        .view { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 16px; gap: 16px; }
+        .view { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 16px; gap: 16px; scroll-behavior: smooth; }
         #chat-box { display: flex; flex-direction: column; gap: 14px; }
         .message-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
-        .message { max-width: 75%; padding: 12px 16px; border-radius: 18px; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
-        .user-message { background: #007bff; color: #fff; border-top-right-radius: 2px; }
-        .ai-message { background: #222; border: 1px solid #333; border-top-left-radius: 2px; }
+        .message { max-width: 80%; padding: 14px 18px; border-radius: 20px; line-height: 1.6; font-size: 15px; word-wrap: break-word; }
+        .user-message { background: #007bff; color: #fff; border-top-right-radius: 4px; }
+        .ai-message { background: #1c1c1e; border: 1px solid #2d2d2d; border-top-left-radius: 4px; color: #e1e1e1; }
         
-        /* Thinking Loader Pulse */
-        .thinking { font-style: italic; color: #666; animation: thinkingPulse 1.5s infinite ease-in-out; }
-        @keyframes thinkingPulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
-        }
+        /* Thinking State */
+        .thinking { font-weight: 500; color: #555; animation: pulse 1.2s infinite ease-in-out; display: flex; align-items: center; gap: 8px; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
 
-        /* Speak Toggles */
         .speak-btn { 
-            background: #2a2a2a; border: none; color: #aaa; width: 34px; height: 34px; 
+            background: #252525; border: 1px solid #333; color: #888; width: 36px; height: 36px; 
             border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; margin-top: 5px; flex-shrink: 0;
+            transition: all 0.2s; margin-top: 4px; flex-shrink: 0;
         }
-        .speak-btn.active { color: #fff; background: #007bff; }
+        .speak-btn.active { color: #fff; background: #007bff; border-color: #007bff; box-shadow: 0 0 10px rgba(0,123,255,0.4); }
 
-        /* Input Area */
-        .input-area { padding: 16px; border-top: 1px solid #222; background: #111; }
-        .input-container { display: flex; gap: 10px; }
-        .input-field { flex: 1; background: #1c1c1c; border: 1px solid #333; border-radius: 22px; padding: 12px 18px; color: #fff; font-size: 16px; outline: none; }
-        .send-btn { background: #007bff; border: none; border-radius: 50%; width: 46px; height: 46px; color: #fff; cursor: pointer; }
-        .send-btn:disabled { opacity: 0.2; }
+        .input-area { padding: 20px; border-top: 1px solid #222; background: #0b0b0b; }
+        .input-container { display: flex; gap: 12px; max-width: 800px; margin: 0 auto; width: 100%; }
+        .input-field { flex: 1; background: #18181a; border: 1px solid #2d2d2d; border-radius: 24px; padding: 14px 20px; color: #fff; font-size: 16px; outline: none; transition: 0.2s; resize: none; }
+        .input-field:focus { border-color: #007bff; background: #1c1c1e; }
+        .send-btn { background: #007bff; border: none; border-radius: 50%; width: 48px; height: 48px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .send-btn:disabled { opacity: 0.15; cursor: default; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <span class="brand">TRAPSIDE</span>
-        </div>
-        
-        <div class="view" id="scroll-area">
-            <div id="chat-box"></div>
-        </div>
-        
+        <div class="header"><span class="brand">Trapside</span></div>
+        <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Message Trapside..." rows="1" disabled></textarea>
-                <button id="send-btn" class="send-btn" disabled><i class="fas fa-paper-plane"></i></button>
+                <textarea id="user-input" class="input-field" placeholder="Type a message..." rows="1" disabled></textarea>
+                <button id="send-btn" class="send-btn" disabled><i class="fas fa-arrow-up"></i></button>
             </div>
         </div>
     </div>
@@ -70,40 +57,18 @@
 
         const synth = window.speechSynthesis;
         let activeBtn = null;
+        const PITCH = 1.5;
+        const RATE = 1.0;
 
-        // Locked Voice Settings
-        const LOCKED_PITCH = 1.5; // 150%
-        const LOCKED_RATE = 1.0;  // 100%
-
-        function speakLogic(text, btn) {
-            if (synth.speaking && activeBtn === btn) {
-                synth.cancel();
-                btn.classList.remove('active');
-                activeBtn = null;
-                return;
-            }
-
-            if (synth.speaking) {
-                synth.cancel();
-                if (activeBtn) activeBtn.classList.remove('active');
-            }
+        function speak(text, btn) {
+            if (synth.speaking && activeBtn === btn) { synth.cancel(); return; }
+            if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
 
             const utter = new SpeechSynthesisUtterance(text);
-            const voices = synth.getVoices();
-            // Prioritize Daniel, fallback to system default
-            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
-            utter.pitch = LOCKED_PITCH;
-            utter.rate = LOCKED_RATE;
-
-            utter.onstart = () => {
-                btn.classList.add('active');
-                activeBtn = btn;
-            };
-            utter.onend = () => {
-                btn.classList.remove('active');
-                if (activeBtn === btn) activeBtn = null;
-            };
-
+            const daniel = synth.getVoices().find(v => v.name.includes("Daniel")) || synth.getVoices()[0];
+            utter.voice = daniel; utter.pitch = PITCH; utter.rate = RATE;
+            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+            utter.onend = () => { btn.classList.remove('active'); activeBtn = null; };
             synth.speak(utter);
         }
 
@@ -124,7 +89,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speakLogic(text, btn);
+                btn.onclick = () => speak(text, btn);
                 row.appendChild(btn);
             }
             document.getElementById('chat-box').appendChild(row);
@@ -137,8 +102,8 @@
                 await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
                 document.getElementById('user-input').disabled = false;
                 document.getElementById('send-btn').disabled = false;
-                addMessage("Trapside is online. Voice locked to 150% Pitch.", "ai");
-            } catch (e) { alert("Initialization Error"); }
+                addMessage("Trapside is online. How can I help?", "ai");
+            } catch (e) { addMessage("System Offline. Please refresh.", "ai"); }
         }
 
         async function handleChat() {
@@ -148,31 +113,30 @@
             document.getElementById('user-input').value = '';
             
             const loader = addMessage("Thinking...", 'ai', true);
-            const prompt = `<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
+            
+            // Claude Opus Persona Prompting
+            const system = "You are Trapside, a highly intelligent assistant similar to Claude Opus. Your tone is warm, precise, and thoughtful. Provide nuanced, helpful answers. Avoid generic AI phrases. If the user asks a complex question, explain your reasoning clearly.";
+            const prompt = `<|im_start|>system\n${system}<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
             
             const result = await wllama.createCompletion(prompt, { 
-                nPredict: 200, 
+                nPredict: 300, 
                 stop: ["<|im_end|>"],
-                sampling: { temp: 0.7 }
+                sampling: { temp: 0.7, top_p: 0.9, repeat_penalty: 1.2 }
             });
 
-            // Remove thinking state and update text
+            const clean = result.trim();
             loader.classList.remove('thinking');
-            loader.innerText = result.trim();
+            loader.innerText = clean;
             
-            // Add speaker button after text is generated
             const btn = document.createElement('button');
             btn.className = 'speak-btn';
             btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            btn.onclick = () => speakLogic(result.trim(), btn);
+            btn.onclick = () => speak(clean, btn);
             loader.parentElement.appendChild(btn);
         }
 
         document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('user-input').onkeydown = (e) => { 
-            if(e.key === 'Enter') handleChat(); 
-        };
-        
+        document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
         window.speechSynthesis.getVoices();
         init();
     </script>
