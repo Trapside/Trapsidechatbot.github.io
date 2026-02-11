@@ -89,39 +89,6 @@
             padding: 10px 16px;
         }
         
-        .error-message {
-            background: #4a0000;
-            color: #ff8888;
-            border-radius: 18px;
-            padding: 12px 16px;
-            max-width: 90%;
-            font-size: 15px;
-            line-height: 1.5;
-            border-left: 3px solid #ff4444;
-        }
-        
-        .success-message {
-            background: #1a3a1a;
-            color: #a0e0a0;
-            border-radius: 18px;
-            padding: 12px 16px;
-            max-width: 90%;
-            font-size: 15px;
-            line-height: 1.5;
-            border-left: 3px solid #4CAF50;
-        }
-        
-        .warning-message {
-            background: #3a2a00;
-            color: #ffcc00;
-            border-radius: 18px;
-            padding: 12px 16px;
-            max-width: 90%;
-            font-size: 15px;
-            line-height: 1.5;
-            border-left: 3px solid #ffcc00;
-        }
-        
         .loading-dots {
             display: inline-block;
             color: #999999;
@@ -219,37 +186,15 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
-        /* Debug info styling */
-        .debug-info {
-            background: #2a2a2a;
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 12px;
-            font-size: 13px;
-            line-height: 1.4;
-            color: #aaa;
-        }
-        
-        .debug-info strong {
-            color: #fff;
-        }
-        
-        .debug-info code {
-            background: #333;
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #ffcc00;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">Pythia 160M Chat</div>
+        <div class="header">New chat</div>
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing AI agent. Downloading Pythia 160M (~190MB)...
+                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~110MB)...
             </div>
         </div>
         
@@ -264,59 +209,52 @@
     </div>
 
     <script type="module">
-        // ==================== DEBUG MODE ====================
-        const DEBUG_MODE = true;
-        
-        // Log helper for debugging
-        function logDebug(message, data = null) {
-            if (DEBUG_MODE) {
-                console.log(`[DEBUG] ${message}`, data ? data : '');
-            }
-        }
-        
-        // ==================== IMPORTS ====================
-        logDebug('Loading Wllama library...');
+        // Using Wllama from CDN
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-        // ==================== DOM ELEMENTS ====================
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // ==================== STATE ====================
+        // Conversation history with enhanced context tracking
         let conversationHistory = [];
-        let wllamaInstance = null;
-        let isModelLoaded = false;
         
-        // ==================== SYSTEM PROMPT ====================
-        const SYSTEM_PROMPT = `You are a helpful AI assistant. Think carefully before answering. Be concise and informative.`;
+        // SMART AGENT SYSTEM PROMPT - Transforms Pythia into a reasoning agent
+        const SYSTEM_PROMPT = `You are TinyAgent, a thoughtful AI assistant. Always:
+1. Think step by step before answering
+2. Break down complex questions into logical steps
+3. Admit when you don't know something
+4. Provide concise but complete answers
+5. Verify facts internally before responding
+6. Avoid speculation - stick to established knowledge
+7. If uncertain, say "I'm not certain, but based on general knowledge..."
 
-        // ==================== CONFIGURATION ====================
+Reasoning format:
+Question: [user question]
+Reasoning: First, I need to consider... Next,... Finally,...
+Answer: [concise answer]`;
+
+        // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         };
 
-        // iPhone optimizations
-        const MODEL_CONFIG = {
-            n_threads: 1,        // Single thread for iPhone compatibility
-            n_ctx: 512,          // Smaller context = less memory
-            seed: -1,            // Random seed
-        };
+        const wllama = new Wllama(CONFIG_PATHS);
 
-        // ==================== MESSAGE FUNCTIONS ====================
+        // Add message to chat UI
         function addMessage(content, role, isLoading = false) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message');
             
             if (role === 'user') {
                 messageEl.classList.add('user-message');
-                messageEl.innerHTML = `<p>${escapeHtml(content)}</p>`;
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
                 if (isLoading) {
                     messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
                 } else {
+                    // Format AI responses with paragraphs
                     const paragraphs = content.split('\n').filter(p => p.trim());
                     messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
                 }
@@ -324,23 +262,17 @@
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
             } else if (role === 'error') {
-                messageEl.classList.add('error-message');
-                messageEl.innerHTML = content;
-            } else if (role === 'success') {
-                messageEl.classList.add('success-message');
-                messageEl.innerHTML = content;
-            } else if (role === 'warning') {
-                messageEl.classList.add('warning-message');
-                messageEl.innerHTML = content;
+                messageEl.classList.add('system-message');
+                messageEl.innerHTML = `<strong>Error:</strong> ${escapeHtml(content)}`;
             }
             
             chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
             
-            // Track conversation history
             if (role === 'user' || role === 'ai') {
                 conversationHistory.push({ role, content });
-                if (conversationHistory.length > 4) {
+                // Keep history manageable (last 3 exchanges for better context)
+                if (conversationHistory.length > 6) {
                     conversationHistory.shift();
                 }
             }
@@ -348,7 +280,7 @@
             return messageEl;
         }
         
-        // ==================== UTILITY FUNCTIONS ====================
+        // Escape HTML to prevent XSS
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -358,384 +290,164 @@
                 .replace(/'/g, "&#039;");
         }
         
-        function isiPhone() {
-            return /iPhone/.test(navigator.userAgent);
-        }
-        
-        function getiOSVersion() {
-            const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-            return match ? `${match[1]}.${match[2] || 0}.${match[3] || 0}` : 'Unknown';
-        }
-        
-        function getBrowserInfo() {
-            return {
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language,
-                memory: navigator.deviceMemory || 'Unknown',
-                hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown'
-            };
-        }
-        
-        // ==================== RESPONSE CLEANING ====================
+        // Advanced response cleaning with intelligence-aware processing
         function cleanModelResponse(text) {
-            if (!text || typeof text !== 'string') {
-                logDebug('Clean response: Invalid input');
-                return "I need to think about that.";
-            }
+            if (!text || typeof text !== 'string') return "I need to think about that more carefully.";
             
-            // Remove special tokens
+            // Remove special tokens completely
             let cleaned = text
-                .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|pad\|>/g, '')
+                .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
-                .replace(/<\/s>/g, '')  // Pythia stop token
-                .replace(/<s>/g, '')
                 .trim();
             
-            logDebug('After token removal:', cleaned);
+            // Extract only the Answer portion if reasoning format was used
+            const answerMatch = cleaned.match(/(?:Answer:|answer:|ANSWER:)\s*(.*)/i);
+            if (answerMatch && answerMatch[1].trim().length > 5) {
+                cleaned = answerMatch[1].trim();
+            }
+            
+            // Remove reasoning traces that leaked into output
+            cleaned = cleaned
+                .replace(/Reasoning:.*?(?=Answer:|$)/gs, '')
+                .replace(/First,.*?Next,.*?Finally,/gs, '')
+                .replace(/Let me think step by step\./gi, '')
+                .trim();
             
             // Truncate at problematic patterns
             const badPatterns = [
-                /\n\s*\n\s*(?:Human|User|Question|Q:)/i,
+                /\n\s*\n\s*(?:Question|Human|User):/i,
+                /<\|/,
+                /\n{3,}/,
                 /(?:\. ){4,}/,
-                /\.{4,}/
+                /I need to think about that more carefully/i
             ];
             
             for (const pattern of badPatterns) {
                 const match = cleaned.match(pattern);
-                if (match && match.index > 20) {
+                if (match && match.index > 30) {
                     cleaned = cleaned.substring(0, match.index).trim();
-                    logDebug('Truncated at pattern:', pattern);
                     break;
                 }
             }
             
-            // Remove excessive whitespace
-            cleaned = cleaned
-                .replace(/\s+/g, ' ')
-                .replace(/\n{3,}/g, '\n\n')
-                .trim();
+            // Remove repetitions aggressively
+            cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
+            cleaned = cleaned.replace(/(.{12,}?)\1{1,}/g, '$1');
             
-            logDebug('After whitespace cleanup:', cleaned);
-            
-            // Quality checks
-            if (cleaned.length < 5 || cleaned.split(' ').length < 2) {
-                logDebug('Clean response: Failed quality check');
-                return "I'm not certain. Could you rephrase your question?";
+            // Ensure proper sentence ending with intelligence-aware rules
+            if (cleaned.length > 15) {
+                // Remove trailing incomplete phrases
+                cleaned = cleaned.replace(/(?:and so on|etc\.?|and more|I think|maybe|perhaps).*$/gi, '').trim();
+                
+                // If ends with comma or weak connector, truncate to last strong punctuation
+                if (/[,\-–—]$/g.test(cleaned) || /\b(but|and|or|because)$/i.test(cleaned)) {
+                    const lastStrongBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
+                    if (lastStrongBreak > cleaned.length - 40 && lastStrongBreak > 25) {
+                        cleaned = cleaned.substring(0, lastStrongBreak + 1).trim();
+                    }
+                }
+                
+                // Ensure doesn't end with weak phrases
+                const weakEndings = [
+                    /\s+(and|but|because|although|however|though)$/i,
+                    /\s+I think\.?$/i,
+                    /\s+maybe\.?$/i,
+                    /\s+perhaps\.?$/i,
+                    /\s+probably\.?$/i
+                ];
+                
+                for (const pattern of weakEndings) {
+                    if (pattern.test(cleaned)) {
+                        const lastPeriod = cleaned.lastIndexOf('.');
+                        if (lastPeriod > cleaned.length - 50 && lastPeriod > 20) {
+                            cleaned = cleaned.substring(0, lastPeriod + 1).trim();
+                        }
+                        break;
+                    }
+                }
             }
             
-            // Ensure proper sentence ending
-            if (cleaned.length > 30 && !/[.!?]$/.test(cleaned)) {
+            // Final cleanup
+            cleaned = cleaned
+                .replace(/\s+/g, ' ')
+                .replace(/\n{2,}/g, '\n\n')
+                .trim()
+                .replace(/^[\s.,;:!?]+|[\s.,;:!?]+$/g, '');
+            
+            // Quality checks
+            if (cleaned.includes('<|') || 
+                cleaned.length < 8 || 
+                cleaned.split(' ').length < 3 ||
+                /^OK\.?$|^Yes\.?$|^No\.?$/i.test(cleaned)) {
+                return "I need to think about that more carefully. Could you rephrase or ask something more specific?";
+            }
+            
+            // Add thoughtful closure if response seems cut off
+            if (cleaned.length > 40 && !/[.!?]$/.test(cleaned.replace(/[")'\]]+$/, ''))) {
                 cleaned += '.';
             }
             
-            logDebug('Final cleaned response:', cleaned);
-            return cleaned;
+            return cleaned || "I need to think about that more carefully. Could you rephrase your question?";
         }
         
-        // ==================== PROMPT BUILDING ====================
+        // Build intelligent prompt with chain-of-thought scaffolding
         function buildPrompt(userMessage) {
-            logDebug('Building prompt for:', userMessage);
-            
-            // Simple format for Pythia (not chat-tuned)
+            // Start with strong system identity
             let prompt = `${SYSTEM_PROMPT}\n\n`;
             
-            // Add recent conversation history
-            const historyCount = Math.min(2, conversationHistory.length);
+            // Add recent conversation with reasoning context
+            const historyCount = Math.min(3, conversationHistory.length);
             for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
                 const msg = conversationHistory[i];
-                prompt += `${msg.role === 'user' ? 'Q' : 'A'}: ${msg.content}\n`;
+                if (msg.role === 'user') {
+                    prompt += `Question: ${msg.content}\n`;
+                } else if (msg.role === 'ai') {
+                    const cleanResp = cleanModelResponse(msg.content);
+                    prompt += `Answer: ${cleanResp}\n\n`;
+                }
             }
             
-            prompt += `Q: ${userMessage}\nA:`;
+            // CRITICAL: Add chain-of-thought scaffolding for current question
+            prompt += `Question: ${userMessage}\nReasoning: First, I need to understand the question. `;
             
-            logDebug('Generated prompt:', prompt);
+            // Add domain-specific reasoning hints based on question type
+            const lowerMsg = userMessage.toLowerCase();
+            if (/\bwhy\b|\bhow\b/.test(lowerMsg)) {
+                prompt += `I should break this down into cause-and-effect steps. Next, I'll consider the key factors involved. Finally, I'll formulate a clear explanation.`;
+            } else if (/\bwhat is\b|\bdefine\b|\bexplain\b/.test(lowerMsg)) {
+                prompt += `I should identify the core concept, its key characteristics, and provide a concise definition with context.`;
+            } else if (/\bwhen\b|\bwhere\b/.test(lowerMsg)) {
+                prompt += `I need to recall factual information about time or location, being careful not to speculate if uncertain.`;
+            } else if (/\bwho\b/.test(lowerMsg)) {
+                prompt += `I should identify the person or entity, their significance, and relevant context.`;
+            } else {
+                prompt += `I'll analyze the key elements of the question, consider relevant knowledge, and provide a thoughtful response.`;
+            }
+            
+            prompt += `\nAnswer:`;
             return prompt;
         }
-        
-        // ==================== ERROR ANALYSIS ====================
-        function analyzeError(error) {
-            logDebug('Analyzing error:', error);
-            
-            const diag = {
-                code: 'ERR_UNKNOWN',
-                title: 'Unknown Error',
-                description: 'An unexpected error occurred.',
-                steps: [],
-                details: []
-            };
-            
-            diag.details.push(`Error name: ${error.name}`);
-            diag.details.push(`Error message: ${error.message}`);
-            diag.details.push(`Stack trace: ${error.stack ? error.stack.substring(0, 200) : 'N/A'}`);
-            
-            // CORS errors
-            if (/CORS|cors|cross-origin|cross origin/i.test(error.message)) {
-                diag.code = 'ERR_CORS';
-                diag.title = 'CORS Error';
-                diag.description = 'The server blocked the model download due to security restrictions.';
-                diag.steps = [
-                    'This is a server configuration issue, not your fault',
-                    'The model host must enable CORS headers',
-                    'Try a different model or hosting service'
-                ];
-            }
-            // 404/403 errors
-            else if (/404|403|not found|forbidden/i.test(error.message)) {
-                diag.code = 'ERR_NOT_FOUND';
-                diag.title = 'Model Not Found';
-                diag.description = 'The model file could not be located at the specified URL.';
-                diag.steps = [
-                    'Verify the model repository exists on Hugging Face',
-                    'Check the filename is correct',
-                    'Try a different quantization (e.g., Q4_K_M)'
-                ];
-            }
-            // Network errors
-            else if (/network|fetch|failed to fetch|load/i.test(error.message.toLowerCase())) {
-                diag.code = 'ERR_NETWORK';
-                diag.title = 'Network Error';
-                diag.description = 'Could not connect to download the model.';
-                diag.steps = [
-                    'Check your internet connection',
-                    'Try using Wi-Fi instead of cellular data',
-                    'Refresh the page and try again',
-                    'Check if your network has restrictions'
-                ];
-            }
-            // Memory errors
-            else if (/memory|allocation|out of memory|heap/i.test(error.message.toLowerCase())) {
-                diag.code = 'ERR_MEMORY';
-                diag.title = 'Memory Error';
-                diag.description = 'Your device ran out of memory while loading the model.';
-                diag.steps = [
-                    'Close all other browser tabs',
-                    'Close background apps on your device',
-                    'Try a smaller model (e.g., GPT-2 117M)',
-                    'Restart your browser/device'
-                ];
-            }
-            // WebAssembly errors
-            else if (/wasm|WebAssembly|instantiate|compile/i.test(error.message)) {
-                diag.code = 'ERR_WASM';
-                diag.title = 'WebAssembly Error';
-                diag.description = 'Your browser doesn\'t support required WebAssembly features.';
-                diag.steps = [
-                    'Update your browser to the latest version',
-                    'Try Chrome or Firefox (better WASM support)',
-                    'Enable WebAssembly in browser settings',
-                    'Check for browser extensions blocking WASM'
-                ];
-            }
-            // Timeout errors
-            else if (/timeout|timed out/i.test(error.message.toLowerCase())) {
-                diag.code = 'ERR_TIMEOUT';
-                diag.title = 'Download Timeout';
-                diag.description = 'The model download took too long and was canceled.';
-                diag.steps = [
-                    'Check your internet connection speed',
-                    'Try downloading on a faster network',
-                    'Be patient - large files take time on slow connections'
-                ];
-            }
-            // Generic errors
-            else {
-                diag.steps = [
-                    'Refresh the page and try again',
-                    'Check your internet connection',
-                    'Try a different browser',
-                    'If the problem persists, the model may be unavailable'
-                ];
-            }
-            
-            logDebug('Error analysis complete:', diag);
-            return diag;
-        }
-        
-        // ==================== MODEL LOADING ====================
-        async function loadModel() {
-            logDebug('Starting model load process...');
-            
+
+        async function init() {
             try {
-                // Show device info for debugging
-                if (isiPhone()) {
-                    const iOSVersion = getiOSVersion();
-                    addMessage(`📱 iPhone detected (iOS ${iOSVersion}). Using iPhone-optimized settings.`, "system");
-                    addMessage("💡 Tip: Close other tabs/apps before loading for best performance.", "warning");
-                }
+                addMessage("Initializing AI agent with enhanced reasoning capabilities...", "system");
                 
-                addMessage("Step 1: Initializing Wllama engine...", "system");
-                
-                // Initialize Wllama
-                wllamaInstance = new Wllama(CONFIG_PATHS);
-                logDebug('Wllama instance created');
-                
-                addMessage("Step 2: Downloading Pythia 160M model (~190MB)...", "system");
-                
-                // Load model with progress tracking
-                const startTime = Date.now();
-                let lastProgressUpdate = 0;
-                
-                await wllamaInstance.loadModelFromHF(
-                    'TheBloke/pythia-160m-GGUF',       // Repository
-                    'pythia-160m.Q4_K_M.gguf',          // Filename
+                // Load model - CHANGED TO PYTHIA 160M
+                await wllama.loadModelFromHF(
+                    'QuantFactory/pythia-160m-GGUF', 
+                    'pythia-160m.Q4_K_M.gguf', 
                     {
-                        ...MODEL_CONFIG,
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            const now = Date.now();
-                            
-                            // Update every 10% or every 2 seconds
                             if (progress % 10 === 0 || progress === 100) {
-                                if (progress !== lastProgressUpdate || now - lastProgressUpdate > 2000) {
-                                    lastProgressUpdate = progress;
-                                    
-                                    const existing = chatBox.querySelector('.download-progress');
-                                    const progressText = `Downloading model: ${progress}% (${Math.round(loaded / 1024 / 1024)}MB / ${Math.round(total / 1024 / 1024)}MB)`;
-                                    
-                                    if (existing) {
-                                        existing.textContent = progressText;
-                                    } else {
-                                        const el = document.createElement('div');
-                                        el.classList.add('system-message', 'download-progress');
-                                        el.textContent = progressText;
-                                        chatBox.appendChild(el);
-                                        chatBox.scrollTop = chatBox.scrollHeight;
-                                    }
-                                    
-                                    logDebug(`Download progress: ${progress}%`);
-                                }
-                            }
-                        }
-                    }
-                );
-                
-                const loadTime = Math.round((Date.now() - startTime) / 1000);
-                logDebug(`Model loaded in ${loadTime} seconds`);
-                
-                // Success!
-                isModelLoaded = true;
-                
-                // Remove progress message
-                const progressEl = chatBox.querySelector('.download-progress');
-                if (progressEl) progressEl.remove();
-                
-                // Show success message with debug info
-                const successHtml = `
-                    <strong>✅ Model Loaded Successfully!</strong>
-                    <div class="debug-info">
-                        <strong>Model:</strong> Pythia 160M Q4_K_M<br>
-                        <strong>Size:</strong> ~190MB download → ~220MB in memory<br>
-                        <strong>Load time:</strong> ${loadTime} seconds<br>
-                        <strong>Device:</strong> ${isiPhone() ? `iPhone (iOS ${getiOSVersion()})` : navigator.platform}<br>
-                        <strong>Threads:</strong> ${MODEL_CONFIG.n_threads}<br>
-                        <strong>Context size:</strong> ${MODEL_CONFIG.n_ctx}
-                    </div>
-                `;
-                addMessage(successHtml, "success");
-                
-                addMessage("I'm ready! Ask me anything — I'm running Pythia 160M, optimized for your device.", "ai");
-                addMessage("💡 Keep questions clear and specific for best results.", "system");
-                
-                // Enable UI
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                userInput.focus();
-                
-                logDebug('Model loading complete. UI enabled.');
-                
-            } catch (error) {
-                logDebug('Model loading failed:', error);
-                
-                // Remove progress message
-                const progressEl = chatBox.querySelector('.download-progress');
-                if (progressEl) progressEl.remove();
-                
-                // Analyze and display error
-                const diag = analyzeError(error);
-                
-                const errorHtml = `
-                    <strong>❌ Model Loading Failed</strong>
-                    <div class="debug-info">
-                        <strong>Diagnostic Code:</strong> <code>${diag.code}</code><br>
-                        <strong>Error:</strong> ${diag.title}<br>
-                        <strong>Details:</strong> ${diag.description}
-                    </div>
-                    
-                    <div class="debug-info">
-                        <strong>Troubleshooting Steps:</strong>
-                        <ul style="margin-top: 8px; padding-left: 20px;">
-                            ${diag.steps.map(step => `<li>${step}</li>`).join('')}
-                        </ul>
-                    </div>
-                    
-                    <div class="debug-info">
-                        <strong>Technical Details:</strong>
-                        <ul style="margin-top: 8px; padding-left: 20px;">
-                            ${diag.details.map(detail => `<li>${detail}</li>`).join('')}
-                        </ul>
-                    </div>
-                `;
-                
-                addMessage(errorHtml, "error");
-                
-                // Offer fallback option
-                addMessage("🔄 <strong>Fallback Option:</strong> If Pythia 160M doesn't work, try GPT-2 117M (smaller, more compatible):", "warning");
-                
-                const fallbackBtn = document.createElement('button');
-                fallbackBtn.textContent = "Switch to GPT-2 117M";
-                fallbackBtn.style.cssText = `
-                    background: #4361ee;
-                    color: white;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 8px 16px;
-                    margin-top: 8px;
-                    cursor: pointer;
-                    font-size: 14px;
-                `;
-                fallbackBtn.onclick = () => {
-                    fallbackBtn.disabled = true;
-                    fallbackBtn.textContent = "Loading...";
-                    loadGPT2Fallback();
-                };
-                
-                const fallbackContainer = document.createElement('div');
-                fallbackContainer.style.cssText = 'text-align: center; margin-top: 10px;';
-                fallbackContainer.appendChild(fallbackBtn);
-                chatBox.appendChild(fallbackContainer);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        }
-        
-        // ==================== FALLBACK: GPT-2 117M ====================
-        async function loadGPT2Fallback() {
-            logDebug('Loading GPT-2 117M fallback...');
-            
-            try {
-                addMessage("🔄 Loading GPT-2 117M fallback model (~113MB)...", "system");
-                
-                // Reinitialize Wllama
-                wllamaInstance = new Wllama(CONFIG_PATHS);
-                
-                await wllamaInstance.loadModelFromHF(
-                    'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf',
-                    'chat-GPT2.Q4_K.gguf',
-                    {
-                        ...MODEL_CONFIG,
-                        n_ctx: 1024,  // GPT-2 can handle larger context
-                        progressCallback: ({ loaded, total }) => {
-                            const progress = Math.round((loaded / total) * 100);
-                            if (progress % 20 === 0 || progress === 100) {
                                 const existing = chatBox.querySelector('.download-progress');
-                                const progressText = `Downloading GPT-2: ${progress}%`;
                                 if (existing) {
-                                    existing.textContent = progressText;
-                                } else {
+                                    existing.textContent = `Downloading AI agent: ${progress}%`;
+                                } else if (progress < 100) {
                                     const el = document.createElement('div');
                                     el.classList.add('system-message', 'download-progress');
-                                    el.textContent = progressText;
+                                    el.textContent = `Downloading AI agent: ${progress}%`;
                                     chatBox.appendChild(el);
                                     chatBox.scrollTop = chatBox.scrollHeight;
                                 }
@@ -743,106 +455,87 @@
                         }
                     }
                 );
-                
-                isModelLoaded = true;
-                
-                // Remove progress message
-                const progressEl = chatBox.querySelector('.download-progress');
-                if (progressEl) progressEl.remove();
-                
-                addMessage("✅ GPT-2 117M loaded successfully! This model is smaller and more compatible with older devices.", "success");
-                addMessage("I'm ready! Ask me anything.", "ai");
+
+                addMessage("I'm ready. I've been enhanced with step-by-step reasoning capabilities. Ask me anything—I'll think carefully before responding.", "ai");
+                addMessage("💡 I work best with clear, specific questions. I'll admit when I'm uncertain.", "system");
                 
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
-                
-            } catch (error) {
-                logDebug('GPT-2 fallback failed:', error);
-                addMessage(`❌ GPT-2 fallback also failed: ${error.message}`, "error");
+            } catch (err) {
+                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
+                addMessage(errorMsg, "error");
+                console.error("Model loading error:", err);
             }
         }
         
-        // ==================== CHAT HANDLING ====================
         async function handleChat() {
             const text = userInput.value.trim();
             if (!text) return;
-            
-            logDebug('Handling chat message:', text);
-            
+
             // Add user message
             addMessage(text, 'user');
             userInput.value = '';
             userInput.style.height = 'auto';
             
-            // Show loading
-            const loadingEl = addMessage("Thinking...", 'ai', true);
+            // Show loading indicator with intelligent status
+            const loadingEl = addMessage("Thinking carefully...", 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
             
             try {
-                if (!isModelLoaded || !wllamaInstance) {
-                    throw new Error('Model not loaded. Please wait for initialization to complete.');
-                }
-                
                 const prompt = buildPrompt(text);
-                logDebug('Generated prompt length:', prompt.length);
                 
-                // Generate response
-                const response = await wllamaInstance.createCompletion(prompt, {
-                    nPredict: 120,  // Limit response length for memory
+                // Generate response with agent-optimized parameters
+                const response = await wllama.createCompletion(prompt, {
+                    nPredict: 150, // Allow room for reasoning
                     sampling: { 
-                        temp: 0.7,
-                        top_k: 40,
-                        top_p: 0.9,
-                        repeat_penalty: 1.2,
-                        frequency_penalty: 0.3
+                        temp: 0.55,          // Lower temp for factual reliability
+                        top_k: 35,           // Focused token selection
+                        top_p: 0.85,         // Tighter nucleus sampling
+                        repeat_penalty: 1.45, // Strong repetition prevention
+                        frequency_penalty: 0.5 // Aggressive repetition control
                     }
                 });
                 
-                logDebug('Raw model response:', response);
-                
-                // Clean response
+                // Clean and enhance the response
                 let cleanedResponse = cleanModelResponse(response);
                 
-                // Add knowledge cutoff disclaimer for time-sensitive questions
+                // Add thoughtful qualifiers for uncertain domains
+                const lowerResp = cleanedResponse.toLowerCase();
                 const lowerQ = text.toLowerCase();
-                if (/\b202[3456789]\b|\btoday\b|\bcurrent\b|\blatest\b|\bnews\b|\btrending\b/.test(lowerQ) && 
-                    !/\bhistory\b|\bpast\b|\bhistorical\b/.test(lowerQ)) {
-                    if (!cleanedResponse.toLowerCase().includes("cutoff") && 
-                        !cleanedResponse.toLowerCase().includes("training")) {
-                        cleanedResponse += " (Note: My knowledge has a cutoff and I can't access real-time information.)";
+                
+                // If question is about current events/post-2019, add disclaimer
+                if ((/\b202[3456789]\b|\btoday\b|\bcurrent\b|\blatest\b|\brecent\b/.test(lowerQ) || 
+                     /\bjust happened\b|\bnews\b|\btrending\b/.test(lowerQ)) && 
+                    !/history|past|historical/.test(lowerQ)) {
+                    if (!cleanedResponse.includes("training data") && !cleanedResponse.includes("cutoff")) {
+                        cleanedResponse += " Note: My knowledge has a cutoff and I can't access real-time information.";
                     }
                 }
                 
-                logDebug('Cleaned response:', cleanedResponse);
+                // If response seems uncertain, enhance with agent-like humility
+                if (/\bmaybe\b|\bperhaps\b|\bprobably\b|\bI think\b/i.test(lowerResp) && 
+                    !cleanedResponse.includes("not certain")) {
+                    cleanedResponse = cleanedResponse.replace(/\b(I think|maybe|perhaps|probably)\b/gi, 'I\'m not entirely certain, but');
+                }
                 
-                // Replace loading with response
+                // Replace loading indicator with thoughtful response
                 loadingEl.remove();
                 addMessage(cleanedResponse, 'ai');
                 
-            } catch (error) {
-                logDebug('Chat generation error:', error);
-                
+            } catch (err) {
+                console.error("Error generating response:", err);
                 loadingEl.remove();
-                
-                if (error.message.includes('memory') || error.message.includes('allocation')) {
-                    addMessage("⚠️ Your device is low on memory. Try:\n• Shorter questions\n• Close other tabs/apps\n• Wait a few seconds between messages", "warning");
-                } else if (error.message.includes('Model not loaded')) {
-                    addMessage("⏳ The model is still loading. Please wait a moment and try again.", "warning");
-                } else {
-                    addMessage(`⚠️ ${error.message || 'I had trouble generating a response. Try a simpler question.'}`, "ai");
-                }
+                addMessage("I encountered a reasoning error. Let me try approaching this differently. Could you rephrase your question?", "ai");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
                 userInput.focus();
             }
         }
-        
-        // ==================== EVENT LISTENERS ====================
+
         sendBtn.addEventListener('click', handleChat);
-        
         userInput.addEventListener('keypress', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -850,32 +543,14 @@
             }
         });
         
+        // Auto-resize textarea
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = Math.min(200, userInput.scrollHeight) + 'px';
         });
-        
-        // ==================== INITIALIZATION ====================
-        async function init() {
-            logDebug('=== INITIALIZATION STARTED ===');
-            logDebug('Browser info:', getBrowserInfo());
-            logDebug('Is iPhone:', isiPhone());
-            
-            // Show initialization message
-            addMessage("🚀 Starting AI agent initialization...", "system");
-            
-            // Start model loading
-            await loadModel();
-            
-            logDebug('=== INITIALIZATION COMPLETE ===');
-        }
-        
-        // Start the app
-        init().catch(err => {
-            logDebug('Initialization error:', err);
-            addMessage(`❌ Critical error: ${err.message}`, "error");
-        });
+
+        // Initialize the app
+        init();
     </script>
 </body>
 </html>
-
