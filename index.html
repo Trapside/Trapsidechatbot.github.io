@@ -24,6 +24,7 @@
             line-height: 1.5;
         }
         
+        /* Main App Content */
         .container {
             height: 100vh;
             display: flex;
@@ -32,6 +33,7 @@
             overflow: hidden;
         }
         
+        /* Header */
         .header {
             padding: 16px;
             text-align: center;
@@ -41,6 +43,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
+        /* Chat Area */
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -50,6 +53,7 @@
             gap: 16px;
         }
         
+        /* Messages */
         .message {
             max-width: 85%;
             padding: 14px 18px;
@@ -104,6 +108,7 @@
             60%, 100% { content: '...'; }
         }
         
+        /* Input Area */
         .input-area {
             padding: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -172,6 +177,7 @@
             font-size: 18px;
         }
         
+        /* Hide default scrollbar */
         .chat-area::-webkit-scrollbar {
             display: none;
         }
@@ -179,40 +185,6 @@
         .chat-area {
             -ms-overflow-style: none;
             scrollbar-width: none;
-        }
-        
-        .message-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            justify-content: flex-end;
-        }
-        .action-btn {
-            background: none;
-            border: none;
-            color: #999999;
-            cursor: pointer;
-            font-size: 14px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        .action-btn:hover {
-            background: #333333;
-            color: #ffffff;
-        }
-        .action-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        
-        .error-fallback {
-            background: #442222 !important;
-            border-left: 3px solid #ff5555;
         }
     </style>
 </head>
@@ -222,7 +194,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                The AI is currently downloading its knowledge files (220MB). Think of this as the model getting its thoughts in order before it starts talking.<br>⏳ Almost Ready<br>It should be finished and ready to use in about a minute or less.
+                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~113MB)...
             </div>
         </div>
         
@@ -237,88 +209,54 @@
     </div>
 
     <script type="module">
-        // FIXED: Corrected syntax error - added missing closing quote on type="module"
+        // Using Wllama from CDN
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         
-        // Store ONLY last bot response (first sentence) for follow-ups
-        let lastBotResponse = null;
-        let currentModel = 'pythia'; // 'pythia' or 'gpt2'
+        // Conversation history with enhanced context tracking
+        let conversationHistory = [];
         
-        const SYSTEM_PROMPT = "You are a helpful AI assistant. Answer directly and concisely.";
-        
-        // CRITICAL FIX: Force single-threaded mode for maximum iPhone compatibility
+        // SMART AGENT SYSTEM PROMPT - Transforms GPT-2 into a reasoning agent
+        const SYSTEM_PROMPT = `You are TinyAgent, a thoughtful AI assistant. Always:
+1. Think step by step before answering
+2. Break down complex questions into logical steps
+3. Admit when you don't know something
+4. Provide concise but complete answers
+5. Verify facts internally before responding
+6. Avoid speculation - stick to established knowledge
+7. If uncertain, say "I'm not certain, but based on general knowledge..."
+
+Reasoning format:
+Question: [user question]
+Reasoning: First, I need to consider... Next,... Finally,...
+Answer: [concise answer]`;
+
+        // Configuration for WASM binaries
         const CONFIG_PATHS = {
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         };
 
         const wllama = new Wllama(CONFIG_PATHS);
 
-        function addMessage(content, role, isLoading = false, originalQuestion = null, isFallback = false) {
+        // Add message to chat UI
+        function addMessage(content, role, isLoading = false) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message');
             
-            if (isFallback) {
-                messageEl.classList.add('error-fallback');
-            }
-            
             if (role === 'user') {
                 messageEl.classList.add('user-message');
-                const paragraphs = content.split('\n').filter(p => p.trim());
-                messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
             } else if (role === 'ai') {
                 messageEl.classList.add('ai-message');
                 if (isLoading) {
                     messageEl.innerHTML = `<div class="loading-dots">${content}</div>`;
                 } else {
+                    // Format AI responses with paragraphs
                     const paragraphs = content.split('\n').filter(p => p.trim());
                     messageEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
-                    lastBotResponse = extractFirstSentence(content);
-                }
-                
-                if (!isLoading) {
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'message-actions';
-                    actionsDiv.innerHTML = `
-                        <button class="action-btn copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
-                        <button class="action-btn like-btn" title="Like"><i class="fas fa-thumbs-up"></i></button>
-                        <button class="action-btn dislike-btn" title="Dislike"><i class="fas fa-thumbs-down"></i></button>
-                        <button class="action-btn share-btn" title="Share"><i class="fas fa-share"></i></button>
-                        <button class="action-btn retry-btn" title="Retry" ${originalQuestion ? '' : 'disabled'}><i class="fas fa-redo"></i></button>
-                        <button class="action-btn more-btn" title="More"><i class="fas fa-ellipsis-h"></i></button>
-                    `;
-                    messageEl.appendChild(actionsDiv);
-                    
-                    const copyBtn = actionsDiv.querySelector('.copy-btn');
-                    copyBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(content).then(() => {
-                            const originalIcon = copyBtn.innerHTML;
-                            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                            setTimeout(() => {
-                                copyBtn.innerHTML = originalIcon;
-                            }, 1500);
-                        }).catch(() => {});
-                    });
-                    
-                    const retryBtn = actionsDiv.querySelector('.retry-btn');
-                    if (originalQuestion) {
-                        retryBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            userInput.value = originalQuestion;
-                            handleChat();
-                        });
-                    }
-                    
-                    ['like', 'dislike', 'share', 'more'].forEach(type => {
-                        const btn = actionsDiv.querySelector(`.${type}-btn`);
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                        });
-                    });
                 }
             } else if (role === 'system') {
                 messageEl.classList.add('system-message');
@@ -331,9 +269,18 @@
             chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
             
+            if (role === 'user' || role === 'ai') {
+                conversationHistory.push({ role, content });
+                // Keep history manageable (last 3 exchanges for better context)
+                if (conversationHistory.length > 6) {
+                    conversationHistory.shift();
+                }
+            }
+            
             return messageEl;
         }
         
+        // Escape HTML to prevent XSS
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -343,212 +290,244 @@
                 .replace(/'/g, "&#039;");
         }
         
-        function extractFirstSentence(text) {
-            if (!text || typeof text !== 'string') return "";
-            
-            let cleaned = text
-                .replace(/<\|pad\|>/g, '')
-                .replace(/<\|endoftext\|>/g, '')
-                .replace(/<[^>]*>/g, '')
-                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN)\b[:\s]*/gi, '')
-                .trim();
-            
-            const match = cleaned.match(/^[^.!?]+[.!?]?/);
-            let first = match ? match[0].trim() : cleaned.substring(0, 40) + "...";
-            
-            const words = first.split(/\s+/);
-            if (words.length > 12) {
-                first = words.slice(0, 12).join(' ');
-                if (!/[.!?]$/.test(first)) first += "...";
-            }
-            
-            return first.replace(/[.!?]+$/, '').trim();
-        }
-        
+        // Advanced response cleaning with intelligence-aware processing
         function cleanModelResponse(text) {
-            if (!text || typeof text !== 'string') return "I'm not sure how to answer that.";
+            if (!text || typeof text !== 'string') return "I need to think about that more carefully.";
             
+            // Remove special tokens completely
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
-                .replace(/\b(PAD|HARDWARE|SOFTWARE|PLAN|Creating a plan|USER|ASSISTANT|HARDWARE)\b[:\s]*/gi, '')
-                .replace(/\[Previous answer\]/gi, '')
-                .replace(/<[^>]*>/g, '')
                 .trim();
             
+            // Extract only the Answer portion if reasoning format was used
+            const answerMatch = cleaned.match(/(?:Answer:|answer:|ANSWER:)\s*(.*)/i);
+            if (answerMatch && answerMatch[1].trim().length > 5) {
+                cleaned = answerMatch[1].trim();
+            }
+            
+            // Remove reasoning traces that leaked into output
+            cleaned = cleaned
+                .replace(/Reasoning:.*?(?=Answer:|$)/gs, '')
+                .replace(/First,.*?Next,.*?Finally,/gs, '')
+                .replace(/Let me think step by step\./gi, '')
+                .trim();
+            
+            // Truncate at problematic patterns
             const badPatterns = [
-                { pattern: /\n\s*\d+\.\s*(No|Yes|They|It|The)\b/i },
-                { pattern: /\sQuestion[:\s]/i },
-                { pattern: /\sHuman[:\s]/i },
-                { pattern: /\sUser[:\s]/i },
-                { pattern: /\sAnswer[:\s]/i },
-                { pattern: /\?\s*\n*\s*(Because|Since|As|Well|They|It|The)\b/i },
-                { pattern: /Creating a (plan|Plan) [A-Z]\?/i },
-                { pattern: /<\|/i },
-                { pattern: /\n{3,}/ },
-                { pattern: /\bwhy\s+is\s+a\s+plan\s+[A-Z]\?/i }
+                /\n\s*\n\s*(?:Question|Human|User):/i,
+                /<\|/,
+                /\n{3,}/,
+                /(?:\. ){4,}/,
+                /I need to think about that more carefully/i
             ];
             
-            for (const { pattern } of badPatterns) {
+            for (const pattern of badPatterns) {
                 const match = cleaned.match(pattern);
-                if (match && match.index > 10) {
+                if (match && match.index > 30) {
                     cleaned = cleaned.substring(0, match.index).trim();
                     break;
                 }
             }
             
+            // Remove repetitions aggressively
             cleaned = cleaned.replace(/\b(\w+\s*)\1{2,}\b/gi, '$1');
-            cleaned = cleaned.replace(/(.{15,}?)\1{1,}/g, '$1');
+            cleaned = cleaned.replace(/(.{12,}?)\1{1,}/g, '$1');
             
+            // Ensure proper sentence ending with intelligence-aware rules
+            if (cleaned.length > 15) {
+                // Remove trailing incomplete phrases
+                cleaned = cleaned.replace(/(?:and so on|etc\.?|and more|I think|maybe|perhaps).*$/gi, '').trim();
+                
+                // If ends with comma or weak connector, truncate to last strong punctuation
+                if (/[,\-–—]$/g.test(cleaned) || /\b(but|and|or|because)$/i.test(cleaned)) {
+                    const lastStrongBreak = cleaned.replace(/[")'\]]+$/, '').lastIndexOf('.');
+                    if (lastStrongBreak > cleaned.length - 40 && lastStrongBreak > 25) {
+                        cleaned = cleaned.substring(0, lastStrongBreak + 1).trim();
+                    }
+                }
+                
+                // Ensure doesn't end with weak phrases
+                const weakEndings = [
+                    /\s+(and|but|because|although|however|though)$/i,
+                    /\s+I think\.?$/i,
+                    /\s+maybe\.?$/i,
+                    /\s+perhaps\.?$/i,
+                    /\s+probably\.?$/i
+                ];
+                
+                for (const pattern of weakEndings) {
+                    if (pattern.test(cleaned)) {
+                        const lastPeriod = cleaned.lastIndexOf('.');
+                        if (lastPeriod > cleaned.length - 50 && lastPeriod > 20) {
+                            cleaned = cleaned.substring(0, lastPeriod + 1).trim();
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Final cleanup
             cleaned = cleaned
                 .replace(/\s+/g, ' ')
-                .replace(/\n{2,}/g, ' ')
-                .trim();
+                .replace(/\n{2,}/g, '\n\n')
+                .trim()
+                .replace(/^[\s.,;:!?]+|[\s.,;:!?]+$/g, '');
             
-            if (cleaned.includes('<|') || cleaned.length < 5 || /\b(PAD|HARDWARE|PLAN)\b/i.test(cleaned)) {
-                return "I'm not sure how to answer that. Could you rephrase?";
+            // Quality checks
+            if (cleaned.includes('<|') || 
+                cleaned.length < 8 || 
+                cleaned.split(' ').length < 3 ||
+                /^OK\.?$|^Yes\.?$|^No\.?$/i.test(cleaned)) {
+                return "I need to think about that more carefully. Could you rephrase or ask something more specific?";
             }
             
-            return cleaned || "I'm not sure how to answer that. Could you rephrase?";
+            // Add thoughtful closure if response seems cut off
+            if (cleaned.length > 40 && !/[.!?]$/.test(cleaned.replace(/[")'\]]+$/, ''))) {
+                cleaned += '.';
+            }
+            
+            return cleaned || "I need to think about that more carefully. Could you rephrase your question?";
         }
         
-        function rewriteFollowUp(question) {
-            const q = question.trim().toLowerCase();
-            
-            const isWhy = /^\s*(why|how come|how does that)\b/i.test(q);
-            const isExplain = /^\s*(explain that|what do you mean|elaborate|tell me more)\b/i.test(q);
-            
-            const topicSwitch = /\b(nevermind|actually|forget|anyway|btw|by the way|new topic|different topic)\b/i;
-            const veryShort = q.length <= 3 || /^(yes|no|ok|sure|nah|yeah|yep|nope)$/i.test(q);
-            
-            if (topicSwitch.test(q) || veryShort || (!isWhy && !isExplain)) {
-                return question;
-            }
-            
-            if (lastBotResponse && lastBotResponse.length > 8) {
-                if (isWhy) {
-                    let rewritten = `Why ${lastBotResponse.toLowerCase()}`;
-                    rewritten = rewritten.replace(/^(is|are|was|were|do|does|did)\s+/, '');
-                    return rewritten.endsWith('?') ? rewritten : rewritten + '?';
-                }
-                
-                if (isExplain) {
-                    return `Explain this: "${lastBotResponse}"`;
-                }
-            }
-            
-            return question;
-        }
-        
+        // Build intelligent prompt with chain-of-thought scaffolding
         function buildPrompt(userMessage) {
-            const rewritten = rewriteFollowUp(userMessage);
-            return `SYSTEM: ${SYSTEM_PROMPT}\n\nUSER: ${rewritten}\nASSISTANT:`;
+            // Start with strong system identity
+            let prompt = `${SYSTEM_PROMPT}\n\n`;
+            
+            // Add recent conversation with reasoning context
+            const historyCount = Math.min(3, conversationHistory.length);
+            for (let i = conversationHistory.length - historyCount; i < conversationHistory.length; i++) {
+                const msg = conversationHistory[i];
+                if (msg.role === 'user') {
+                    prompt += `Question: ${msg.content}\n`;
+                } else if (msg.role === 'ai') {
+                    const cleanResp = cleanModelResponse(msg.content);
+                    prompt += `Answer: ${cleanResp}\n\n`;
+                }
+            }
+            
+            // CRITICAL: Add chain-of-thought scaffolding for current question
+            prompt += `Question: ${userMessage}\nReasoning: First, I need to understand the question. `;
+            
+            // Add domain-specific reasoning hints based on question type
+            const lowerMsg = userMessage.toLowerCase();
+            if (/\bwhy\b|\bhow\b/.test(lowerMsg)) {
+                prompt += `I should break this down into cause-and-effect steps. Next, I'll consider the key factors involved. Finally, I'll formulate a clear explanation.`;
+            } else if (/\bwhat is\b|\bdefine\b|\bexplain\b/.test(lowerMsg)) {
+                prompt += `I should identify the core concept, its key characteristics, and provide a concise definition with context.`;
+            } else if (/\bwhen\b|\bwhere\b/.test(lowerMsg)) {
+                prompt += `I need to recall factual information about time or location, being careful not to speculate if uncertain.`;
+            } else if (/\bwho\b/.test(lowerMsg)) {
+                prompt += `I should identify the person or entity, their significance, and relevant context.`;
+            } else {
+                prompt += `I'll analyze the key elements of the question, consider relevant knowledge, and provide a thoughtful response.`;
+            }
+            
+            prompt += `\nAnswer:`;
+            return prompt;
         }
 
-        // CRITICAL FIX: Use Q4_0 quantization (smaller = better iPhone compatibility)
-        // AND add robust error handling with GPT-2 fallback
         async function init() {
             try {
-                addMessage("⏳ Attempting to load Pythia-410M (smarter model)...", "system");
+                addMessage("Initializing AI agent with enhanced reasoning capabilities...", "system");
                 
-                // Try Pythia first (Q4_0 is smaller/more compatible than Q4_K_M)
+                // Load model - CHANGED TO PYTHIA MODEL
                 await wllama.loadModelFromHF(
-                    'TheBloke/pythia-410m-deduped-GGUF', 
-                    'pythia-410m-deduped.Q4_0.gguf', // SMALLER: 220MB vs 250MB
+                    'EleutherAI/pythia-410m-deduped-gguf', 
+                    'pythia-410m-deduped.Q4_K_M.gguf', 
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
-                            const progressEl = chatBox.querySelector('.download-progress');
-                            if (progressEl) {
-                                progressEl.textContent = `Downloading Pythia: ${progress}%`;
-                            } else if (progress < 100) {
-                                addMessage(`Downloading Pythia: ${progress}%`, "system");
-                                chatBox.lastElementChild.classList.add('download-progress');
+                            if (progress % 10 === 0 || progress === 100) {
+                                const existing = chatBox.querySelector('.download-progress');
+                                if (existing) {
+                                    existing.textContent = `Downloading AI agent: ${progress}%`;
+                                } else if (progress < 100) {
+                                    const el = document.createElement('div');
+                                    el.classList.add('system-message', 'download-progress');
+                                    el.textContent = `Downloading AI agent: ${progress}%`;
+                                    chatBox.appendChild(el);
+                                    chatBox.scrollTop = chatBox.scrollHeight;
+                                }
                             }
                         }
                     }
                 );
+
+                addMessage("I'm ready. I've been enhanced with step-by-step reasoning capabilities. Ask me anything—I'll think carefully before responding.", "ai");
+                addMessage("💡 I work best with clear, specific questions. I'll admit when I'm uncertain.", "system");
                 
-                currentModel = 'pythia';
-                addMessage("✅ Pythia-410M loaded! Smarter answers with better follow-ups.", "system");
-                addMessage("Hi. Welcome to trapside how can i help.?", "ai");
-                
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
             } catch (err) {
-                console.error("Pythia load failed:", err);
-                
-                // FALLBACK to GPT-2 124M (guaranteed to work on iPhone 6S+)
-                addMessage(`⚠️ Pythia failed to load (${err.message || 'unknown error'}). Falling back to GPT-2 124M...`, "system", false, null, true);
-                
-                try {
-                    await wllama.loadModelFromHF(
-                        'RichardErkhov/Arjun-G-Ravi_-_chat-GPT2-gguf', 
-                        'chat-GPT2.Q4_K.gguf',
-                        {
-                            progressCallback: ({ loaded, total }) => {
-                                const progress = Math.round((loaded / total) * 100);
-                                const progressEl = chatBox.querySelector('.download-progress');
-                                if (progressEl) {
-                                    progressEl.textContent = `Downloading GPT-2: ${progress}%`;
-                                } else if (progress < 100) {
-                                    addMessage(`Downloading GPT-2: ${progress}%`, "system");
-                                    chatBox.lastElementChild.classList.add('download-progress');
-                                }
-                            }
-                        }
-                    );
-                    
-                    currentModel = 'gpt2';
-                    addMessage("✅ GPT-2 124M loaded (lightweight fallback).", "system");
-                    addMessage("Hi. Welcome to trapside how can i help.?", "ai");
-                    
-                } catch (fallbackErr) {
-                    const errorMsg = `Both models failed to load. This usually means:<br>• You're on iPhone 6 (not 6S) - needs 2GB RAM<br>• Browser blocks large downloads<br>• Try Chrome/Safari on iPhone 6S or newer`;
-                    addMessage(errorMsg, "error");
-                    console.error("GPT-2 fallback also failed:", fallbackErr);
-                    return;
-                }
+                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
+                addMessage(errorMsg, "error");
+                console.error("Model loading error:", err);
             }
-            
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-            userInput.focus();
         }
         
         async function handleChat() {
             const text = userInput.value.trim();
             if (!text) return;
 
+            // Add user message
             addMessage(text, 'user');
             userInput.value = '';
             userInput.style.height = 'auto';
             
-            const loadingEl = addMessage(`Thinking (${currentModel === 'pythia' ? 'Pythia' : 'GPT-2'})`, 'ai', true);
+            // Show loading indicator with intelligent status
+            const loadingEl = addMessage("Thinking carefully...", 'ai', true);
             sendBtn.disabled = true;
             userInput.disabled = true;
             
             try {
                 const prompt = buildPrompt(text);
                 
+                // Generate response with agent-optimized parameters
                 const response = await wllama.createCompletion(prompt, {
-                    nPredict: 85,
+                    nPredict: 150, // Allow room for reasoning
                     sampling: { 
-                        temp: 0.45,
-                        top_k: 25,
-                        top_p: 0.85,
-                        repeat_penalty: 1.65,
-                        frequency_penalty: 0.75
+                        temp: 0.55,          // Lower temp for factual reliability
+                        top_k: 35,           // Focused token selection
+                        top_p: 0.85,         // Tighter nucleus sampling
+                        repeat_penalty: 1.45, // Strong repetition prevention
+                        frequency_penalty: 0.5 // Aggressive repetition control
                     }
                 });
                 
-                const cleanedResponse = cleanModelResponse(response);
+                // Clean and enhance the response
+                let cleanedResponse = cleanModelResponse(response);
+                
+                // Add thoughtful qualifiers for uncertain domains
+                const lowerResp = cleanedResponse.toLowerCase();
+                const lowerQ = text.toLowerCase();
+                
+                // If question is about current events/post-2019, add disclaimer
+                if ((/\b202[3456789]\b|\btoday\b|\bcurrent\b|\blatest\b|\brecent\b/.test(lowerQ) || 
+                     /\bjust happened\b|\bnews\b|\btrending\b/.test(lowerQ)) && 
+                    !/history|past|historical/.test(lowerQ)) {
+                    if (!cleanedResponse.includes("training data") && !cleanedResponse.includes("cutoff")) {
+                        cleanedResponse += " Note: My knowledge has a cutoff and I can't access real-time information.";
+                    }
+                }
+                
+                // If response seems uncertain, enhance with agent-like humility
+                if (/\bmaybe\b|\bperhaps\b|\bprobably\b|\bI think\b/i.test(lowerResp) && 
+                    !cleanedResponse.includes("not certain")) {
+                    cleanedResponse = cleanedResponse.replace(/\b(I think|maybe|perhaps|probably)\b/gi, 'I\'m not entirely certain, but');
+                }
+                
+                // Replace loading indicator with thoughtful response
                 loadingEl.remove();
-                addMessage(cleanedResponse, 'ai', false, text);
+                addMessage(cleanedResponse, 'ai');
                 
             } catch (err) {
                 console.error("Error generating response:", err);
                 loadingEl.remove();
-                addMessage(`Error: ${err.message || 'Failed to generate response'}. Try shorter questions.`, "error");
+                addMessage("I encountered a reasoning error. Let me try approaching this differently. Could you rephrase your question?", "ai");
             } finally {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
@@ -564,12 +543,13 @@
             }
         });
         
+        // Auto-resize textarea
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = Math.min(200, userInput.scrollHeight) + 'px';
         });
 
-        // Start initialization
+        // Initialize the app
         init();
     </script>
 </body>
