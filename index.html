@@ -89,6 +89,17 @@
             padding: 10px 16px;
         }
         
+        .error-message {
+            background: #4a0000;
+            color: #ff8888;
+            border-radius: 18px;
+            padding: 12px 16px;
+            max-width: 90%;
+            font-size: 15px;
+            line-height: 1.5;
+            border-left: 3px solid #ff4444;
+        }
+        
         .loading-dots {
             display: inline-block;
             color: #999999;
@@ -186,6 +197,40 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* Diagnostic code styling */
+        .diagnostic-code {
+            background: #333333;
+            color: #ffcc00;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        
+        .diagnostic-steps {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .diagnostic-steps ul {
+            padding-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .diagnostic-steps li {
+            margin-bottom: 6px;
+        }
+        
+        .diagnostic-steps strong {
+            color: #4a90e2;
+        }
     </style>
 </head>
 <body>
@@ -262,8 +307,8 @@ Answer: [concise answer]`;
                 messageEl.classList.add('system-message');
                 messageEl.innerHTML = content;
             } else if (role === 'error') {
-                messageEl.classList.add('system-message');
-                messageEl.innerHTML = `<strong>Error:</strong> ${escapeHtml(content)}`;
+                messageEl.classList.add('error-message');
+                messageEl.innerHTML = content;
             }
             
             chatBox.appendChild(messageEl);
@@ -294,7 +339,7 @@ Answer: [concise answer]`;
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I need to think about that more carefully.";
             
-            // Pythia doesn't use <|endoftext|> tokens like GPT-2, but may have </s> tokens
+            // Pythia doesn't use 1 tokens like GPT-2, but may have </s> tokens
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
@@ -430,6 +475,89 @@ Answer: [concise answer]`;
             return prompt;
         }
 
+        // Diagnostic error analyzer
+        function analyzeError(error, url) {
+            const diag = {
+                code: 'ERR_UNKNOWN_000',
+                title: 'Unknown Error',
+                description: 'An unexpected error occurred while loading the model.',
+                steps: [
+                    'Check your internet connection',
+                    'Try refreshing the page',
+                    'If the problem persists, contact support'
+                ]
+            };
+            
+            // Common error patterns
+            if (error.message.includes('CORS') || 
+                error.message.includes('cors') || 
+                error.message.includes('cross-origin')) {
+                diag.code = 'ERR_CORS_001';
+                diag.title = 'CORS Error';
+                diag.description = 'The model server does not allow cross-origin requests from your browser.';
+                diag.steps = [
+                    'The model URL must have CORS headers enabled',
+                    'Contact the model host to add "Access-Control-Allow-Origin: *" header',
+                    'Try using Hugging Face Hub or jsDelivr for hosting'
+                ];
+            }
+            
+            else if (error.message.includes('404') || 
+                     error.message.includes('not found') || 
+                     error.message.includes('403')) {
+                diag.code = 'ERR_FILE_002';
+                diag.title = 'Model File Not Found';
+                diag.description = 'The model file could not be found at the specified URL.';
+                diag.steps = [
+                    'Verify the URL is correct: ' + url,
+                    'Check if the file exists at that location',
+                    'If using GitHub, ensure you\'re using the raw URL or jsDelivr',
+                    'For GitHub: Use "https://cdn.jsdelivr.net/gh/username/repo@main/filename.gguf"'
+                ];
+            }
+            
+            else if (error.message.includes('network') || 
+                     error.message.includes('offline') || 
+                     error.message.includes('fetch')) {
+                diag.code = 'ERR_NETWORK_003';
+                diag.title = 'Network Error';
+                diag.description = 'Could not connect to the model server.';
+                diag.steps = [
+                    'Check your internet connection',
+                    'Try refreshing the page',
+                    'If using a proxy or firewall, check your network settings'
+                ];
+            }
+            
+            else if (error.message.includes('invalid') || 
+                     error.message.includes('format') || 
+                     error.message.includes('magic')) {
+                diag.code = 'ERR_MODEL_004';
+                diag.title = 'Invalid Model Format';
+                diag.description = 'The model file is corrupted or not in the expected format.';
+                diag.steps = [
+                    'Verify the file is a valid GGUF model',
+                    'Check if the file was downloaded completely',
+                    'Try using a different quantization (e.g., Q4_K_M instead of Q5_K_M)'
+                ];
+            }
+            
+            else if (error.message.includes('WebAssembly') || 
+                     error.message.includes('wasm') || 
+                     error.message.includes('instantiate')) {
+                diag.code = 'ERR_BROWSER_005';
+                diag.title = 'Browser Compatibility Issue';
+                diag.description = 'Your browser may not support WebAssembly features required by the model.';
+                diag.steps = [
+                    'Try using Chrome or Firefox (Safari may have issues)',
+                    'Ensure your browser is up-to-date',
+                    'Check for browser extensions that might block WebAssembly'
+                ];
+            }
+            
+            return diag;
+        }
+
         async function init() {
             try {
                 addMessage("Initializing AI agent with enhanced reasoning capabilities...", "system");
@@ -464,14 +592,29 @@ Answer: [concise answer]`;
                 sendBtn.disabled = false;
                 userInput.focus();
             } catch (err) {
-                const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
+                const modelUrl = 'https://huggingface.co/TheBloke/pythia-410m-deduped-GGUF/resolve/main/pythia-410m-deduped.Q4_K_M.gguf';
+                const diag = analyzeError(err, modelUrl);
+                
+                const errorMsg = `
+                    <strong>Model Loading Failed</strong>
+                    <div class="diagnostic-code">DIAGNOSTIC: ${diag.code}</div>
+                    <p><strong>${diag.title}</strong></p>
+                    <p>${diag.description}</p>
+                    
+                    <div class="diagnostic-steps">
+                        <strong>Troubleshooting steps:</strong>
+                        <ul>
+                            ${diag.steps.map(step => `<li>${step}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <p><strong>Technical details:</strong> ${err.message}</p>
+                `;
+                
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
-                console.error("Troubleshooting tips:");
-                console.error("1. Correct repository: TheBloke/pythia-410m-deduped-GGUF");
-                console.error("2. Correct filename: pythia-410m-deduped.Q4_K_M.gguf");
-                console.error("3. File size: ~250MB (larger than GPT-2 due to Pythia architecture)");
-                console.error("4. Ensure you're using Chrome/Firefox with WASM support");
+                console.error("Diagnostic code:", diag.code);
+                console.error("Error details:", diag);
             }
         }
         
