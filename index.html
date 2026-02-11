@@ -231,6 +231,15 @@
         .diagnostic-steps strong {
             color: #4a90e2;
         }
+        
+        .error-details {
+            background: #222222;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
@@ -475,7 +484,7 @@ Answer: [concise answer]`;
             return prompt;
         }
 
-        // Diagnostic error analyzer
+        // Enhanced diagnostic error analyzer
         function analyzeError(error, url) {
             const diag = {
                 code: 'ERR_UNKNOWN_000',
@@ -485,8 +494,13 @@ Answer: [concise answer]`;
                     'Check your internet connection',
                     'Try refreshing the page',
                     'If the problem persists, contact support'
-                ]
+                ],
+                details: []
             };
+            
+            // Add detailed error info
+            diag.details.push(`Error name: ${error.name}`);
+            diag.details.push(`Error message: ${error.message}`);
             
             // Common error patterns
             if (error.message.includes('CORS') || 
@@ -500,6 +514,7 @@ Answer: [concise answer]`;
                     'Contact the model host to add "Access-Control-Allow-Origin: *" header',
                     'Try using Hugging Face Hub or jsDelivr for hosting'
                 ];
+                diag.details.push('This is the most common issue with self-hosted models');
             }
             
             else if (error.message.includes('404') || 
@@ -514,6 +529,7 @@ Answer: [concise answer]`;
                     'If using GitHub, ensure you\'re using the raw URL or jsDelivr',
                     'For GitHub: Use "https://cdn.jsdelivr.net/gh/username/repo@main/filename.gguf"'
                 ];
+                diag.details.push('Most likely cause: incorrect repository name or filename');
             }
             
             else if (error.message.includes('network') || 
@@ -540,6 +556,7 @@ Answer: [concise answer]`;
                     'Check if the file was downloaded completely',
                     'Try using a different quantization (e.g., Q4_K_M instead of Q5_K_M)'
                 ];
+                diag.details.push('This often happens when the model file is truncated');
             }
             
             else if (error.message.includes('WebAssembly') || 
@@ -552,6 +569,32 @@ Answer: [concise answer]`;
                     'Try using Chrome or Firefox (Safari may have issues)',
                     'Ensure your browser is up-to-date',
                     'Check for browser extensions that might block WebAssembly'
+                ];
+                diag.details.push('This error is common on iOS Safari');
+            }
+            
+            else if (error.message.includes('denied') || 
+                     error.message.includes('blocked') || 
+                     error.message.includes('security')) {
+                diag.code = 'ERR_SECURITY_006';
+                diag.title = 'Content Security Policy Block';
+                diag.description = 'Your browser or network is blocking the model download.';
+                diag.steps = [
+                    'Check browser extensions (ad blockers, privacy tools)',
+                    'Try incognito mode',
+                    'Check if your network has security restrictions'
+                ];
+            }
+            
+            else if (error.message.includes('timeout') || 
+                     error.message.includes('timed out')) {
+                diag.code = 'ERR_TIMEOUT_007';
+                diag.title = 'Download Timeout';
+                diag.description = 'The model download took too long and was canceled.';
+                diag.steps = [
+                    'Check your internet connection speed',
+                    'Try with a smaller model',
+                    'Be patient - large models can take several minutes on slow connections'
                 ];
             }
             
@@ -608,13 +651,35 @@ Answer: [concise answer]`;
                         </ul>
                     </div>
                     
-                    <p><strong>Technical details:</strong> ${err.message}</p>
+                    <div class="error-details">
+                        <strong>Error details:</strong>
+                        <ul>
+                            ${diag.details.map(detail => `<li>${detail}</li>`).join('')}
+                        </ul>
+                    </div>
                 `;
                 
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
                 console.error("Diagnostic code:", diag.code);
                 console.error("Error details:", diag);
+                
+                // Add additional context about the most common issue
+                if (diag.code === 'ERR_CORS_001') {
+                    const corsInfo = `
+                        <div class="error-details">
+                            <strong>Important CORS Information:</strong>
+                            <p>Hugging Face Hub properly configures CORS for model downloads, but if you're hosting your own models, you MUST configure CORS headers:</p>
+                            <pre>Access-Control-Allow-Origin: *</pre>
+                            <p>Without this header, browsers will block the model download.</p>
+                        </div>
+                    `;
+                    const corsEl = document.createElement('div');
+                    corsEl.classList.add('error-message');
+                    corsEl.innerHTML = corsInfo;
+                    chatBox.appendChild(corsEl);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
             }
         }
         
