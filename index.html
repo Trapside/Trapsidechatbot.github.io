@@ -194,7 +194,7 @@
         
         <div class="chat-area" id="chat-box">
             <div class="system-message">
-                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~113MB)...
+                <strong>System:</strong> Initializing AI agent. This may take a moment as the model downloads (~250MB)...
             </div>
         </div>
         
@@ -219,7 +219,7 @@
         // Conversation history with enhanced context tracking
         let conversationHistory = [];
         
-        // SMART AGENT SYSTEM PROMPT - Transforms GPT-2 into a reasoning agent
+        // SMART AGENT SYSTEM PROMPT - Transforms Pythia into a reasoning agent
         const SYSTEM_PROMPT = `You are TinyAgent, a thoughtful AI assistant. Always:
 1. Think step by step before answering
 2. Break down complex questions into logical steps
@@ -290,15 +290,16 @@ Answer: [concise answer]`;
                 .replace(/'/g, "&#039;");
         }
         
-        // Advanced response cleaning with intelligence-aware processing
+        // Advanced response cleaning with intelligence-aware processing (Pythia-specific)
         function cleanModelResponse(text) {
             if (!text || typeof text !== 'string') return "I need to think about that more carefully.";
             
-            // Remove special tokens completely
+            // Pythia doesn't use <|endoftext|> tokens like GPT-2, but may have </s> tokens
             let cleaned = text
                 .replace(/<\|pad\|>/g, '')
                 .replace(/<\|endoftext\|>/g, '')
                 .replace(/<\|unk\|>/g, '')
+                .replace(/<\/s>/g, '')  // Pythia stop token
                 .trim();
             
             // Extract only the Answer portion if reasoning format was used
@@ -433,10 +434,10 @@ Answer: [concise answer]`;
             try {
                 addMessage("Initializing AI agent with enhanced reasoning capabilities...", "system");
                 
-                // Load model - CHANGED TO PYTHIA MODEL
+                // Load model - CORRECTED REPOSITORY (TheBloke maintains GGUF quantizations)
                 await wllama.loadModelFromHF(
-                    'EleutherAI/pythia-410m-deduped-gguf', 
-                    'pythia-410m-deduped.Q4_K_M.gguf', 
+                    'TheBloke/pythia-410m-deduped-GGUF',  // CORRECT REPOSITORY
+                    'pythia-410m-deduped.Q4_K_M.gguf',     // CORRECT FILENAME
                     {
                         progressCallback: ({ loaded, total }) => {
                             const progress = Math.round((loaded / total) * 100);
@@ -466,6 +467,11 @@ Answer: [concise answer]`;
                 const errorMsg = err.message || 'Failed to load AI agent. Try refreshing or using Chrome/Firefox.';
                 addMessage(errorMsg, "error");
                 console.error("Model loading error:", err);
+                console.error("Troubleshooting tips:");
+                console.error("1. Correct repository: TheBloke/pythia-410m-deduped-GGUF");
+                console.error("2. Correct filename: pythia-410m-deduped.Q4_K_M.gguf");
+                console.error("3. File size: ~250MB (larger than GPT-2 due to Pythia architecture)");
+                console.error("4. Ensure you're using Chrome/Firefox with WASM support");
             }
         }
         
