@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside | Liquid Glass</title>
+    <title>Trapside</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.15);
             --accent: #00b4ff;
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
         }
@@ -24,117 +24,98 @@
             overflow: hidden; 
         }
 
-        .container { height: 100vh; display: flex; flex-direction: column; position: relative; }
+        .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Glass Header */
+        /* Fixed Header */
         .header { 
-            padding: 20px; 
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
+            padding: 24px; 
             display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            z-index: 10;
         }
 
         .brand { 
-            font-weight: 900; font-size: 22px; 
-            background: linear-gradient(90deg, #fff, var(--accent));
+            font-weight: 900; font-size: 28px; 
+            background: linear-gradient(180deg, #fff 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: 4px; text-transform: uppercase; 
+            letter-spacing: 6px; text-transform: uppercase; 
+            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
         }
 
-        /* Content Area */
-        .view { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px; gap: 20px; }
+        /* Message Area */
+        .view { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 20px; padding-bottom: 120px; }
         #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
         .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
 
-        /* Liquid Glass Bubbles */
         .message { 
             max-width: 80%; padding: 16px 22px; 
             border-radius: 24px; line-height: 1.6; font-size: 15px; 
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255,255,255,0.05);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: var(--glass);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
         .user-message { 
-            background: rgba(0, 180, 255, 0.15); 
-            border-color: rgba(0, 180, 255, 0.4);
+            background: rgba(0, 180, 255, 0.1); 
+            border-color: rgba(0, 180, 255, 0.3);
             border-bottom-right-radius: 4px;
         }
 
-        .ai-message { 
-            background: var(--glass); 
-            border-bottom-left-radius: 4px;
-        }
+        .ai-message { border-bottom-left-radius: 4px; }
 
-        /* Thinking State (Refractive Filter) */
         .thinking { 
-            filter: url(#liquid-filter);
-            color: var(--accent);
             font-weight: bold;
+            color: var(--accent);
+            animation: pulse 1.5s infinite ease-in-out;
         }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
 
-        /* Glass Interaction Button */
         .speak-btn { 
-            background: var(--glass); 
-            border: 1px solid var(--glass-border);
-            color: #fff; width: 40px; height: 40px; 
-            border-radius: 50%; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.3s;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            color: #fff; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
         }
-        .speak-btn.active { 
-            background: var(--accent); 
-            box-shadow: 0 0 20px var(--accent);
-            border-color: #fff;
-        }
+        .speak-btn.active { background: var(--accent); box-shadow: 0 0 15px var(--accent); }
 
-        /* Floating Input Bar */
-        .input-area { padding: 30px; background: transparent; }
+        /* Floating Minimalist Input */
+        .input-area { 
+            position: absolute; bottom: 30px; left: 0; right: 0;
+            padding: 0 20px; pointer-events: none;
+        }
         .input-container { 
-            display: flex; gap: 12px; max-width: 900px; margin: 0 auto; 
-            padding: 8px; border-radius: 35px;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(25px);
+            pointer-events: auto;
+            display: flex; gap: 12px; max-width: 800px; margin: 0 auto; 
+            padding: 10px 14px; border-radius: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            box-shadow: inset 0 0 15px rgba(255,255,255,0.05);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
         }
 
         .input-field { 
             flex: 1; background: transparent; border: none; 
-            padding: 12px 20px; color: #fff; font-size: 16px; outline: none; 
+            padding: 10px 15px; color: #fff; font-size: 16px; outline: none; resize: none;
         }
 
         .send-btn { 
             background: var(--accent); border: none; border-radius: 50%; 
-            width: 48px; height: 48px; color: #fff; cursor: pointer; 
-            box-shadow: 0 0 15px rgba(0, 180, 255, 0.3);
+            width: 44px; height: 44px; color: #fff; cursor: pointer; 
             transition: 0.3s;
         }
-        .send-btn:disabled { opacity: 0.1; filter: grayscale(1); }
+        .send-btn:disabled { opacity: 0.1; }
     </style>
 </head>
 <body>
-    <svg style="display:none">
-        <filter id="liquid-filter">
-            <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
-        </filter>
-    </svg>
-
     <div class="container">
         <div class="header"><span class="brand">Trapside</span></div>
         <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
                 <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1" disabled></textarea>
-                <button id="send-btn" class="send-btn" disabled><i class="fas fa-paper-plane"></i></button>
+                <button id="send-btn" class="send-btn" disabled><i class="fas fa-arrow-up"></i></button>
             </div>
         </div>
     </div>
@@ -200,7 +181,7 @@
             const loader = addMessage("Thinking...", 'ai', true);
             const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
             const prompt = `<|im_start|>system\n${sys}<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
-            const result = await wllama.createCompletion(prompt, { nPredict: 350, stop: ["<|im_end|>"], sampling: { temp: 0.7 } });
+            const result = await wllama.createCompletion(prompt, { nPredict: 400, stop: ["<|im_end|>"], sampling: { temp: 0.7 } });
             loader.classList.remove('thinking'); loader.innerText = result.trim();
             const btn = document.createElement('button');
             btn.className = 'speak-btn'; btn.innerHTML = '<i class="fas fa-volume-up"></i>';
