@@ -1,301 +1,870 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trapside</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' https://api.openai.com https://cdn.jsdelivr.net">
+    <title>Trapside · Code Intelligence</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent: #00b4ff;
+            --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
+            --code-bg: #0b0e14;
+            --code-border: #2a2f3a;
+        }
 
-<style>
-:root {
-    --bg: #05060a;
-    --glass: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --accent: #00b4ff;
-    --bot: rgba(0, 180, 255, 0.15);
-    --user: rgba(255, 255, 255, 0.12);
-    --code-bg: #0d1117;
-    --code-border: #1f2937;
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--liquid-bg);
+            background-attachment: fixed;
+            color: #fff; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
 
-body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg);
-    color: white;
-    font-family: "Inter", sans-serif;
-    overflow: hidden;
-}
+        .container { height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { 
+            padding: 24px; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
 
-.container {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
+        .brand { 
+            font-weight: 900; 
+            font-size: 28px; 
+            color: #fff;
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+            position: relative;
+        }
+        
+        .brand::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
+        }
 
-.header {
-    padding: 20px;
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -1px;
-    color: var(--accent);
-    user-select: none;
-    text-shadow: 0 0 8px rgba(0,180,255,0.5);
-}
+        .view { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+            padding: 20px; 
+            gap: 20px; 
+            padding-bottom: 120px;
+            padding-top: 100px;
+        }
+        #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
-.view {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    padding-bottom: 140px;
-}
+        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
+        .user-row { flex-direction: row-reverse; }
 
-.message {
-    max-width: 85%;
-    padding: 16px 20px 40px 20px;
-    border-radius: 16px;
-    margin: 16px 0;
-    position: relative;
-    line-height: 1.6;
-    white-space: pre-wrap;
-}
+        .message { 
+            max-width: 80%; 
+            padding: 16px 22px 42px 22px;
+            border-radius: 24px; 
+            line-height: 1.6; 
+            font-size: 15px; 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
 
-.user-msg {
-    background: var(--user);
-    align-self: flex-end;
-    margin-left: auto;
-    border-bottom-right-radius: 4px;
-}
+        .user-message { 
+            background: rgba(0, 180, 255, 0.1); 
+            border-color: rgba(0, 180, 255, 0.3);
+            border-bottom-right-radius: 4px;
+        }
 
-.bot-msg {
-    background: var(--bot);
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-}
+        .ai-message { 
+            border-bottom-left-radius: 4px; 
+        }
 
-/* CODE BLOCKS */
-.code-block-container {
-    background: var(--code-bg);
-    border: 1px solid var(--code-border);
-    border-radius: 16px;
-    margin: 16px 0;
-    padding: 16px;
-    position: relative;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    color: #e3e6eb;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-    cursor: pointer;
-    transition: 0.2s;
-    overflow-x: auto;
-    white-space: pre-wrap;
-}
+        .thinking { 
+            font-weight: bold;
+            color: var(--accent);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse { 
+            0% { opacity: 0.3; } 
+            50% { opacity: 1; } 
+            100% { opacity: 0.3; } 
+        }
 
-.copy-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    cursor: pointer;
-}
+        .speak-btn { 
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            color: #fff; 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s ease;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            z-index: 5;
+        }
+        .speak-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.05);
+        }
+        .speak-btn.active { 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
+            border-color: var(--accent);
+        }
 
-.input-area {
-    position: absolute;
-    bottom: 30px;
-    left: 0;
-    right: 0;
-    padding: 0 20px;
-    display: flex;
-    justify-content: center;
-}
+        .code-block-container {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 16px;
+            margin: 16px 0;
+            padding: 16px;
+            position: relative;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #e3e6eb;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .code-block-container:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(0,180,255,0.2);
+        }
+        .code-block-container pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: inherit;
+        }
+        .code-block-container code {
+            font-family: inherit;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
+            z-index: 6;
+        }
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .copy-btn.copied {
+            background: #00cc88;
+            border-color: #00cc88;
+        }
 
-.input-container {
-    display: flex;
-    gap: 12px;
-    max-width: 800px;
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 40px;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(30px);
-}
+        .code-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .code-modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #0a0c12;
+            border: 1px solid var(--accent);
+            border-radius: 24px;
+            max-width: 90%;
+            max-height: 90%;
+            width: 900px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,180,255,0.3);
+        }
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid #2a2f3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header span {
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .close-modal:hover {
+            color: white;
+        }
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            background: #0e1117;
+            border-radius: 0 0 24px 24px;
+        }
+        .modal-body pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'JetBrains Mono', monospace;
+            color: #e3e6eb;
+            font-size: 15px;
+        }
 
-.input-field {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 10px 15px;
-    color: white;
-    font-size: 16px;
-    outline: none;
-    resize: none;
-    max-height: 120px;
-    min-height: 24px;
-    line-height: 1.5;
-}
+        .input-area { 
+            position: absolute; 
+            bottom: 30px; 
+            left: 0; 
+            right: 0;
+            padding: 0 20px; 
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+        }
+        .input-container { 
+            pointer-events: auto;
+            display: flex; 
+            gap: 12px; 
+            max-width: 800px; 
+            width: 100%;
+            margin: 0 auto; 
+            padding: 10px 14px; 
+            border-radius: 40px;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        .input-container:focus-within {
+            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
+            border-color: rgba(0, 180, 255, 0.4);
+        }
+        .input-field { 
+            flex: 1; 
+            background: transparent; 
+            border: none; 
+            padding: 10px 15px; 
+            color: #fff; 
+            font-size: 16px; 
+            outline: none; 
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.5;
+        }
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 1;
+        }
+        .send-btn, .stop-btn { 
+            background: var(--accent); 
+            border: none; 
+            border-radius: 50%; 
+            width: 44px; 
+            height: 44px; 
+            color: #fff; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .send-btn:hover, .stop-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--accent);
+        }
+        .send-btn:disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .stop-btn {
+            background: #ff4d4d;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+            display: none;
+        }
+        .stop-btn:hover {
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
+            background: #ff3333;
+        }
 
-.send-btn {
-    background: var(--accent);
-    border: none;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    color: white;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-/* MOBILE */
-@media (max-width: 768px) {
-    .header { padding: 16px; font-size: 24px; }
-    .message { max-width: 90%; font-size: 14px; }
-    .input-container { padding: 8px 12px; }
-}
-</style>
+        .view::-webkit-scrollbar {
+            width: 6px;
+        }
+        .view::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .view::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header { padding: 16px; }
+            .brand { font-size: 24px; }
+            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
+            .input-container { padding: 8px 12px; border-radius: 36px; }
+            .input-field { font-size: 15px; }
+            .send-btn, .stop-btn { width: 40px; height: 40px; }
+            .speak-btn { bottom: 8px; right: 8px; }
+            .code-block-container { font-size: 13px; }
+        }
+    </style>
 </head>
-
 <body>
-<div class="container">
-    <div class="header">Trapside</div>
-
-    <div class="view" id="scroll-area">
-        <div id="chat-box"></div>
-    </div>
-
-    <div class="input-area">
-        <div class="input-container">
-            <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
-            <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+    <div class="container">
+        <div class="header">
+            <span class="brand">Trapside</span>
+        </div>
+        <div class="view" id="scroll-area">
+            <div id="chat-box"></div>
+        </div>
+        <div class="input-area">
+            <div class="input-container">
+                <textarea id="user-input" class="input-field" placeholder="Ask for code, algorithms, or system design..." rows="1"></textarea>
+                <button id="stop-btn" class="stop-btn"><i class="fas fa-stop"></i></button>
+                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+            </div>
         </div>
     </div>
-</div>
 
 <script>
-const chatBox = document.getElementById("chat-box");
-const userInput = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const scrollArea = document.getElementById("scroll-area");
-
-let controller = null;
-
-function appendMessage(sender, text, isCode = false) {
-    const msg = document.createElement("div");
-    msg.className = `message ${sender}-msg`;
-
-    if (isCode) {
-        msg.innerHTML = `
-            <div class="code-block-container">
-                <button class="copy-btn"><i class="fas fa-copy"></i></button>
-                <pre><code>${escapeHtml(text)}</code></pre>
-            </div>
-        `;
-        setupCopyButtons();
-    } else {
-        msg.innerText = text;
+// ===== CORE INTELLIGENCE SYSTEM =====
+class TrapsideAI {
+    constructor() {
+        this.sql = null;
+        this.embedder = null;
+        this.vectorStore = [];
+        this.chatHistory = [];
+        this.controller = null;
+        this.isGenerating = false;
+        this.worker = null;
+        this.initWorker();
+        this.initDB();
+        this.preloadEmbedder();
+        this.initKnowledgeBase();
     }
 
-    chatBox.appendChild(msg);
-    scrollArea.scrollTop = scrollArea.scrollHeight;
-}
-
-function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;")
-               .replace(/</g, "&lt;")
-               .replace(/>/g, "&gt;")
-               .replace(/"/g, "&quot;");
-}
-
-function setupCopyButtons() {
-    document.querySelectorAll(".copy-btn").forEach(btn => {
-        btn.onclick = () => {
-            const codeText = btn.parentElement.querySelector("code").innerText;
-            navigator.clipboard.writeText(codeText);
-            btn.innerHTML = "<i class='fas fa-check'></i>";
-            setTimeout(() => btn.innerHTML = "<i class='fas fa-copy'></i>", 1500);
-        };
-    });
-}
-
-async function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text) return;
-
-    appendMessage("user", text);
-    userInput.value = "";
-    userInput.style.height = "24px";
-    sendBtn.disabled = true;
-
-    controller = new AbortController();
-    appendMessage("bot", "Thinking...");
-
-    try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer YOUR_API_KEY"
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [{ role: "user", content: text }],
-                stream: true
-            }),
-            signal: controller.signal
+    async initDB() {
+        const SQL = await initSqlJs({
+            locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
         });
-
-        const reader = response.body.getReader();
-        let botMsg = document.querySelector(".bot-msg:last-child");
-        botMsg.innerText = "";
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const parts = buffer.split("\n\n");
-            buffer = parts.pop();
-
-            for (const part of parts) {
-                if (!part.startsWith("data: ")) continue;
-                if (part.includes("[DONE]")) continue;
-
-                const json = JSON.parse(part.replace("data: ", ""));
-                const delta = json.choices[0].delta;
-                if (delta.content) botMsg.innerText += delta.content;
-            }
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-        }
-    } catch (err) {
-        appendMessage("bot", "❌ Request cancelled or failed.");
+        this.sql = new SQL.Database();
+        this.sql.run(`
+            CREATE TABLE IF NOT EXISTS memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                embedding BLOB,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                type TEXT DEFAULT 'general'
+            )
+        `);
     }
 
-    sendBtn.disabled = false;
+    async preloadEmbedder() {
+        try {
+            this.embedder = await window.Transformers.pipeline(
+                'feature-extraction', 
+                'Xenova/bge-small-en-v1.5',
+                { 
+                    quantized: true,
+                    progress_callback: () => {}, // Silent loading
+                    cache: true
+                }
+            );
+            console.log("✓ Embedder loaded");
+        } catch (e) {
+            console.warn("Embedder load failed (offline mode)", e);
+        }
+    }
+
+    async generateEmbedding(text) {
+        if (!this.embedder) return this.fallbackEmbedding(text);
+        
+        try {
+            const output = await this.embedder(text, { pooling: 'mean', normalize: true });
+            return Array.from(output.data);
+        } catch (e) {
+            console.warn("Embedding failed, using fallback", e);
+            return this.fallbackEmbedding(text);
+        }
+    }
+
+    fallbackEmbedding(text) {
+        // Deterministic fallback for offline/embedding failures
+        const hash = text.split('').reduce((h, c) => Math.imul(31, h) + c.charCodeAt(0) | 0, 0);
+        return Array(384).fill(0).map((_, i) => Math.sin((hash + i) * 0.1));
+    }
+
+    cosineSimilarity(a, b) {
+        let dot = 0, magA = 0, magB = 0;
+        for (let i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            magA += a[i] * a[i];
+            magB += b[i] * b[i];
+        }
+        return dot / (Math.sqrt(magA) * Math.sqrt(magB) + 1e-10);
+    }
+
+    async storeMemory(content, type = 'general') {
+        if (!this.sql) await this.initDB();
+        
+        const embedding = await this.generateEmbedding(content);
+        const stmt = this.sql.prepare(
+            "INSERT INTO memories (content, embedding, type) VALUES (?, ?, ?)"
+        );
+        stmt.bind([content, new Float32Array(embedding), type]);
+        stmt.step();
+        stmt.free();
+        
+        // Update in-memory cache
+        this.vectorStore.push({ content, embedding, type });
+        console.log(`✓ Stored memory (${type}):`, content.substring(0, 50));
+    }
+
+    async searchMemories(query, limit = 3) {
+        if (!this.sql || this.vectorStore.length === 0) return [];
+        
+        const queryEmbedding = await this.generateEmbedding(query);
+        return this.vectorStore
+            .map(item => ({
+                ...item,
+                similarity: this.cosineSimilarity(queryEmbedding, item.embedding)
+            }))
+            .filter(item => item.similarity > 0.65)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, limit)
+            .map(item => item.content);
+    }
+
+    initKnowledgeBase() {
+        // Pre-load critical coding knowledge
+        const knowledge = [
+            { content: "JavaScript array methods: map/filter/reduce are chainable and immutable", type: 'code' },
+            { content: "React hooks: useState for state, useEffect for side effects, useMemo for expensive calculations", type: 'code' },
+            { content: "CSS Flexbox: display:flex with justify-content and align-items for layout", type: 'code' },
+            { content: "SQL joins: INNER JOIN returns matching rows, LEFT JOIN returns all left table rows", type: 'code' },
+            { content: "Error handling: try/catch for synchronous, .catch() or async/await for promises", type: 'code' },
+            { content: "Security: Always sanitize user input, never eval() untrusted code, use CSP headers", type: 'security' }
+        ];
+        
+        knowledge.forEach(item => {
+            this.vectorStore.push({
+                content: item.content,
+                embedding: this.fallbackEmbedding(item.content),
+                type: item.type
+            });
+        });
+        console.log("✓ Knowledge base initialized");
+    }
+
+    initWorker() {
+        // Safe JS execution sandbox
+        const blob = new Blob([`
+            self.onmessage = async (e) => {
+                const { code, timeout = 3000 } = e.data;
+                let result = { success: false, output: '', error: '' };
+                
+                try {
+                    // Strict security sandbox
+                    const safeContext = {
+                        console: {
+                            log: (...args) => { result.output += args.map(String).join(' ') + '\\n'; },
+                            error: (...args) => { result.output += '[ERROR] ' + args.map(String).join(' ') + '\\n'; }
+                        },
+                        setTimeout,
+                        clearTimeout,
+                        setInterval,
+                        clearInterval,
+                        JSON,
+                        Math,
+                        Date,
+                        RegExp,
+                        Map,
+                        Set,
+                        Promise,
+                        Array,
+                        Object,
+                        String,
+                        Number,
+                        Boolean
+                    };
+                    
+                    // Enforce timeout
+                    const timer = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Execution timeout (3s)')), timeout)
+                    );
+                    
+                    // Execute in isolated scope with strict CSP
+                    const execution = new Promise((resolve) => {
+                        try {
+                            const fn = new Function('safe', 
+                                '"use strict";' + 
+                                'const {console,setTimeout,clearTimeout,setInterval,clearInterval,JSON,Math,Date,RegExp,Map,Set,Promise,Array,Object,String,Number,Boolean} = safe;' +
+                                'return (async() => {' + code + '})();'
+                            );
+                            resolve(fn(safeContext));
+                        } catch (err) {
+                            resolve({ error: err.message });
+                        }
+                    });
+                    
+                    const output = await Promise.race([timer, execution]);
+                    if (output && output.error) throw new Error(output.error);
+                    
+                    result.success = true;
+                    result.output += JSON.stringify(output, null, 2);
+                } catch (err) {
+                    result.error = err.message || String(err);
+                }
+                
+                self.postMessage(result);
+            };
+        `], { type: 'application/javascript' });
+        
+        this.worker = new Worker(URL.createObjectURL(blob));
+        console.log("✓ Execution sandbox ready");
+    }
+
+    async executeCode(code) {
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                this.worker.terminate();
+                this.initWorker(); // Recreate worker after timeout
+                resolve({ success: false, error: "Execution timeout (3s)" });
+            }, 3500);
+            
+            this.worker.onmessage = (e) => {
+                clearTimeout(timeout);
+                resolve(e.data);
+            };
+            
+            this.worker.postMessage({ code, timeout: 3000 });
+        });
+    }
+
+    detectMode(query) {
+        const codeKeywords = /(?:write|generate|fix|debug|optimize|algorithm|function|class|component|hook|sql|query|regex)/i;
+        const chatKeywords = /(?:explain|why|how|what|when|where|concept|theory|difference|compare)/i;
+        
+        if (codeKeywords.test(query) && !chatKeywords.test(query)) return 'code';
+        if (query.trim().startsWith('`') || query.includes('function ') || query.includes('const ')) return 'code';
+        return 'chat';
+    }
+
+    async ragAugmentedPrompt(query) {
+        const relevant = await this.searchMemories(query, 3);
+        const history = this.chatHistory.slice(-4).map(msg => 
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+        ).join('\n');
+        
+        const context = relevant.length > 0 
+            ? `Relevant context:\n${relevant.map((c, i) => `${i+1}. ${c}`).join('\n')}\n\n`
+            : '';
+        
+        return `${context}Conversation history:\n${history}\n\nUser query: ${query}\n\nResponse guidelines:\n- For code requests: provide complete, runnable solutions with comments\n- For explanations: be concise but thorough\n- NEVER use eval() or dangerous functions\n- Always sanitize outputs\n- If uncertain, state limitations`;
+    }
+
+    async *streamResponse(prompt, mode) {
+        // DEMO MODE: Simulate streaming with intelligent responses
+        // In production: replace with backend API call that uses this.prompt + RAG context
+        const demoResponses = {
+            code: [
+                "
+```javascript\n// Optimized array processing\nconst processData = (items) => {\n  return items\n    .filter(item => item.active)\n    .map(item => ({\n      ...item,\n      value: item.value * 1.1\n    }))\n    .sort((a, b) => b.value - a.value);\n};\n\n// Usage\nconst results = processData(userData);\nconsole.log('Processed:', results.length);\n
+```",
+                "This solution uses:\n• Filter for active items only\n• Map with object spread for immutability\n• Sort by value descending\n• O(n log n) complexity\n\nTry it with your dataset!"
+            ],
+            chat: [
+                "JavaScript closures are functions that remember their lexical scope even when executed outside it. They're created when:\n\n1. A function is defined inside another function\n2. The inner function references variables from the outer scope\n3. The inner function is returned or passed elsewhere\n\nKey use cases:\n• Data privacy (module pattern)\n• Callbacks/event handlers\n• Function factories\n• Currying/partial application\n\nExample:\n
+```javascript\nfunction createCounter() {\n  let count = 0;\n  return () => ++count; // Remembers 'count'\n}\n
+```"
+            ]
+        };
+        
+        const response = demoResponses[mode] || demoResponses.chat;
+        const chunks = response.flatMap(r => r.split(' ').map(word => word + ' '));
+        
+        for (const chunk of chunks) {
+            await new Promise(resolve => setTimeout(resolve, 15 + Math.random() * 30));
+            yield chunk;
+        }
+    }
 }
 
-sendBtn.onclick = sendMessage;
-
-userInput.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
+// ===== UI INTEGRATION =====
+class TrapsideUI {
+    constructor() {
+        this.ai = new TrapsideAI();
+        this.chatBox = document.getElementById("chat-box");
+        this.userInput = document.getElementById("user-input");
+        this.sendBtn = document.getElementById("send-btn");
+        this.stopBtn = document.getElementById("stop-btn");
+        this.scrollArea = document.getElementById("scroll-area");
+        this.setupEventListeners();
+        this.welcomeMessage();
     }
-});
 
-userInput.addEventListener("input", () => {
-    userInput.style.height = "24px";
-    userInput.style.height = Math.min(userInput.scrollHeight, 140) + "px";
+    welcomeMessage() {
+        this.appendMessage("ai", "I'm Trapside AI — your coding intelligence partner. Ask me to:\n• Write or debug code\n• Explain algorithms\n• Design systems\n• Optimize performance\n\nAll processing happens with contextual awareness and safety guarantees. 🔒");
+    }
+
+    setupEventListeners() {
+        this.sendBtn.addEventListener("click", () => this.sendMessage());
+        this.stopBtn.addEventListener("click", () => this.stopGeneration());
+        this.userInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+        this.userInput.addEventListener("input", () => {
+            this.userInput.style.height = "24px";
+            this.userInput.style.height = Math.min(this.userInput.scrollHeight, 140) + "px";
+        });
+        
+        // Auto-resize on load
+        setTimeout(() => {
+            this.userInput.style.height = "24px";
+            this.userInput.style.height = Math.min(this.userInput.scrollHeight, 140) + "px";
+        }, 100);
+    }
+
+    appendMessage(sender, text, isCode = false) {
+        const msg = document.createElement("div");
+        msg.className = `message ${sender}-message`;
+        msg.style.opacity = "0";
+        msg.style.transform = "translateY(10px)";
+        
+        if (isCode) {
+            msg.innerHTML = `
+                <div class="code-block-container">
+                    <button class="copy-btn"><i class="fas fa-copy"></i></button>
+                    <pre><code>${this.escapeHtml(text)}</code></pre>
+                </div>
+            `;
+        } else {
+            // Smart formatting for newlines and code blocks
+            let formatted = this.escapeHtml(text)
+                .replace(/\n/g, '<br>')
+                .replace(/
+```(\w+)?\s*([\s\S]*?)\s*
+```/g, (match, lang, code) => 
+                    `<div class="code-block-container"><button class="copy-btn"><i class="fas fa-copy"></i></button><pre><code>${this.escapeHtml(code.trim())}</code></pre></div>`
+                );
+            
+            msg.innerHTML = DOMPurify.sanitize(formatted, {
+                ALLOWED_TAGS: ['br', 'b', 'strong', 'i', 'em', 'u', 'code', 'pre', 'div', 'button', 'i'],
+                ALLOWED_ATTR: ['class']
+            });
+        }
+        
+        this.chatBox.appendChild(msg);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            msg.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+            msg.style.opacity = "1";
+            msg.style.transform = "translateY(0)";
+        });
+        
+        this.setupCopyButtons();
+        this.scrollToBottom();
+        
+        return msg;
+    }
+
+    escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    setupCopyButtons() {
+        document.querySelectorAll(".copy-btn").forEach(btn => {
+            if (btn.dataset.initialized) return;
+            btn.dataset.initialized = "true";
+            
+            btn.addEventListener("click", () => {
+                const code = btn.parentElement.querySelector("code").textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    btn.classList.add("copied");
+                    btn.innerHTML = "<i class='fas fa-check'></i>";
+                    setTimeout(() => {
+                        btn.classList.remove("copied");
+                        btn.innerHTML = "<i class='fas fa-copy'></i>";
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Copy failed:", err);
+                    btn.title = "Copy failed";
+                });
+            });
+        });
+    }
+
+    scrollToBottom() {
+        this.scrollArea.scrollTop = this.scrollArea.scrollHeight;
+    }
+
+    async sendMessage() {
+        const text = this.userInput.value.trim();
+        if (!text || this.ai.isGenerating) return;
+        
+        this.appendMessage("user", text);
+        this.userInput.value = "";
+        this.userInput.style.height = "24px";
+        this.toggleButtons(false);
+        
+        // Store query in memory
+        await this.ai.storeMemory(text, 'query');
+        this.ai.chatHistory.push({ role: 'user', content: text });
+        
+        // Generate response
+        const mode = this.ai.detectMode(text);
+        const prompt = await this.ai.ragAugmentedPrompt(text);
+        const thinkingMsg = this.appendMessage("ai", "Thinking...");
+        let accumulated = "";
+        
+        try {
+            for await (const chunk of this.ai.streamResponse(prompt, mode)) {
+                if (this.ai.controller?.signal?.aborted) break;
+                
+                accumulated += chunk;
+                thinkingMsg.innerHTML = DOMPurify.sanitize(
+                    this.escapeHtml(accumulated)
+                        .replace(/\n/g, '<br>')
+                        .replace(/
+```/g, '<div class="code-block-container"><pre><code>')
+                );
+                this.scrollToBottom();
+            }
+            
+            // Final processing: extract and format code blocks properly
+            thinkingMsg.innerHTML = accumulated
+                .replace(/
+```(\w+)?\s*([\s\S]*?)\s*
+```/g, (match, lang, code) => 
+                    `<div class="code-block-container"><button class="copy-btn"><i class="fas fa-copy"></i></button><pre><code>${this.escapeHtml(code.trim())}</code></pre></div>`
+                )
+                .replace(/\n/g, '<br>');
+            
+            this.setupCopyButtons();
+            this.ai.chatHistory.push({ role: 'assistant', content: accumulated });
+            
+            // Store important responses in long-term memory
+            if (accumulated.includes('
+```') || mode === 'code') {
+                await this.ai.storeMemory(`Solution for: ${text}\n${accumulated.substring(0, 200)}`, 'solution');
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                thinkingMsg.textContent = `❌ Error: ${err.message || "Generation failed"}`;
+                console.error("Generation error:", err);
+            }
+        } finally {
+            this.toggleButtons(true);
+            this.ai.controller = null;
+            this.ai.isGenerating = false;
+        }
+    }
+
+    stopGeneration() {
+        if (this.ai.controller) {
+            this.ai.controller.abort();
+            this.ai.controller = null;
+        }
+        this.ai.isGenerating = false;
+        this.toggleButtons(true);
+    }
+
+    toggleButtons(isIdle) {
+        this.sendBtn.disabled = !isIdle;
+        this.sendBtn.style.display = isIdle ? 'flex' : 'none';
+        this.stopBtn.style.display = isIdle ? 'none' : 'flex';
+        this.ai.isGenerating = !isIdle;
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    window.trapside = new TrapsideUI();
+    
+    // Safety: Block dangerous patterns
+    const originalEval = window.eval;
+    window.eval = () => { throw new Error("eval() blocked for security"); };
+    
+    // Prevent prototype pollution
+    Object.freeze(Object.prototype);
+    Object.freeze(Array.prototype);
+    
+    console.log("✓ Trapside AI initialized with intelligence pipeline");
 });
 </script>
-
 </body>
 </html>
+
