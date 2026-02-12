@@ -276,9 +276,9 @@
                 repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
                 file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
             },
-            tinyllama: {
-                repo: 'TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
-                file: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf'
+            mobilama: {
+                repo: 'bartowski/MobiLlama-0.5B-Chat-GGUF',
+                file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf'
             }
         };
 
@@ -342,20 +342,20 @@
             
             try {
                 if (currentModel === 'smollm2') {
-                    addMessage("Loading TinyLlama-1.1B...", "ai");
-                    await wllama.loadModelFromHF(models.tinyllama.repo, models.tinyllama.file);
-                    currentModel = 'tinyllama';
+                    addMessage("Switching to MobiLlama-0.5B...", "ai");
+                    await wllama.loadModelFromHF(models.mobilama.repo, models.mobilama.file);
+                    currentModel = 'mobilama';
                     btn.classList.add('active');
                 } else {
-                    addMessage("Loading SmolLM2...", "ai");
+                    addMessage("Switching to SmolLM2-360M...", "ai");
                     await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
                     currentModel = 'smollm2';
                     btn.classList.remove('active');
                 }
-                addMessage(`${currentModel.toUpperCase()} is ready.`, "ai");
+                addMessage(`${currentModel.toUpperCase()} is online.`, "ai");
             } catch (e) {
                 console.error(e);
-                addMessage("Model swap failed. Check connection.", "ai");
+                addMessage("Model switch failed. Make sure your browser supports WebAssembly.", "ai");
             } finally {
                 document.getElementById('user-input').disabled = false;
                 btn.disabled = false;
@@ -384,7 +384,8 @@
             
             abortController = new AbortController();
             try {
-                const sys = "You are Trapside, an expert assistant.";
+                const sys = "You are Trapside, a helpful and expert assistant.";
+                // Prompt format for MobiLlama/SmolLM chat style
                 const prompt = `<|system|>\n${sys}</s>\n<|user|>\n${text}</s>\n<|assistant|>\n`;
                 const result = await wllama.createCompletion(prompt, { 
                     nPredict: 400, sampling: { temp: 0.7 }, signal: abortController.signal 
@@ -397,7 +398,7 @@
                 loader.appendChild(btn);
             } catch (e) {
                 loader.classList.remove('thinking');
-                loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred.";
+                loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
             } finally { resetSendButton(); }
         }
 
