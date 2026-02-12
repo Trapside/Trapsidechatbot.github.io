@@ -1,360 +1,196 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Trapside · Code Intelligence</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Smart Local AI Chatbot</title>
+
+<!-- WebLLM -->
+<script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.20/dist/index.min.js"></script>
+<!-- SQL.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 
 <style>
-:root{
-  --glass:rgba(255,255,255,0.05);
-  --glass-border:rgba(255,255,255,0.15);
-  --accent:#00b4ff;
-  --liquid-bg:linear-gradient(135deg,#02010a,#0d1127 50%,#1a0b2e);
-  --code-bg:#0b0e14;
-  --code-border:#2a2f3a;
-}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{
-  font-family:'Inter',sans-serif;background:var(--liquid-bg);
-  background-attachment:fixed;color:#fff;height:100vh;overflow:hidden;
-}
-.container{height:100vh;display:flex;flex-direction:column}
-.header{
-  padding:24px;display:flex;justify-content:center;align-items:center;
-  position:fixed;top:0;left:0;right:0;z-index:10;
-}
-.brand{
-  font-weight:900;font-size:28px;color:#fff;letter-spacing:2px;
-  text-transform:uppercase;filter:drop-shadow(0 0 10px rgba(0,180,255,.3));
-  position:relative;
-}
-.brand::after{
-  content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
-  width:60px;height:3px;background:var(--accent);border-radius:3px;
-}
-.view{
-  flex:1;display:flex;flex-direction:column;overflow-y:auto;
-  padding:100px 20px 120px;gap:20px;
-}
-#chat-box{display:flex;flex-direction:column;gap:16px}
-.message-row{display:flex;align-items:flex-end;gap:12px;width:100%}
-.user-row{flex-direction:row-reverse}
-.message{
-  max-width:80%;padding:16px 22px 42px;border-radius:24px;
-  line-height:1.6;font-size:15px;background:var(--glass);
-  border:1px solid var(--glass-border);backdrop-filter:blur(15px);
-  box-shadow:0 8px 32px rgba(0,0,0,.2);position:relative;
-  word-wrap:break-word;overflow-wrap:break-word;
-}
-.user-message{
-  background:rgba(0,180,255,.1);
-  border-color:rgba(0,180,255,.3);
-  border-bottom-right-radius:4px;
-}
-.ai-message{border-bottom-left-radius:4px}
-.thinking{font-weight:bold;color:var(--accent);animation:pulse 1.5s infinite ease-in-out}
-@keyframes pulse{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}
-
-.speak-btn{
-  background:rgba(255,255,255,.08);border:1px solid var(--glass-border);
-  color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:.3s;
-  position:absolute;bottom:10px;right:10px;z-index:5;
-}
-.speak-btn:hover{background:rgba(255,255,255,.12);transform:scale(1.05)}
-.speak-btn.active{
-  background:var(--accent);border-color:var(--accent);
-  box-shadow:0 0 15px var(--accent);
-}
-
-/* CODE BLOCK */
-.code-block-container{
-  background:var(--code-bg);border:1px solid var(--code-border);
-  border-radius:16px;margin:16px 0;padding:16px;position:relative;
-  font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.5;
-  color:#e3e6eb;box-shadow:0 6px 20px rgba(0,0,0,.6);
-  cursor:pointer;transition:.2s;white-space:pre-wrap;word-break:break-word;
-  overflow-x:auto;
-}
-.code-block-container:hover{
-  border-color:var(--accent);
-  box-shadow:0 0 0 2px rgba(0,180,255,.2);
-}
-.copy-btn{
-  position:absolute;top:12px;right:12px;width:32px;height:32px;
-  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
-  border-radius:8px;color:#fff;cursor:pointer;display:flex;
-  align-items:center;justify-content:center;transition:.2s;
-  z-index:6;backdrop-filter:blur(4px);
-}
-.copy-btn:hover{background:var(--accent);border-color:var(--accent)}
-.copy-btn.copied{background:#00cc88;border-color:#00cc88}
-
-/* MODAL */
-.code-modal{
-  display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;
-  background:rgba(0,0,0,.85);backdrop-filter:blur(12px);
-  z-index:10000;align-items:center;justify-content:center;padding:20px;
-}
-.code-modal.active{display:flex}
-.modal-content{
-  background:#0a0c12;border:1px solid var(--accent);border-radius:24px;
-  max-width:90%;max-height:90%;width:900px;display:flex;flex-direction:column;
-  box-shadow:0 20px 60px rgba(0,180,255,.3);
-}
-.modal-header{
-  padding:18px 24px;border-bottom:1px solid #2a2f3a;
-  display:flex;justify-content:space-between;align-items:center;
-}
-.modal-header span{font-weight:600;color:var(--accent)}
-.close-modal{
-  background:none;border:none;color:rgba(255,255,255,.6);
-  font-size:24px;cursor:pointer;
-}
-.close-modal:hover{color:#fff}
-.modal-body{
-  padding:24px;overflow-y:auto;background:#0e1117;border-radius:0 0 24px 24px;
-}
-.modal-body pre{white-space:pre-wrap;color:#e3e6eb;font-family:'JetBrains Mono'}
-
-/* INPUT */
-.input-area{
-  position:absolute;bottom:30px;left:0;right:0;
-  display:flex;justify-content:center;pointer-events:none;
-  padding:0 20px;
-}
-.input-container{
-  pointer-events:auto;display:flex;gap:12px;max-width:800px;width:100%;
-  padding:10px 14px;border-radius:40px;background:var(--glass);
-  backdrop-filter:blur(30px);border:1px solid var(--glass-border);
-  transition:.3s;box-shadow:0 10px 40px rgba(0,0,0,.4);
-}
-.input-container:focus-within{
-  border-color:rgba(0,180,255,.4);
-  box-shadow:0 10px 50px rgba(0,180,255,.3);
-}
-.input-field{
-  flex:1;background:transparent;border:none;color:#fff;font-size:16px;
-  padding:10px 15px;outline:none;resize:none;line-height:1.5;
-  max-height:120px;min-height:24px;
-}
-.input-field::placeholder{color:rgba(255,255,255,.4)}
-.send-btn,.stop-btn{
-  width:44px;height:44px;border:none;border-radius:50%;color:#fff;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:.3s;flex-shrink:0;
-}
-.send-btn{background:var(--accent)}
-.stop-btn{background:#ff4d4d;box-shadow:0 0 15px rgba(255,77,77,.5)}
-.stop-btn:hover{background:#ff3333}
-@media(max-width:768px){
-  .brand{font-size:24px}
-  .message{max-width:90%;font-size:14px;padding:14px 18px 38px}
-}
+body{margin:0;font-family:Arial;background:#f7f7f7;color:#111;transition:.3s}
+.dark{background:#111;color:#eee}
+#app{max-width:900px;margin:0 auto;padding:60px 12px;}
+.chat{display:flex;flex-direction:column;gap:20px}
+.msg{padding:14px 18px;border-radius:16px;max-width:80%;line-height:1.45;font-size:16px;white-space:pre-wrap}
+.user{align-self:flex-end;background:#007aff;color:#fff}
+.bot{align-self:flex-start;background:#e8e8e8}
+.dark .bot{background:#222}
+input{width:100%;padding:14px 12px;border-radius:12px;border:1px solid #ccc;font-size:16px}
+#sendBtn{position:absolute;right:18px;bottom:12px;background:#007aff;color:#fff;border:none;padding:8px 14px;border-radius:10px}
+#inputBox{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#fff;display:flex;gap:10px}
+.dark #inputBox{background:#000}
+pre{background:#1e1e1e;color:#eee;padding:12px;border-radius:12px;overflow:auto;font-size:14px}
+#themeToggle{position:fixed;top:12px;right:12px;padding:10px;border:none;background:#007aff;color:#fff;border-radius:50%}
 </style>
 </head>
 
 <body>
-<div class="container">
-  <div class="header"><span class="brand">Trapside</span></div>
-  <div class="view" id="scroll-area"><div id="chat-box"></div></div>
-  <div class="input-area">
-    <div class="input-container">
-      <textarea id="user-input" class="input-field" placeholder="Ask for code..." rows="1"></textarea>
-      <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
-    </div>
-  </div>
+<button id="themeToggle">🌓</button>
+<div id="app">
+<div class="chat" id="chat"></div>
 </div>
 
-<div id="code-modal" class="code-modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span><i class="fas fa-code" style="margin-right:8px"></i>Full code</span>
-      <button class="close-modal" id="close-modal-btn"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body"><pre id="modal-code-content"></pre></div>
-  </div>
+<div id="inputBox">
+<input id="userInput" placeholder="Message..." />
+<button id="sendBtn">Send</button>
 </div>
 
-<script type="module">
-import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js";
+<script>
+/* ------------------------------------------------------------
+   INITIALIZATION
+------------------------------------------------------------ */
+let db, SQL;
 
-const CODING_EXPERTISE=`
-You are Trapside, an elite software architect. 
-Rules:
-1. Provide full runnable code.
-2. Explain reasoning clearly.
-3. Include edge cases.
-4. Use modern best practices.
-5. Always include a complete code block.
-6. Use triple backticks.
-7. Include example usage.
-8. Think step-by-step before answering.
-`;
+(async()=>{
+  SQL = await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+  db = new SQL.Database();
+  db.run("CREATE TABLE IF NOT EXISTS docs(id INTEGER PRIMARY KEY, content TEXT, embedding TEXT)");
 
-const synth=window.speechSynthesis;
-let activeBtn=null,abortController=null;
+  await loadModel();
+})();
 
-function speak(text,btn){
-  if(synth.speaking && activeBtn===btn){
-    synth.cancel();btn.classList.remove("active");activeBtn=null;return;
-  }
-  if(synth.speaking){
-    synth.cancel();if(activeBtn)activeBtn.classList.remove("active");activeBtn=null;
-  }
-  let u=new SpeechSynthesisUtterance(text);
-  let v=synth.getVoices();
-  u.voice=v.find(x=>x.name.includes("Daniel"))||v.find(x=>x.lang.includes("en-GB"))||v[0];
-  u.pitch=1.5;u.rate=1.0;
-  u.onstart=()=>{btn.classList.add("active");activeBtn=btn}
-  u.onend=()=>{btn.classList.remove("active");activeBtn=null}
-  synth.speak(u);
+/* ------------------------------------------------------------
+   LOAD BGE-SMALL MODEL (WebLLM)
+------------------------------------------------------------ */
+let llm;
+async function loadModel(){
+  llm = await webllm.createWebLLM({
+    model:"BGE-small",
+    onProgress:(p)=>console.log("Loading:",p)
+  });
 }
 
-function createCodeBlock(code){
-  let c=document.createElement("div");
-  c.className="code-block-container";
-  let pre=document.createElement("pre");
-  let co=document.createElement("code");
-  co.textContent=code;pre.appendChild(co);c.appendChild(pre);
-
-  let b=document.createElement("button");
-  b.className="copy-btn";b.innerHTML='<i class="fas fa-copy"></i>';
-  b.onclick=async(e)=>{
-    e.stopPropagation();
-    try{
-      await navigator.clipboard.writeText(code);
-      b.classList.add("copied");b.innerHTML='<i class="fas fa-check"></i>';
-      setTimeout(()=>{b.classList.remove("copied");b.innerHTML='<i class="fas fa-copy"></i>';},1500);
-    }catch{
-      let t=document.createElement("textarea");t.value=code;
-      t.style.position="fixed";t.style.opacity=0;document.body.appendChild(t);
-      t.select();document.execCommand("copy");document.body.removeChild(t);
-    }
-  };
-  c.appendChild(b);
-
-  c.onclick=e=>{
-    if(e.target.closest(".copy-btn"))return;
-    document.getElementById("modal-code-content").textContent=code;
-    document.getElementById("code-modal").classList.add("active");
-  };
-  return c;
-}
-
-function formatMessage(t){
-  if(!t)return t;
-  const r=/```(\w*)\n([\s\S]*?)```/g;let p=[],idx=0,m;
-  while((m=r.exec(t))!==null){
-    if(m.index>idx)p.push(document.createTextNode(t.slice(idx,m.index)));
-    p.push(createCodeBlock(m[2]));idx=m.index+m[0].length;
-  }
-  if(idx<t.length)p.push(document.createTextNode(t.slice(idx)));
-  if(!p.length)return t;
-  let d=document.createElement("div");p.forEach(x=>d.appendChild(x));return d.innerHTML;
-}
-
-function addMessage(text,role,think){
-  let r=document.createElement("div");
-  r.className=`message-row ${role}-row`;
-  let m=document.createElement("div");
-  m.className=`message ${role}-message ${think?"thinking":""}`;
-  if(role==="ai"&&!think){
-    let h=formatMessage(text);
-    typeof h==="string"?m.innerHTML=h:m.innerText=text;
-    let b=document.createElement("button");
-    b.className="speak-btn";b.innerHTML='<i class="fas fa-volume-up"></i>';
-    b.onclick=e=>{e.stopPropagation();speak(text,b)};
-    m.appendChild(b);
-  }else m.innerText=text;
-  r.appendChild(m);document.getElementById("chat-box").appendChild(r);
-  let s=document.getElementById("scroll-area");s.scrollTop=s.scrollHeight;
-  return m;
-}
-
-function setSend(){
-  let b=document.getElementById("send-btn");
-  b.className="send-btn";b.innerHTML='<i class="fas fa-arrow-up"></i>';
-  b.onclick=handleChat;abortController=null;
-  document.getElementById("user-input").disabled=false;
-}
-function setStop(){
-  let b=document.getElementById("send-btn");
-  b.className="stop-btn";b.innerHTML='<i class="fas fa-stop"></i>';
-  b.onclick=()=>abortController&&abortController.abort();
-}
-
-const wllama=new Wllama({
-  'single-thread/wllama.wasm':'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-  'multi-thread/wllama.wasm':'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm'
+/* ------------------------------------------------------------
+   UI HELPERS
+------------------------------------------------------------ */
+const chat = txt=>{document.getElementById("chat").appendChild(txt);window.scrollTo(0,document.body.scrollHeight);}
+const addMsg=(txt,cls)=>{let d=document.createElement("div");d.className="msg "+cls;d.textContent=txt;chat(d);return d;}
+const streamWords=(el,text)=>new Promise(res=>{
+  const w=text.split(" ");let i=0;
+  const interval=setInterval(()=>{el.textContent+=w[i++]+" ";if(i>=w.length){clearInterval(interval);res();}},40);
 });
 
-async function init(){
-  try{
-    await wllama.loadModelFromHF("bartowski/SmolLM2-360M-Instruct-GGUF","SmolLM2-360M-Instruct-Q4_K_M.gguf");
-    addMessage("Trapside is online.", "ai");
-  }catch{
-    addMessage("Model failed to load.", "ai");
-  }
+/* ------------------------------------------------------------
+   THEME
+------------------------------------------------------------ */
+document.getElementById("themeToggle").onclick=()=>document.body.classList.toggle("dark");
+
+/* ------------------------------------------------------------
+   VECTOR UTILS
+------------------------------------------------------------ */
+function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
+function norm(a){return Math.sqrt(dot(a,a));}
+function cosine(a,b){return dot(a,b)/(norm(a)*norm(b));}
+async function embed(text){
+  const out = await llm.embed(text);
+  return Array.from(out.data);
 }
 
-async function handleChat(){
-  let t=document.getElementById("user-input").value.trim();
-  if(!t)return;
-  addMessage(t,"user");
-  document.getElementById("user-input").value="";
-  let a=addMessage("Thinking...","ai",true);
-  document.getElementById("user-input").disabled=true;setStop();
-  abortController=new AbortController();
-
-  try{
-    let prompt=`<think>system\n${CODING_EXPERTISE}\n</think>user\n${t}<think>\n<think>assistant\n`;
-
-    let r=await wllama.createCompletion(prompt,{
-      nPredict:600,
-      stop:["<think>"],
-      sampling:{temp:.5},
-      signal:abortController.signal
-    });
-
-    a.classList.remove("thinking");
-
-    let clean=(r.completion||r).trim();   /* FIXED LINE */
-    let h=formatMessage(clean);
-
-    typeof h==="string" ? a.innerHTML=h : a.innerText=clean;
-
-    let b=document.createElement("button");
-    b.className="speak-btn";b.innerHTML='<i class="fas fa-volume-up"></i>';
-    b.onclick=e=>{e.stopPropagation();speak(clean,b)};
-    a.appendChild(b);
-
-  }catch(e){
-    a.classList.remove("thinking");
-    a.innerText=abortController.signal.aborted?"[Stopped]":"Error.";
-  }finally{setSend()}
+/* ------------------------------------------------------------
+   RAG: STORE & SEARCH
+------------------------------------------------------------ */
+async function storeDoc(text){
+  const e = await embed(text);
+  const stmt = db.prepare("INSERT INTO docs(content,embedding) VALUES(?,?)");
+  stmt.run([text,JSON.stringify(e)]);
+  stmt.free();
 }
 
-document.getElementById("user-input").addEventListener("input",function(){
-  this.style.height="auto";this.style.height=this.scrollHeight+"px";
-  this.style.overflowY=this.scrollHeight>120?"auto":"hidden";
-});
-document.getElementById("send-btn").onclick=handleChat;
-document.getElementById("user-input").onkeydown=e=>{
-  if(e.key==="Enter"&&!e.shiftKey){
-    e.preventDefault();handleChat();
+async function searchDocs(query,k=3){
+  const qemb = await embed(query);
+  const stmt = db.prepare("SELECT * FROM docs");
+  let results=[];
+  while(stmt.step()){
+    let row = stmt.getAsObject();
+    let emb = JSON.parse(row.embedding);
+    let score = cosine(qemb,emb);
+    results.push({text:row.content,score});
   }
-};
-document.getElementById("close-modal-btn").onclick=()=>{
-  document.getElementById("code-modal").classList.remove("active")
-};
-window.onclick=e=>{
-  if(e.target.id==="code-modal")
-    document.getElementById("code-modal").classList.remove("active")
-};
-init();
+  stmt.free();
+  return results.sort((a,b)=>b.score-a.score).slice(0,k);
+}
+
+/* ------------------------------------------------------------
+   AUTO DETECT MODE
+------------------------------------------------------------ */
+function detectMode(text){
+  if(/[\{\};=<>]/.test(text)||text.includes("function")||text.includes("class")||text.includes("import")||text.includes("console"))
+    return "code";
+  return "chat";
+}
+
+/* ------------------------------------------------------------
+   LOCAL JS EXEC TOOL
+------------------------------------------------------------ */
+function runJS(code){
+  try{return String(Function(code)());}
+  catch(e){return "Error: "+e.message;}
+}
+
+/* ------------------------------------------------------------
+   MAIN AI LOGIC
+------------------------------------------------------------ */
+async function process(user){
+  const mode = detectMode(user);
+
+  // RAG
+  const docs = await searchDocs(user);
+  const context = docs.map(d=>d.text).join("\n");
+
+  const systemPrompt = `
+You are a dual-mode assistant.
+If user is coding, act as expert coding assistant.
+If chatting, respond normally.
+Use retrieved knowledge:\n${context}
+  `;
+
+  let prompt;
+  if(mode==="code"){
+    prompt = `${systemPrompt}\nUser code:\n${user}\nRespond as coding expert.`;
+  } else {
+    prompt = `${systemPrompt}\nUser message: ${user}`;
+  }
+
+  const msg = await llm.chat.completions.create({
+    messages:[
+      {role:"system",content:systemPrompt},
+      {role:"user",content:prompt}
+    ]
+  });
+
+  return msg.choices[0].message.content;
+}
+
+/* ------------------------------------------------------------
+   SEND MESSAGE
+------------------------------------------------------------ */
+async function send(){
+  const inp=document.getElementById("userInput");
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value="";
+
+  addMsg(text,"user");
+
+  const botEl=addMsg("","bot");
+
+  // RUN JS IF CODE SNIPPET TOOL
+  if(detectMode(text)==="code" && text.startsWith("runjs:")){
+    const result = runJS(text.slice(6));
+    await streamWords(botEl,result);
+    return;
+  }
+
+  const out = await process(text);
+  await streamWords(botEl,out);
+}
+
+/* ------------------------------------------------------------
+   HANDLERS
+------------------------------------------------------------ */
+document.getElementById("sendBtn").onclick=send;
+document.getElementById("userInput").onkeydown=e=>{if(e.key==="Enter")send();};
 </script>
 </body>
 </html>
