@@ -26,36 +26,74 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Fixed Header */
+        /* Fixed Header with Glass Effect */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
             z-index: 10;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
         }
 
         .brand { 
-            font-weight: 900; font-size: 28px; 
+            font-weight: 900; 
+            font-size: 28px; 
             background: linear-gradient(180deg, #fff 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: 6px; text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
             filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+            position: relative;
+        }
+        
+        .brand::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
         }
 
         /* Message Area */
-        .view { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 20px; padding-bottom: 120px; }
+        .view { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+            padding: 20px; 
+            gap: 20px; 
+            padding-bottom: 120px;
+            padding-top: 100px; /* Space for fixed header */
+        }
         #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
         .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
 
         .message { 
-            max-width: 80%; padding: 16px 22px; 
-            border-radius: 24px; line-height: 1.6; font-size: 15px; 
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            max-width: 80%; 
+            padding: 16px 22px; 
+            border-radius: 24px; 
+            line-height: 1.6; 
+            font-size: 15px; 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
             background: var(--glass);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
 
         .user-message { 
@@ -64,58 +102,202 @@
             border-bottom-right-radius: 4px;
         }
 
-        .ai-message { border-bottom-left-radius: 4px; }
+        .ai-message { 
+            border-bottom-left-radius: 4px; 
+        }
 
         .thinking { 
             font-weight: bold;
             color: var(--accent);
             animation: pulse 1.5s infinite ease-in-out;
         }
-        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        @keyframes pulse { 
+            0% { opacity: 0.3; } 
+            50% { opacity: 1; } 
+            100% { opacity: 0.3; } 
+        }
 
         .speak-btn { 
-            background: var(--glass); border: 1px solid var(--glass-border);
-            color: #fff; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+            background: var(--glass); 
+            border: 1px solid var(--glass-border);
+            color: #fff; 
+            width: 38px; 
+            height: 38px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s ease;
+            margin-bottom: 4px;
         }
-        .speak-btn.active { background: var(--accent); box-shadow: 0 0 15px var(--accent); }
+        .speak-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        .speak-btn.active { 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
+            border-color: var(--accent);
+        }
 
         /* Floating Minimalist Input */
         .input-area { 
-            position: absolute; bottom: 30px; left: 0; right: 0;
-            padding: 0 20px; pointer-events: none;
+            position: absolute; 
+            bottom: 30px; 
+            left: 0; 
+            right: 0;
+            padding: 0 20px; 
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
         }
         .input-container { 
             pointer-events: auto;
-            display: flex; gap: 12px; max-width: 800px; margin: 0 auto; 
-            padding: 10px 14px; border-radius: 40px;
-            background: rgba(255, 255, 255, 0.05);
+            display: flex; 
+            gap: 12px; 
+            max-width: 800px; 
+            width: 100%;
+            margin: 0 auto; 
+            padding: 10px 14px; 
+            border-radius: 40px;
+            background: var(--glass);
             backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .input-container:focus-within {
+            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
+            border-color: rgba(0, 180, 255, 0.4);
         }
 
         .input-field { 
-            flex: 1; background: transparent; border: none; 
-            padding: 10px 15px; color: #fff; font-size: 16px; outline: none; resize: none;
+            flex: 1; 
+            background: transparent; 
+            border: none; 
+            padding: 10px 15px; 
+            color: #fff; 
+            font-size: 16px; 
+            outline: none; 
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.5;
+        }
+        
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 1;
+        }
+        
+        .input-field:focus {
+            outline: none;
         }
 
-        .send-btn { 
-            background: var(--accent); border: none; border-radius: 50%; 
-            width: 44px; height: 44px; color: #fff; cursor: pointer; 
-            transition: 0.3s;
+        .send-btn, .stop-btn { 
+            background: var(--accent); 
+            border: none; 
+            border-radius: 50%; 
+            width: 44px; 
+            height: 44px; 
+            color: #fff; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .send-btn:disabled { opacity: 0.1; }
+        
+        .send-btn:hover, .stop-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--accent);
+        }
+        
+        .send-btn:disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .stop-btn {
+            background: #ff4d4d;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+        }
+        
+        .stop-btn:hover {
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
+            background: #ff3333;
+        }
+        
+        /* Scrollbar styling */
+        .view::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .view::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .view::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+        
+        .view::-webkit-scrollbar-thumb:hover {
+            background: #0099cc;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+            
+            .brand {
+                font-size: 24px;
+                letter-spacing: 1px;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 14px 18px;
+                font-size: 14px;
+            }
+            
+            .input-container {
+                padding: 8px 12px;
+                border-radius: 36px;
+            }
+            
+            .input-field {
+                font-size: 15px;
+            }
+            
+            .send-btn, .stop-btn {
+                width: 40px;
+                height: 40px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header"><span class="brand">Trapside</span></div>
-        <div class="view" id="scroll-area"><div id="chat-box"></div></div>
+        <div class="header">
+            <span class="brand">Trapside</span>
+        </div>
+        <div class="view" id="scroll-area">
+            <div id="chat-box"></div>
+        </div>
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1" disabled></textarea>
-                <button id="send-btn" class="send-btn" disabled><i class="fas fa-arrow-up"></i></button>
+                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
+                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
         </div>
     </div>
@@ -125,17 +307,58 @@
 
         const synth = window.speechSynthesis;
         let activeBtn = null;
+        let abortController = null;
         const PITCH = 1.5;
         const RATE = 1.0;
 
         function speak(text, btn) {
-            if (synth.speaking && activeBtn === btn) { synth.cancel(); return; }
-            if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
+            // If clicking the same button while it's speaking, stop it
+            if (synth.speaking && activeBtn === btn) {
+                synth.cancel();
+                btn.classList.remove('active');
+                activeBtn = null;
+                return;
+            }
+            
+            // If there's any ongoing speech, cancel it
+            if (synth.speaking) {
+                synth.cancel();
+                if (activeBtn) {
+                    activeBtn.classList.remove('active');
+                    activeBtn = null;
+                }
+            }
+            
             const utter = new SpeechSynthesisUtterance(text);
-            const daniel = synth.getVoices().find(v => v.name.includes("Daniel")) || synth.getVoices()[0];
-            utter.voice = daniel; utter.pitch = PITCH; utter.rate = RATE;
-            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
-            utter.onend = () => { btn.classList.remove('active'); activeBtn = null; };
+            // Get a good voice - prefer Daniel if available, otherwise use the first voice
+            const voices = synth.getVoices();
+            const daniel = voices.find(v => v.name.includes("Daniel")) || 
+                          voices.find(v => v.name.includes("Daniel")) ||
+                          voices.find(v => v.lang.includes("en-GB")) ||
+                          voices[0];
+            utter.voice = daniel; 
+            utter.pitch = PITCH; 
+            utter.rate = RATE;
+            
+            utter.onstart = () => { 
+                btn.classList.add('active'); 
+                activeBtn = btn; 
+            };
+            
+            utter.onend = () => { 
+                if (activeBtn === btn) {
+                    btn.classList.remove('active');
+                    activeBtn = null;
+                }
+            };
+            
+            utter.onerror = () => {
+                if (activeBtn === btn) {
+                    btn.classList.remove('active');
+                    activeBtn = null;
+                }
+            };
+            
             synth.speak(utter);
         }
 
@@ -160,39 +383,131 @@
                 row.appendChild(btn);
             }
             document.getElementById('chat-box').appendChild(row);
-            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+            const scrollArea = document.getElementById('scroll-area');
+            scrollArea.scrollTop = scrollArea.scrollHeight;
             return msg;
+        }
+        
+        function resetSendButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            sendBtn.className = 'send-btn';
+            sendBtn.onclick = handleChat;
+            abortController = null;
+            document.getElementById('user-input').disabled = false;
+        }
+        
+        function setupStopButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            sendBtn.className = 'stop-btn';
+            sendBtn.onclick = stopGeneration;
+        }
+        
+        function stopGeneration() {
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+            }
         }
 
         async function init() {
             try {
                 await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
-                document.getElementById('user-input').disabled = false;
-                document.getElementById('send-btn').disabled = false;
                 addMessage("Trapside is online. How can I help?", "ai");
-            } catch (e) { addMessage("System Offline.", "ai"); }
+            } catch (e) { 
+                console.error("Model loading failed:", e);
+                addMessage("System Offline. Please try again later.", "ai"); 
+            }
         }
 
         async function handleChat() {
             const text = document.getElementById('user-input').value.trim();
             if (!text) return;
+            
+            // Add user message
             addMessage(text, 'user');
             document.getElementById('user-input').value = '';
+            document.getElementById('user-input').style.height = 'auto';
+            document.getElementById('user-input').rows = 1;
+            
+            // Setup for AI response
             const loader = addMessage("Thinking...", 'ai', true);
-            const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
-            const prompt = `<|im_start|>system\n${sys}<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
-            const result = await wllama.createCompletion(prompt, { nPredict: 400, stop: ["<|im_end|>"], sampling: { temp: 0.7 } });
-            loader.classList.remove('thinking'); loader.innerText = result.trim();
-            const btn = document.createElement('button');
-            btn.className = 'speak-btn'; btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            btn.onclick = () => speak(result.trim(), btn);
-            loader.parentElement.appendChild(btn);
+            const sendBtn = document.getElementById('send-btn');
+            
+            // Disable input and setup stop button
+            document.getElementById('user-input').disabled = true;
+            setupStopButton();
+            
+            // Create abort controller for this generation
+            abortController = new AbortController();
+            const signal = abortController.signal;
+            
+            try {
+                const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
+                const prompt = `<think>system\n${sys}<think>\n<think>user\n${text}<think>\n<think>assistant\n`;
+                const result = await wllama.createCompletion(prompt, { 
+                    nPredict: 400, 
+                    stop: ["<think>"], 
+                    sampling: { temp: 0.7 },
+                    signal: signal
+                });
+                
+                // Process the result
+                loader.classList.remove('thinking');
+                loader.innerText = result.trim();
+                
+                // Add speak button
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(result.trim(), btn);
+                loader.parentElement.appendChild(btn);
+            } catch (e) {
+                if (signal.aborted) {
+                    loader.classList.remove('thinking');
+                    loader.innerText = "[Response stopped by user]";
+                } else {
+                    console.error("Generation error:", e);
+                    loader.classList.remove('thinking');
+                    loader.innerText = "Error: Failed to generate response. Please try again.";
+                }
+            } finally {
+                resetSendButton();
+            }
         }
 
+        // Auto-resize textarea
+        document.getElementById('user-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            // Cap the height at 5 rows
+            if (this.scrollHeight > 120) {
+                this.style.overflowY = 'auto';
+            } else {
+                this.style.overflowY = 'hidden';
+            }
+        });
+
         document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
-        window.speechSynthesis.getVoices();
+        
+        document.getElementById('user-input').onkeydown = (e) => { 
+            if(e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                handleChat(); 
+            }
+        };
+        
+        // Initialize speech synthesis voices
+        if (speechSynthesis) {
+            speechSynthesis.onvoiceschanged = () => {
+                // Voices are loaded
+            };
+        }
+        
+        // Initialize the app
         init();
     </script>
 </body>
 </html>
+
