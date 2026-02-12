@@ -1,196 +1,301 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Smart Local AI Chatbot</title>
-
-<!-- WebLLM -->
-<script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.20/dist/index.min.js"></script>
-<!-- SQL.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trapside</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{margin:0;font-family:Arial;background:#f7f7f7;color:#111;transition:.3s}
-.dark{background:#111;color:#eee}
-#app{max-width:900px;margin:0 auto;padding:60px 12px;}
-.chat{display:flex;flex-direction:column;gap:20px}
-.msg{padding:14px 18px;border-radius:16px;max-width:80%;line-height:1.45;font-size:16px;white-space:pre-wrap}
-.user{align-self:flex-end;background:#007aff;color:#fff}
-.bot{align-self:flex-start;background:#e8e8e8}
-.dark .bot{background:#222}
-input{width:100%;padding:14px 12px;border-radius:12px;border:1px solid #ccc;font-size:16px}
-#sendBtn{position:absolute;right:18px;bottom:12px;background:#007aff;color:#fff;border:none;padding:8px 14px;border-radius:10px}
-#inputBox{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#fff;display:flex;gap:10px}
-.dark #inputBox{background:#000}
-pre{background:#1e1e1e;color:#eee;padding:12px;border-radius:12px;overflow:auto;font-size:14px}
-#themeToggle{position:fixed;top:12px;right:12px;padding:10px;border:none;background:#007aff;color:#fff;border-radius:50%}
+:root {
+    --bg: #05060a;
+    --glass: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --accent: #00b4ff;
+    --bot: rgba(0, 180, 255, 0.15);
+    --user: rgba(255, 255, 255, 0.12);
+    --code-bg: #0d1117;
+    --code-border: #1f2937;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: "Inter", sans-serif;
+    overflow: hidden;
+}
+
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 20px;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -1px;
+    color: var(--accent);
+    user-select: none;
+    text-shadow: 0 0 8px rgba(0,180,255,0.5);
+}
+
+.view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: 140px;
+}
+
+.message {
+    max-width: 85%;
+    padding: 16px 20px 40px 20px;
+    border-radius: 16px;
+    margin: 16px 0;
+    position: relative;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.user-msg {
+    background: var(--user);
+    align-self: flex-end;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.bot-msg {
+    background: var(--bot);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+/* CODE BLOCKS */
+.code-block-container {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 16px;
+    margin: 16px 0;
+    padding: 16px;
+    position: relative;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #e3e6eb;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    cursor: pointer;
+    transition: 0.2s;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.input-area {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    padding: 0 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.input-container {
+    display: flex;
+    gap: 12px;
+    max-width: 800px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 40px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(30px);
+}
+
+.input-field {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 10px 15px;
+    color: white;
+    font-size: 16px;
+    outline: none;
+    resize: none;
+    max-height: 120px;
+    min-height: 24px;
+    line-height: 1.5;
+}
+
+.send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .header { padding: 16px; font-size: 24px; }
+    .message { max-width: 90%; font-size: 14px; }
+    .input-container { padding: 8px 12px; }
+}
 </style>
 </head>
 
 <body>
-<button id="themeToggle">🌓</button>
-<div id="app">
-<div class="chat" id="chat"></div>
-</div>
+<div class="container">
+    <div class="header">Trapside</div>
 
-<div id="inputBox">
-<input id="userInput" placeholder="Message..." />
-<button id="sendBtn">Send</button>
+    <div class="view" id="scroll-area">
+        <div id="chat-box"></div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-container">
+            <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
+            <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+        </div>
+    </div>
 </div>
 
 <script>
-/* ------------------------------------------------------------
-   INITIALIZATION
------------------------------------------------------------- */
-let db, SQL;
+const chatBox = document.getElementById("chat-box");
+const userInput = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
+const scrollArea = document.getElementById("scroll-area");
 
-(async()=>{
-  SQL = await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
-  db = new SQL.Database();
-  db.run("CREATE TABLE IF NOT EXISTS docs(id INTEGER PRIMARY KEY, content TEXT, embedding TEXT)");
+let controller = null;
 
-  await loadModel();
-})();
+function appendMessage(sender, text, isCode = false) {
+    const msg = document.createElement("div");
+    msg.className = `message ${sender}-msg`;
 
-/* ------------------------------------------------------------
-   LOAD BGE-SMALL MODEL (WebLLM)
------------------------------------------------------------- */
-let llm;
-async function loadModel(){
-  llm = await webllm.createWebLLM({
-    model:"BGE-small",
-    onProgress:(p)=>console.log("Loading:",p)
-  });
+    if (isCode) {
+        msg.innerHTML = `
+            <div class="code-block-container">
+                <button class="copy-btn"><i class="fas fa-copy"></i></button>
+                <pre><code>${escapeHtml(text)}</code></pre>
+            </div>
+        `;
+        setupCopyButtons();
+    } else {
+        msg.innerText = text;
+    }
+
+    chatBox.appendChild(msg);
+    scrollArea.scrollTop = scrollArea.scrollHeight;
 }
 
-/* ------------------------------------------------------------
-   UI HELPERS
------------------------------------------------------------- */
-const chat = txt=>{document.getElementById("chat").appendChild(txt);window.scrollTo(0,document.body.scrollHeight);}
-const addMsg=(txt,cls)=>{let d=document.createElement("div");d.className="msg "+cls;d.textContent=txt;chat(d);return d;}
-const streamWords=(el,text)=>new Promise(res=>{
-  const w=text.split(" ");let i=0;
-  const interval=setInterval(()=>{el.textContent+=w[i++]+" ";if(i>=w.length){clearInterval(interval);res();}},40);
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;")
+               .replace(/</g, "&lt;")
+               .replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;");
+}
+
+function setupCopyButtons() {
+    document.querySelectorAll(".copy-btn").forEach(btn => {
+        btn.onclick = () => {
+            const codeText = btn.parentElement.querySelector("code").innerText;
+            navigator.clipboard.writeText(codeText);
+            btn.innerHTML = "<i class='fas fa-check'></i>";
+            setTimeout(() => btn.innerHTML = "<i class='fas fa-copy'></i>", 1500);
+        };
+    });
+}
+
+async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    appendMessage("user", text);
+    userInput.value = "";
+    userInput.style.height = "24px";
+    sendBtn.disabled = true;
+
+    controller = new AbortController();
+    appendMessage("bot", "Thinking...");
+
+    try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "user", content: text }],
+                stream: true
+            }),
+            signal: controller.signal
+        });
+
+        const reader = response.body.getReader();
+        let botMsg = document.querySelector(".bot-msg:last-child");
+        botMsg.innerText = "";
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop();
+
+            for (const part of parts) {
+                if (!part.startsWith("data: ")) continue;
+                if (part.includes("[DONE]")) continue;
+
+                const json = JSON.parse(part.replace("data: ", ""));
+                const delta = json.choices[0].delta;
+                if (delta.content) botMsg.innerText += delta.content;
+            }
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+        }
+    } catch (err) {
+        appendMessage("bot", "❌ Request cancelled or failed.");
+    }
+
+    sendBtn.disabled = false;
+}
+
+sendBtn.onclick = sendMessage;
+
+userInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
 });
 
-/* ------------------------------------------------------------
-   THEME
------------------------------------------------------------- */
-document.getElementById("themeToggle").onclick=()=>document.body.classList.toggle("dark");
-
-/* ------------------------------------------------------------
-   VECTOR UTILS
------------------------------------------------------------- */
-function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
-function norm(a){return Math.sqrt(dot(a,a));}
-function cosine(a,b){return dot(a,b)/(norm(a)*norm(b));}
-async function embed(text){
-  const out = await llm.embed(text);
-  return Array.from(out.data);
-}
-
-/* ------------------------------------------------------------
-   RAG: STORE & SEARCH
------------------------------------------------------------- */
-async function storeDoc(text){
-  const e = await embed(text);
-  const stmt = db.prepare("INSERT INTO docs(content,embedding) VALUES(?,?)");
-  stmt.run([text,JSON.stringify(e)]);
-  stmt.free();
-}
-
-async function searchDocs(query,k=3){
-  const qemb = await embed(query);
-  const stmt = db.prepare("SELECT * FROM docs");
-  let results=[];
-  while(stmt.step()){
-    let row = stmt.getAsObject();
-    let emb = JSON.parse(row.embedding);
-    let score = cosine(qemb,emb);
-    results.push({text:row.content,score});
-  }
-  stmt.free();
-  return results.sort((a,b)=>b.score-a.score).slice(0,k);
-}
-
-/* ------------------------------------------------------------
-   AUTO DETECT MODE
------------------------------------------------------------- */
-function detectMode(text){
-  if(/[\{\};=<>]/.test(text)||text.includes("function")||text.includes("class")||text.includes("import")||text.includes("console"))
-    return "code";
-  return "chat";
-}
-
-/* ------------------------------------------------------------
-   LOCAL JS EXEC TOOL
------------------------------------------------------------- */
-function runJS(code){
-  try{return String(Function(code)());}
-  catch(e){return "Error: "+e.message;}
-}
-
-/* ------------------------------------------------------------
-   MAIN AI LOGIC
------------------------------------------------------------- */
-async function process(user){
-  const mode = detectMode(user);
-
-  // RAG
-  const docs = await searchDocs(user);
-  const context = docs.map(d=>d.text).join("\n");
-
-  const systemPrompt = `
-You are a dual-mode assistant.
-If user is coding, act as expert coding assistant.
-If chatting, respond normally.
-Use retrieved knowledge:\n${context}
-  `;
-
-  let prompt;
-  if(mode==="code"){
-    prompt = `${systemPrompt}\nUser code:\n${user}\nRespond as coding expert.`;
-  } else {
-    prompt = `${systemPrompt}\nUser message: ${user}`;
-  }
-
-  const msg = await llm.chat.completions.create({
-    messages:[
-      {role:"system",content:systemPrompt},
-      {role:"user",content:prompt}
-    ]
-  });
-
-  return msg.choices[0].message.content;
-}
-
-/* ------------------------------------------------------------
-   SEND MESSAGE
------------------------------------------------------------- */
-async function send(){
-  const inp=document.getElementById("userInput");
-  const text=inp.value.trim();
-  if(!text)return;
-  inp.value="";
-
-  addMsg(text,"user");
-
-  const botEl=addMsg("","bot");
-
-  // RUN JS IF CODE SNIPPET TOOL
-  if(detectMode(text)==="code" && text.startsWith("runjs:")){
-    const result = runJS(text.slice(6));
-    await streamWords(botEl,result);
-    return;
-  }
-
-  const out = await process(text);
-  await streamWords(botEl,out);
-}
-
-/* ------------------------------------------------------------
-   HANDLERS
------------------------------------------------------------- */
-document.getElementById("sendBtn").onclick=send;
-document.getElementById("userInput").onkeydown=e=>{if(e.key==="Enter")send();};
+userInput.addEventListener("input", () => {
+    userInput.style.height = "24px";
+    userInput.style.height = Math.min(userInput.scrollHeight, 140) + "px";
+});
 </script>
+
 </body>
 </html>
