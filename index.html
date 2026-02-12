@@ -407,7 +407,7 @@
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         // -------------------------------------------------------------
-        //  CODING KNOWLEDGE ENHANCEMENT – EMBEDDED "BOOK" 
+        //  ENHANCED CODING KNOWLEDGE – "BOOK OF CODE" v2
         // -------------------------------------------------------------
         const CODING_EXPERTISE = `
 You are Trapside, an elite software architect with 20+ years of experience. 
@@ -422,7 +422,14 @@ You embody the following "Book of Code Knowledge":
 7. For algorithms: show complexity analysis, test cases, and optimizations.
 8. For system design: include component diagrams in ASCII, then code skeletons.
 
-You think step‑by‑step, reason aloud, and then output the final answer with code blocks marked by \`\`\`.
+**NEW RULES (making it more):**
+9. Every answer containing code MUST format it with triple backticks and a language specifier (e.g. \`\`\`python).  
+10. Provide at least one complete, self‑contained code block per coding question.  
+11. Include a small example usage or test run inside comments or at the end.  
+12. Consider security, input validation, and thread‑safety where relevant.  
+13. If multiple languages are appropriate, show both with clear explanations.
+
+You think step‑by‑step, reason aloud, and then output the final answer with code blocks.
 `.trim();
 
         const synth = window.speechSynthesis;
@@ -458,7 +465,7 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             synth.speak(utter);
         }
 
-        // ---------- CODE BLOCK RENDERING ----------
+        // ---------- FIXED COPY BUTTON (always copies full code) ----------
         function createCodeBlock(code, lang = '') {
             const container = document.createElement('div');
             container.className = 'code-block-container';
@@ -469,31 +476,59 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             pre.appendChild(codeEl);
             container.appendChild(pre);
             
-            // Copy button
+            // --- ROBUST COPY BUTTON ---
             const copyBtn = document.createElement('button');
             copyBtn.className = 'copy-btn';
             copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            copyBtn.onclick = (e) => {
+            
+            // Use the exact 'code' string from the parameter (most reliable)
+            const codeToCopy = code;
+            
+            copyBtn.onclick = async (e) => {
                 e.stopPropagation();
-                navigator.clipboard.writeText(code).then(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                        copyBtn.classList.remove('copied');
-                    }, 2000);
-                });
+                
+                // Try modern clipboard API first
+                try {
+                    await navigator.clipboard.writeText(codeToCopy);
+                    showCopySuccess(copyBtn);
+                } catch (err) {
+                    // Fallback: create hidden textarea
+                    console.warn('Clipboard API failed, using fallback', err);
+                    const textarea = document.createElement('textarea');
+                    textarea.value = codeToCopy;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    textarea.setSelectionRange(0, 99999); // mobile
+                    try {
+                        document.execCommand('copy');
+                        showCopySuccess(copyBtn);
+                    } catch (fallbackErr) {
+                        console.error('Fallback copy failed', fallbackErr);
+                        alert('Copy failed. Please select the code manually.');
+                    }
+                    document.body.removeChild(textarea);
+                }
             };
+            
+            function showCopySuccess(btn) {
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i>';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }
+            
             container.appendChild(copyBtn);
             
             // Click anywhere on container -> open modal with full code
             container.addEventListener('click', (e) => {
-                // Don't open if the click is on the copy button (already handled)
                 if (e.target.closest('.copy-btn')) return;
-                
                 const modal = document.getElementById('code-modal');
                 const modalContent = document.getElementById('modal-code-content');
-                modalContent.textContent = code;
+                modalContent.textContent = codeToCopy;  // use same variable
                 modal.classList.add('active');
             });
             
@@ -504,14 +539,12 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
         function formatMessage(text) {
             if (!text) return text;
             
-            // Pattern to match triple backtick blocks with optional language
             const blockRegex = /```(\w*)\n([\s\S]*?)```/g;
             let lastIndex = 0;
             let parts = [];
             let match;
             
             while ((match = blockRegex.exec(text)) !== null) {
-                // Text before this block
                 if (match.index > lastIndex) {
                     parts.push(document.createTextNode(text.slice(lastIndex, match.index)));
                 }
@@ -523,23 +556,17 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
                 lastIndex = match.index + match[0].length;
             }
             
-            // Remaining text after last block
             if (lastIndex < text.length) {
                 parts.push(document.createTextNode(text.slice(lastIndex)));
             }
             
-            // If no code blocks, return original text as single text node (but as HTML string for innerHTML)
             if (parts.length === 0) {
                 return text;
             }
             
-            // Build a fragment and then return as HTML string (simplified: we need to embed nodes)
-            // We'll use a <span> wrapper to inject via innerHTML – but we need actual DOM nodes.
-            // Better: return a DocumentFragment or an array of nodes.
-            // To keep it simple, we create a temporary div, append nodes, and return innerHTML.
             const tempDiv = document.createElement('div');
             parts.forEach(node => tempDiv.appendChild(node));
-            return tempDiv.innerHTML; // This will serialize the nodes we built
+            return tempDiv.innerHTML;
         }
 
         // Add a message with proper formatting for AI messages
@@ -550,17 +577,13 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             
             if (role === 'ai' && !isThinking) {
-                // Format the message: replace code blocks with interactive boxes
                 const formattedHTML = formatMessage(text);
-                // If formattedHTML is a string, set innerHTML (our function returns HTML string now)
                 if (typeof formattedHTML === 'string') {
                     msg.innerHTML = formattedHTML;
                 } else {
-                    // Fallback (should not happen)
                     msg.innerText = text;
                 }
                 
-                // Add speak button after content
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
@@ -570,7 +593,6 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
                 };
                 msg.appendChild(btn);
             } else {
-                // User message or thinking state – plain text
                 msg.innerText = text;
             }
             
@@ -639,18 +661,16 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             const signal = abortController.signal;
             
             try {
-                // === ENHANCED SYSTEM PROMPT WITH CODING BOOK ===
                 const sys = CODING_EXPERTISE + "\n\nAlways think step‑by‑step and provide complete, well‑commented code.";
                 const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
                 
                 const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 600,        // more room for full code
+                    nPredict: 600,
                     stop: ["<think>"], 
-                    sampling: { temp: 0.5 }, // lower temp for precise code
+                    sampling: { temp: 0.5 },
                     signal: signal
                 });
                 
-                // Remove thinking class and update with formatted content
                 loader.classList.remove('thinking');
                 
                 const cleanResult = result.trim();
@@ -661,7 +681,6 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
                     loader.innerText = cleanResult;
                 }
                 
-                // Add speak button (speaks raw text, not HTML)
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
@@ -700,12 +719,10 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             }
         };
 
-        // Modal close handlers
         const modal = document.getElementById('code-modal');
         document.getElementById('close-modal-btn').onclick = () => modal.classList.remove('active');
         window.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
 
-        // Preload voices
         if (speechSynthesis) {
             speechSynthesis.onvoiceschanged = () => {};
         }
