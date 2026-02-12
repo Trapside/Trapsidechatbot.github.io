@@ -26,7 +26,6 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Fixed Header */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
@@ -59,7 +58,6 @@
             border-radius: 3px;
         }
 
-        /* Message Area */
         .view { 
             flex: 1; 
             display: flex; 
@@ -138,7 +136,6 @@
             border-color: var(--accent);
         }
 
-        /* Floating Minimalist Input Area */
         .input-area { 
             position: absolute; 
             bottom: 30px; 
@@ -148,9 +145,9 @@
             pointer-events: none;
             display: flex;
             justify-content: center;
-            align-items: flex-end; /* Align items to bottom */
-            gap: 12px; /* Gap between input box and model button */
-            max-width: 860px; /* Increased max-width to fit button */
+            align-items: flex-end; 
+            gap: 12px; 
+            max-width: 860px; 
             margin: 0 auto;
         }
 
@@ -158,7 +155,7 @@
             pointer-events: auto;
             display: flex; 
             gap: 12px; 
-            flex: 1; /* Takes up remaining space */
+            flex: 1; 
             padding: 10px 14px; 
             border-radius: 40px;
             background: var(--glass);
@@ -192,10 +189,6 @@
             color: rgba(255, 255, 255, 0.4);
             opacity: 1;
         }
-        
-        .input-field:focus {
-            outline: none;
-        }
 
         .send-btn, .stop-btn { 
             background: var(--accent); 
@@ -212,36 +205,23 @@
             flex-shrink: 0;
         }
         
-        .send-btn:hover, .stop-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px var(--accent);
-        }
-        
         .send-btn:disabled { 
             opacity: 0.3; 
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
         
         .stop-btn {
             background: #ff4d4d;
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
-        
-        .stop-btn:hover {
-            box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
-            background: #ff3333;
-        }
 
-        /* New Model Toggle Button */
         .model-btn {
             pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
-            width: 50px; /* Slightly larger to match input height */
+            width: 50px; 
             height: 50px;
             border-radius: 50%;
             display: flex;
@@ -254,103 +234,32 @@
             flex-shrink: 0;
         }
 
-        .model-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.05);
-        }
-
         .model-btn.active {
             background: var(--accent);
             box-shadow: 0 0 20px var(--accent);
             border-color: var(--accent);
         }
 
-        .model-btn i {
-            font-size: 18px;
-        }
-        
-        /* Scrollbar styling */
-        .view::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .view::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-        
-        .view::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 10px;
-        }
-        
-        .view::-webkit-scrollbar-thumb:hover {
-            background: #0099cc;
-        }
-        
-        /* Responsive adjustments */
+        .view::-webkit-scrollbar { width: 6px; }
+        .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
         @media (max-width: 768px) {
-            .header {
-                padding: 16px;
-            }
-            
-            .brand {
-                font-size: 24px;
-                letter-spacing: 1px;
-            }
-            
-            .message {
-                max-width: 90%;
-                padding: 14px 18px 38px 18px; 
-                font-size: 14px;
-            }
-            
-            .input-area {
-                padding: 0 10px 20px 10px;
-            }
-
-            .input-container {
-                padding: 8px 12px;
-                border-radius: 36px;
-            }
-            
-            .input-field {
-                font-size: 15px;
-            }
-            
-            .send-btn, .stop-btn {
-                width: 40px;
-                height: 40px;
-            }
-            
-            .model-btn {
-                width: 44px;
-                height: 44px;
-            }
-
-            .speak-btn {
-                bottom: 8px;
-                right: 8px;
-            }
+            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
+            .input-area { padding: 0 10px 20px 10px; }
+            .model-btn { width: 44px; height: 44px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <span class="brand">Trapside</span>
-        </div>
-        <div class="view" id="scroll-area">
-            <div id="chat-box"></div>
-        </div>
+        <div class="header"><span class="brand">Trapside</span></div>
+        <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
                 <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
-            <button id="model-toggle" class="model-btn" title="Toggle Smart Model">
-                <i class="fas fa-glasses"></i>
-            </button>
+            <button id="model-toggle" class="model-btn" title="Toggle Smart Model"><i class="fas fa-glasses"></i></button>
         </div>
     </div>
 
@@ -360,69 +269,28 @@
         const synth = window.speechSynthesis;
         let activeBtn = null;
         let abortController = null;
-        const PITCH = 1.5;
-        const RATE = 1.0;
 
-        // Model Configuration
         let currentModel = 'smollm2';
         const models = {
             smollm2: {
                 repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf',
-                name: 'SmolLM2'
+                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
             },
             tinyllama: {
                 repo: 'TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
-                file: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-                name: 'TinyLlama-1.1B'
+                file: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf'
             }
         };
 
         function speak(text, btn) {
-            if (synth.speaking && activeBtn === btn) {
-                synth.cancel();
-                btn.classList.remove('active');
-                activeBtn = null;
-                return;
-            }
-            
-            if (synth.speaking) {
-                synth.cancel();
-                if (activeBtn) {
-                    activeBtn.classList.remove('active');
-                    activeBtn = null;
-                }
-            }
-            
+            if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
+            if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
             const utter = new SpeechSynthesisUtterance(text);
             const voices = synth.getVoices();
-            const daniel = voices.find(v => v.name.includes("Daniel")) || 
-                          voices.find(v => v.name.includes("Daniel")) ||
-                          voices.find(v => v.lang.includes("en-GB")) ||
-                          voices[0];
-            utter.voice = daniel; 
-            utter.pitch = PITCH; 
-            utter.rate = RATE;
-            
-            utter.onstart = () => { 
-                btn.classList.add('active'); 
-                activeBtn = btn; 
-            };
-            
-            utter.onend = () => { 
-                if (activeBtn === btn) {
-                    btn.classList.remove('active');
-                    activeBtn = null;
-                }
-            };
-            
-            utter.onerror = () => {
-                if (activeBtn === btn) {
-                    btn.classList.remove('active');
-                    activeBtn = null;
-                }
-            };
-            
+            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
+            utter.pitch = 1.5; utter.rate = 1.0;
+            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
             synth.speak(utter);
         }
 
@@ -438,7 +306,6 @@
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             msg.innerText = text;
             row.appendChild(msg);
-
             if (role === 'ai' && !isThinking) {
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
@@ -447,8 +314,7 @@
                 msg.appendChild(btn);
             }
             document.getElementById('chat-box').appendChild(row);
-            const scrollArea = document.getElementById('scroll-area');
-            scrollArea.scrollTop = scrollArea.scrollHeight;
+            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
             return msg;
         }
         
@@ -457,9 +323,7 @@
             sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
             sendBtn.className = 'send-btn';
             sendBtn.onclick = handleChat;
-            abortController = null;
             document.getElementById('user-input').disabled = false;
-            // Re-enable toggle button
             document.getElementById('model-toggle').disabled = false;
             document.getElementById('model-toggle').style.opacity = '1';
         }
@@ -468,147 +332,83 @@
             const sendBtn = document.getElementById('send-btn');
             sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
             sendBtn.className = 'stop-btn';
-            sendBtn.onclick = stopGeneration;
-        }
-        
-        function stopGeneration() {
-            if (abortController) {
-                abortController.abort();
-                abortController = null;
-            }
+            sendBtn.onclick = () => { if (abortController) abortController.abort(); };
         }
 
-        // New function to handle model toggling
         async function toggleModel() {
             const btn = document.getElementById('model-toggle');
-            const input = document.getElementById('user-input');
-            const sendBtn = document.getElementById('send-btn');
-            
-            // Disable interactions while switching
-            input.disabled = true;
-            sendBtn.disabled = true;
+            document.getElementById('user-input').disabled = true;
             btn.disabled = true;
-            input.placeholder = "Switching brains...";
             
             try {
                 if (currentModel === 'smollm2') {
-                    // Switch to TinyLlama
-                    addMessage("Downloading TinyLlama-1.1B... please wait.", "ai");
+                    addMessage("Loading TinyLlama-1.1B...", "ai");
                     await wllama.loadModelFromHF(models.tinyllama.repo, models.tinyllama.file);
                     currentModel = 'tinyllama';
                     btn.classList.add('active');
-                    addMessage("TinyLlama-1.1B Loaded. Smart Mode Active.", "ai");
                 } else {
-                    // Switch back to SmolLM2
-                    addMessage("Switching back to SmolLM2...", "ai");
+                    addMessage("Loading SmolLM2...", "ai");
                     await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
                     currentModel = 'smollm2';
                     btn.classList.remove('active');
-                    addMessage("SmolLM2 Loaded.", "ai");
                 }
+                addMessage(`${currentModel.toUpperCase()} is ready.`, "ai");
             } catch (e) {
-                console.error("Model switch failed:", e);
-                addMessage(`Error switching to ${currentModel === 'smollm2' ? 'TinyLlama' : 'SmolLM2'}.`, "ai");
+                console.error(e);
+                addMessage("Model swap failed. Check connection.", "ai");
             } finally {
-                input.disabled = false;
-                sendBtn.disabled = false;
+                document.getElementById('user-input').disabled = false;
                 btn.disabled = false;
-                input.placeholder = "Deep reasoning...";
-                input.focus();
             }
         }
 
         async function init() {
             try {
-                // Load default model (SmolLM2)
                 await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
-                addMessage("Trapside is online. How can I help?", "ai");
-            } catch (e) { 
-                console.error("Model loading failed:", e);
-                addMessage("System Offline. Please try again later.", "ai"); 
-            }
+                addMessage("Trapside is online.", "ai");
+            } catch (e) { addMessage("System Offline.", "ai"); }
         }
 
         async function handleChat() {
-            const text = document.getElementById('user-input').value.trim();
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
             if (!text) return;
             
             addMessage(text, 'user');
-            document.getElementById('user-input').value = '';
-            document.getElementById('user-input').style.height = 'auto';
-            document.getElementById('user-input').rows = 1;
-            
+            input.value = ''; input.style.height = 'auto';
             const loader = addMessage("Thinking...", 'ai', true);
-            const sendBtn = document.getElementById('send-btn');
             
-            // Disable input, model toggle, and setup stop button
             document.getElementById('user-input').disabled = true;
             document.getElementById('model-toggle').disabled = true;
-            document.getElementById('model-toggle').style.opacity = '0.5';
-            
             setupStopButton();
             
             abortController = new AbortController();
-            const signal = abortController.signal;
-            
             try {
-                const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
-                // Adjust prompt format based on prompt requirements, keeping structure similar
-                const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
-                
+                const sys = "You are Trapside, an expert assistant.";
+                const prompt = `<|system|>\n${sys}</s>\n<|user|>\n${text}</s>\n<|assistant|>\n`;
                 const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 400, 
-                    stop: ["<think>"], 
-                    sampling: { temp: 0.7 },
-                    signal: signal
+                    nPredict: 400, sampling: { temp: 0.7 }, signal: abortController.signal 
                 });
-                
                 loader.classList.remove('thinking');
                 loader.innerText = result.trim();
-                
                 const btn = document.createElement('button');
-                btn.className = 'speak-btn';
-                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.className = 'speak-btn'; btn.innerHTML = '<i class="fas fa-volume-up"></i>';
                 btn.onclick = () => speak(result.trim(), btn);
                 loader.appendChild(btn);
             } catch (e) {
-                if (signal.aborted) {
-                    loader.classList.remove('thinking');
-                    loader.innerText = "[Response stopped by user]";
-                } else {
-                    console.error("Generation error:", e);
-                    loader.classList.remove('thinking');
-                    loader.innerText = "Error: Failed to generate response. Please try again.";
-                }
-            } finally {
-                resetSendButton();
-            }
+                loader.classList.remove('thinking');
+                loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred.";
+            } finally { resetSendButton(); }
         }
 
-        // Auto-resize textarea
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            if (this.scrollHeight > 120) {
-                this.style.overflowY = 'auto';
-            } else {
-                this.style.overflowY = 'hidden';
-            }
         });
 
         document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('model-toggle').onclick = toggleModel; // Bind click event
-        
-        document.getElementById('user-input').onkeydown = (e) => { 
-            if(e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                handleChat(); 
-            }
-        };
-        
-        if (speechSynthesis) {
-            speechSynthesis.onvoiceschanged = () => {};
-        }
+        document.getElementById('model-toggle').onclick = toggleModel;
+        document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
         
         init();
     </script>
