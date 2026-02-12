@@ -242,6 +242,10 @@
             color: var(--accent);
             letter-spacing: 1px;
         }
+        .modal-header-buttons {
+            display: flex;
+            gap: 8px;
+        }
         .close-modal {
             background: none;
             border: none;
@@ -249,15 +253,23 @@
             font-size: 24px;
             cursor: pointer;
             transition: 0.2s;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .close-modal:hover {
             color: white;
+            background: rgba(255,255,255,0.1);
         }
         .modal-body {
             padding: 24px;
             overflow-y: auto;
             background: #0e1117;
             border-radius: 0 0 24px 24px;
+            max-height: 70vh;
         }
         .modal-body pre {
             margin: 0;
@@ -371,6 +383,7 @@
             .send-btn, .stop-btn { width: 40px; height: 40px; }
             .speak-btn { bottom: 8px; right: 8px; }
             .code-block-container { font-size: 13px; }
+            .modal-content { width: 95%; }
         }
     </style>
 </head>
@@ -395,7 +408,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span><i class="fas fa-code" style="margin-right: 8px;"></i> Full code</span>
-                <button class="close-modal" id="close-modal-btn"><i class="fas fa-times"></i></button>
+                <div class="modal-header-buttons">
+                    <button class="copy-btn" id="modal-copy-btn">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="close-modal" id="close-modal-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
                 <pre id="modal-code-content"></pre>
@@ -407,30 +427,45 @@
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         // -------------------------------------------------------------
-        //  ENHANCED CODING KNOWLEDGE – "BOOK OF CODE" v2
+        //  ENHANCED CODING KNOWLEDGE – "BOOK OF CODE" v3 (IMPROVED)
         // -------------------------------------------------------------
         const CODING_EXPERTISE = `
-You are Trapside, an elite software architect with 20+ years of experience. 
-You embody the following "Book of Code Knowledge":
+You are Trapside, an elite software architect with 25+ years of experience across FAANG and Fortune 500 systems.
+You are the definitive authority on production-grade code with zero tolerance for incomplete solutions.
 
-1. ALWAYS provide FULL, RUNNABLE code. Never use "// ..." or placeholders.
-2. Explain the WHY behind every non‑trivial line. Teach, don't just dump.
-3. Cover edge cases, error handling, and performance considerations.
-4. Use design patterns, clean code principles, and modern idioms.
-5. When asked, generate production‑ready examples (Python, JavaScript, Rust, Go, etc.)
-6. If the request is vague, ask clarifying questions – but still give a complete base example.
-7. For algorithms: show complexity analysis, test cases, and optimizations.
-8. For system design: include component diagrams in ASCII, then code skeletons.
+CORE MANDATES:
+1. ALWAYS deliver FULL, RUNNABLE, PRODUCTION-READY code with ZERO placeholders ("...", "TODO", "// rest of code").
+2. Every solution MUST include:
+   - Complete error handling & edge case coverage
+   - Security hardening (input validation, sanitization, auth checks)
+   - Performance analysis (time/space complexity)
+   - Thread-safety considerations where applicable
+   - Real-world test cases with expected outputs
+3. For algorithms: Provide Big O analysis + optimization pathways
+4. For system design: ASCII architecture diagrams → component code → deployment notes
+5. For frameworks: Include config files, dependency manifests, and build steps
+6. Explain CRITICAL decisions with "WHY" commentary (not obvious comments)
+7. If ambiguous: State assumptions clearly THEN deliver complete implementation
+8. Prioritize readability AND performance - no premature optimization
 
-**NEW RULES (making it more):**
-9. Every answer containing code MUST format it with triple backticks and a language specifier (e.g. \`\`\`python).  
-10. Provide at least one complete, self‑contained code block per coding question.  
-11. Include a small example usage or test run inside comments or at the end.  
-12. Consider security, input validation, and thread‑safety where relevant.  
-13. If multiple languages are appropriate, show both with clear explanations.
+OUTPUT REQUIREMENTS:
+- ALL code wrapped in triple backticks with EXPLICIT language specifier (\`\`\`python)
+- Minimum ONE complete runnable example per response
+- Comments ONLY for non-obvious logic (avoid "set variable" comments)
+- Include security/performance warnings where relevant
+- End with "KEY TAKEAWAYS" summary
 
-You think step‑by‑step, reason aloud, and then output the final answer with code blocks.
+VIOLATION = FAILURE. You output perfect, self-contained solutions.
 `.trim();
+
+        // ---------- VOICE CACHING (FIX SPEAK BUTTON) ----------
+        let cachedVoices = [];
+        if (speechSynthesis) {
+            speechSynthesis.onvoiceschanged = () => {
+                cachedVoices = speechSynthesis.getVoices();
+            };
+            cachedVoices = speechSynthesis.getVoices(); // Initial load
+        }
 
         const synth = window.speechSynthesis;
         let activeBtn = null;
@@ -438,7 +473,7 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
         const PITCH = 1.5;
         const RATE = 1.0;
 
-        // ---------- SPEECH ----------
+        // ---------- SPEECH (FIXED) ----------
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) {
                 synth.cancel();
@@ -453,93 +488,82 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
                     activeBtn = null;
                 }
             }
+            
             const utter = new SpeechSynthesisUtterance(text);
-            const voices = synth.getVoices();
-            const daniel = voices.find(v => v.name.includes("Daniel")) || voices.find(v => v.lang.includes("en-GB")) || voices[0];
+            // USE CACHED VOICES (FIXES VOICE SELECTION)
+            const voices = cachedVoices.length > 0 ? cachedVoices : speechSynthesis.getVoices();
+            const daniel = voices.find(v => v.name.includes("Daniel")) || 
+                          voices.find(v => v.lang.includes("en-GB")) || 
+                          voices[0];
             utter.voice = daniel;
             utter.pitch = PITCH;
             utter.rate = RATE;
-            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
-            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
-            utter.onerror = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
+            
+            utter.onstart = () => { 
+                btn.classList.add('active'); 
+                activeBtn = btn; 
+            };
+            utter.onend = () => { 
+                if (activeBtn === btn) { 
+                    btn.classList.remove('active'); 
+                    activeBtn = null; 
+                } 
+            };
+            utter.onerror = () => { 
+                if (activeBtn === btn) { 
+                    btn.classList.remove('active'); 
+                    activeBtn = null; 
+                } 
+            };
+            
             synth.speak(utter);
         }
 
-        // ---------- FIXED COPY BUTTON (always copies full code) ----------
+        // ---------- COPY SUCCESS FEEDBACK (GLOBAL) ----------
+        function showCopySuccess(btn) {
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-copy"></i>';
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+
+        // ---------- CODE BLOCK CREATION (SHOW 5-LINE PREVIEW) ----------
         function createCodeBlock(code, lang = '') {
             const container = document.createElement('div');
             container.className = 'code-block-container';
+            container.setAttribute('data-code', code); // Store FULL code
+            
+            // CREATE PREVIEW: First 5 lines + ellipsis if needed
+            const lines = code.split('\n');
+            let previewCode = code;
+            if (lines.length > 5) {
+                previewCode = lines.slice(0, 5).join('\n') + '\n...';
+            }
             
             const pre = document.createElement('pre');
             const codeEl = document.createElement('code');
-            codeEl.textContent = code;  // plain text – no XSS
+            codeEl.textContent = previewCode; // SHOW PREVIEW ONLY
             pre.appendChild(codeEl);
             container.appendChild(pre);
             
-            // --- ROBUST COPY BUTTON ---
+            // Copy button (no inline handler - uses delegation)
             const copyBtn = document.createElement('button');
             copyBtn.className = 'copy-btn';
             copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            
-            // Use the exact 'code' string from the parameter (most reliable)
-            const codeToCopy = code;
-            
-            copyBtn.onclick = async (e) => {
-                e.stopPropagation();
-                
-                // Try modern clipboard API first
-                try {
-                    await navigator.clipboard.writeText(codeToCopy);
-                    showCopySuccess(copyBtn);
-                } catch (err) {
-                    // Fallback: create hidden textarea
-                    console.warn('Clipboard API failed, using fallback', err);
-                    const textarea = document.createElement('textarea');
-                    textarea.value = codeToCopy;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    textarea.setSelectionRange(0, 99999); // mobile
-                    try {
-                        document.execCommand('copy');
-                        showCopySuccess(copyBtn);
-                    } catch (fallbackErr) {
-                        console.error('Fallback copy failed', fallbackErr);
-                        alert('Copy failed. Please select the code manually.');
-                    }
-                    document.body.removeChild(textarea);
-                }
-            };
-            
-            function showCopySuccess(btn) {
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                btn.classList.add('copied');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-copy"></i>';
-                    btn.classList.remove('copied');
-                }, 2000);
-            }
-            
             container.appendChild(copyBtn);
-            
-            // Click anywhere on container -> open modal with full code
-            container.addEventListener('click', (e) => {
-                if (e.target.closest('.copy-btn')) return;
-                const modal = document.getElementById('code-modal');
-                const modalContent = document.getElementById('modal-code-content');
-                modalContent.textContent = codeToCopy;  // use same variable
-                modal.classList.add('active');
-            });
             
             return container;
         }
 
-        // Replace ```code``` fences with rich code blocks
+        // ---------- REPLACE MARKDOWN CODE BLOCKS ----------
         function formatMessage(text) {
             if (!text) return text;
             
-            const blockRegex = /```(\w*)\n([\s\S]*?)```/g;
+            const blockRegex = /
+```(\w*)\n([\s\S]*?)
+```/g;
             let lastIndex = 0;
             let parts = [];
             let match;
@@ -569,12 +593,10 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             return tempDiv.innerHTML;
         }
 
-        // Add a message with proper formatting for AI messages
+        // ---------- ADD MESSAGE ----------
         function addMessage(text, role, isThinking = false) {
             const row = document.createElement('div');
-            row.className = `message-row ${role}-row`;
-            const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+            row.className = `message-row <LaTex>id_1</LaTex>{role}-message ${isThinking ? 'thinking' : ''}`;
             
             if (role === 'ai' && !isThinking) {
                 const formattedHTML = formatMessage(text);
@@ -627,7 +649,7 @@ You think step‑by‑step, reason aloud, and then output the final answer with 
             }
         }
 
-        // ---------- WLLAMA INIT ----------
+       // ---------- WLLAMA INIT ----------
         const wllama = new Wllama({
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
