@@ -390,6 +390,21 @@
             }
         }
         
+        // Build conversation context string from history
+        function buildConversationContext() {
+            if (conversationHistory.length === 0) return '';
+            
+            let context = '\n\nPrevious conversation:\n';
+            for (const msg of conversationHistory) {
+                if (msg.role === 'user') {
+                    context += `User: ${msg.content}\n`;
+                } else {
+                    context += `Assistant: ${msg.content}\n`;
+                }
+            }
+            return context;
+        }
+        
         // Build prompt with conversation history
         function buildPromptWithHistory(userMessage) {
             // Enhanced system prompt for better reasoning
@@ -401,7 +416,7 @@ Core Principles:
 - Verify your reasoning before answering
 - Admit when you're uncertain
 - Provide clear, concise, accurate responses
-- Remember the conversation context
+- Remember the conversation context and refer back to previous messages when relevant
 
 When solving problems:
 1. Understand what is being asked
@@ -423,13 +438,13 @@ When solving problems:
             return prompt;
         }
         
-        // Multi-pass reasoning system
+        // Multi-pass reasoning system with conversation context
         async function multiPassReasoning(userMessage) {
             let reasoningText = '';
             let finalAnswer = '';
             
             if (thinkingModeEnabled) {
-                // PASS 1: Chain-of-Thought Reasoning
+                // PASS 1: Chain-of-Thought Reasoning WITH conversation context
                 const thinkingPrompt = buildThinkingPrompt(userMessage);
                 
                 try {
@@ -454,7 +469,7 @@ When solving problems:
                     }
                 }
                 
-                // PASS 2: Final Answer based on reasoning
+                // PASS 2: Final Answer based on reasoning WITH conversation context
                 const answerPrompt = buildAnswerPrompt(userMessage, reasoningText);
                 
                 try {
@@ -479,7 +494,7 @@ When solving problems:
                     }
                 }
             } else {
-                // Single pass without visible reasoning
+                // Single pass WITH conversation history
                 const prompt = buildPromptWithHistory(userMessage);
                 
                 try {
@@ -511,17 +526,35 @@ When solving problems:
         function buildThinkingPrompt(userMessage) {
             const thinkingSystemPrompt = `Think through this step-by-step. Show your reasoning process clearly:
 1. What is being asked?
-2. What information do I need?
+2. What information do I need from the conversation history?
 3. How should I approach this?
 4. What's my reasoning?`;
             
-            return `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
+            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n`;
+            
+            // ADD CONVERSATION HISTORY to thinking prompt
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
+            
+            return prompt;
         }
         
         function buildAnswerPrompt(userMessage, reasoning) {
-            const answerSystemPrompt = `Based on your reasoning, provide a clear, concise, and accurate answer. Be direct and helpful.`;
+            const answerSystemPrompt = `Based on your reasoning and the conversation history, provide a clear, concise, and accurate answer. Be direct and helpful.`;
             
-            return `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
+            let prompt = `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n`;
+            
+            // ADD CONVERSATION HISTORY to answer prompt
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
+            
+            return prompt;
         }
 
         async function handleChat() {
@@ -540,7 +573,7 @@ When solving problems:
             setupStopButton();
             
             try {
-                // Multi-pass reasoning
+                // Multi-pass reasoning with conversation context
                 const result = await multiPassReasoning(text);
                 
                 // Update conversation history (limit to last N exchanges)
