@@ -1,761 +1,360 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside · Code Intelligence</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --accent: #00b4ff;
-            --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
-            --code-bg: #0b0e14;
-            --code-border: #2a2f3a;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Trapside · Code Intelligence</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--liquid-bg);
-            background-attachment: fixed;
-            color: #fff; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
+<style>
+:root {
+  --glass: rgba(255,255,255,.05);
+  --glass-border: rgba(255,255,255,.15);
+  --accent: #00b4ff;
+  --liquid-bg: linear-gradient(135deg,#02010a,#0d1127 50%,#1a0b2e);
+  --code-bg: #0b0e14;
+  --code-border: #2a2f3a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--liquid-bg) fixed;
+  color:#fff;height:100vh;overflow:hidden
+}
+.container{height:100vh;display:flex;flex-direction:column}
+.header{
+  padding:24px;display:flex;justify-content:center;align-items:center;
+  position:fixed;top:0;left:0;right:0;z-index:10
+}
+.brand{
+  font-weight:900;font-size:28px;letter-spacing:2px;color:#fff;text-transform:uppercase;
+  filter:drop-shadow(0 0 10px rgba(0,180,255,.3));position:relative
+}
+.brand:after{
+  content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  width:60px;height:3px;background:var(--accent);border-radius:3px
+}
+.view{
+  flex:1;display:flex;flex-direction:column;overflow-y:auto;
+  padding:100px 20px 120px;gap:20px
+}
+#chat-box{display:flex;flex-direction:column;gap:16px}
+.message-row{display:flex;width:100%;align-items:flex-end;gap:12px}
+.user-row{flex-direction:row-reverse}
+.message{
+  max-width:80%;padding:16px 22px 42px;border-radius:24px;font-size:15px;
+  backdrop-filter:blur(15px);border:1px solid var(--glass-border);background:var(--glass);
+  box-shadow:0 8px 32px rgba(0,0,0,.2);position:relative;line-height:1.6
+}
+.user-message{background:rgba(0,180,255,.1);border-color:rgba(0,180,255,.3);border-bottom-right-radius:4px}
+.ai-message{border-bottom-left-radius:4px}
+.thinking{font-weight:bold;color:var(--accent);animation:pulse 1.5s infinite}
+@keyframes pulse{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}
 
-        .container { height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Fixed Header - transparent */
-        .header { 
-            padding: 24px; 
-            display: flex; justify-content: center; align-items: center;
-            z-index: 10;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-        }
+.speak-btn{
+  position:absolute;bottom:10px;right:10px;width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--glass-border);background:rgba(255,255,255,.08);color:#fff;
+  display:flex;justify-content:center;align-items:center;cursor:pointer;transition:.3s;
+  box-shadow:0 0 10px rgba(0,180,255,.2);z-index:5
+}
+.speak-btn:hover{background:rgba(255,255,255,.12);transform:scale(1.05)}
+.speak-btn.active{background:var(--accent);box-shadow:0 0 15px var(--accent);border-color:var(--accent)}
 
-        .brand { 
-            font-weight: 900; 
-            font-size: 28px; 
-            color: #fff;
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
-            position: relative;
-        }
-        
-        .brand::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: var(--accent);
-            border-radius: 3px;
-        }
+.code-block-container{
+  background:var(--code-bg);border:1px solid var(--code-border);padding:16px;border-radius:16px;
+  font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.5;color:#e3e6eb;
+  box-shadow:0 6px 20px rgba(0,0,0,.6);cursor:pointer;transition:.2s;white-space:pre-wrap
+}
+.code-block-container:hover{
+  border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,180,255,.2)
+}
+.copy-btn{
+  position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:8px;
+  backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.1);color:#fff;cursor:pointer;display:flex;
+  justify-content:center;align-items:center;transition:.2s;z-index:6
+}
+.copy-btn:hover{background:var(--accent);border-color:var(--accent)}
+.copy-btn.copied{background:#00cc88;border-color:#00cc88}
 
-        /* Message Area */
-        .view { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            overflow-y: auto; 
-            padding: 20px; 
-            gap: 20px; 
-            padding-bottom: 120px;
-            padding-top: 100px;
-        }
-        #chat-box { display: flex; flex-direction: column; gap: 16px; }
+.code-modal{
+  display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:10000;
+  justify-content:center;align-items:center;padding:20px
+}
+.code-modal.active{display:flex}
+.modal-content{
+  background:#0a0c12;border:1px solid var(--accent);border-radius:24px;
+  width:900px;max-width:90%;max-height:90%;display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,180,255,.3)
+}
+.modal-header{
+  padding:18px 24px;border-bottom:1px solid #2a2f3a;
+  display:flex;justify-content:space-between;align-items:center
+}
+.close-modal{
+  background:none;border:none;font-size:24px;color:rgba(255,255,255,.6);
+  cursor:pointer;transition:.2s
+}
+.close-modal:hover{color:#fff}
+.modal-body{
+  padding:24px;overflow-y:auto;background:#0e1117;border-radius:0 0 24px 24px
+}
 
-        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
-        .user-row { flex-direction: row-reverse; }
+.input-area{
+  position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center;
+  pointer-events:none;padding:0 20px
+}
+.input-container{
+  max-width:800px;width:100%;display:flex;gap:12px;padding:10px 14px;
+  background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:40px;backdrop-filter:blur(30px);pointer-events:auto;
+  transition:.3s;box-shadow:0 10px 40px rgba(0,0,0,.4)
+}
+.input-container:focus-within{
+  box-shadow:0 10px 50px rgba(0,180,255,.3);
+  border-color:rgba(0,180,255,.4)
+}
+.input-field{
+  flex:1;background:0;border:0;outline:0;resize:none;color:#fff;
+  font-size:16px;padding:10px 15px;line-height:1.5;max-height:120px
+}
+.input-field::placeholder{color:rgba(255,255,255,.4)}
+.send-btn,.stop-btn{
+  width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;
+  display:flex;justify-content:center;align-items:center;color:#fff;
+  transition:.3s;flex-shrink:0
+}
+.send-btn{background:var(--accent)}
+.stop-btn{background:#ff4d4d}
+.send-btn:hover,.stop-btn:hover{transform:scale(1.05)}
+.stop-btn:hover{background:#ff3333}
 
-        .message { 
-            max-width: 80%; 
-            padding: 16px 22px 42px 22px;
-            border-radius: 24px; 
-            line-height: 1.6; 
-            font-size: 15px; 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            background: var(--glass);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            position: relative;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
+.view::-webkit-scrollbar{width:6px}
+.view::-webkit-scrollbar-thumb{background:var(--accent);border-radius:6px}
 
-        .user-message { 
-            background: rgba(0, 180, 255, 0.1); 
-            border-color: rgba(0, 180, 255, 0.3);
-            border-bottom-right-radius: 4px;
-        }
-
-        .ai-message { 
-            border-bottom-left-radius: 4px; 
-        }
-
-        .thinking { 
-            font-weight: bold;
-            color: var(--accent);
-            animation: pulse 1.5s infinite ease-in-out;
-        }
-        @keyframes pulse { 
-            0% { opacity: 0.3; } 
-            50% { opacity: 1; } 
-            100% { opacity: 0.3; } 
-        }
-
-        .speak-btn { 
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--glass-border);
-            color: #fff; 
-            width: 34px; 
-            height: 34px; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.3s ease;
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
-            z-index: 5;
-        }
-        .speak-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: scale(1.05);
-        }
-        .speak-btn.active { 
-            background: var(--accent); 
-            box-shadow: 0 0 15px var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-
-        /* ---------- CODE BLOCK STYLES ---------- */
-        .code-block-container {
-            background: var(--code-bg);
-            border: 1px solid var(--code-border);
-            border-radius: 16px;
-            margin: 16px 0;
-            padding: 16px;
-            position: relative;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #e3e6eb;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .code-block-container:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px rgba(0,180,255,0.2);
-        }
-        .code-block-container pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-family: inherit;
-        }
-        .code-block-container code {
-            font-family: inherit;
-        }
-        .copy-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            backdrop-filter: blur(4px);
-            z-index: 6;
-        }
-        .copy-btn:hover {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-        .copy-btn.copied {
-            background: #00cc88;
-            border-color: #00cc88;
-        }
-
-        /* ---------- MODAL POPUP ---------- */
-        .code-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(12px);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .code-modal.active {
-            display: flex;
-        }
-        .modal-content {
-            background: #0a0c12;
-            border: 1px solid var(--accent);
-            border-radius: 24px;
-            max-width: 90%;
-            max-height: 90%;
-            width: 900px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,180,255,0.3);
-        }
-        .modal-header {
-            padding: 18px 24px;
-            border-bottom: 1px solid #2a2f3a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .modal-header span {
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 1px;
-        }
-        .close-modal {
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            font-size: 24px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .close-modal:hover {
-            color: white;
-        }
-        .modal-body {
-            padding: 24px;
-            overflow-y: auto;
-            background: #0e1117;
-            border-radius: 0 0 24px 24px;
-        }
-        .modal-body pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-family: 'JetBrains Mono', monospace;
-            color: #e3e6eb;
-            font-size: 15px;
-        }
-
-        /* Input Area */
-        .input-area { 
-            position: absolute; 
-            bottom: 30px; 
-            left: 0; 
-            right: 0;
-            padding: 0 20px; 
-            pointer-events: none;
-            display: flex;
-            justify-content: center;
-        }
-        .input-container { 
-            pointer-events: auto;
-            display: flex; 
-            gap: 12px; 
-            max-width: 800px; 
-            width: 100%;
-            margin: 0 auto; 
-            padding: 10px 14px; 
-            border-radius: 40px;
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            transition: all 0.3s ease;
-        }
-        .input-container:focus-within {
-            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
-            border-color: rgba(0, 180, 255, 0.4);
-        }
-        .input-field { 
-            flex: 1; 
-            background: transparent; 
-            border: none; 
-            padding: 10px 15px; 
-            color: #fff; 
-            font-size: 16px; 
-            outline: none; 
-            resize: none;
-            max-height: 120px;
-            min-height: 24px;
-            line-height: 1.5;
-        }
-        .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-            opacity: 1;
-        }
-        .send-btn, .stop-btn { 
-            background: var(--accent); 
-            border: none; 
-            border-radius: 50%; 
-            width: 44px; 
-            height: 44px; 
-            color: #fff; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .send-btn:hover, .stop-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px var(--accent);
-        }
-        .send-btn:disabled { 
-            opacity: 0.3; 
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        .stop-btn {
-            background: #ff4d4d;
-            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
-        }
-        .stop-btn:hover {
-            box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
-            background: #ff3333;
-        }
-        
-        /* Scrollbar */
-        .view::-webkit-scrollbar {
-            width: 6px;
-        }
-        .view::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-        .view::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 10px;
-        }
-        
-        @media (max-width: 768px) {
-            .header { padding: 16px; }
-            .brand { font-size: 24px; }
-            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-            .input-container { padding: 8px 12px; border-radius: 36px; }
-            .input-field { font-size: 15px; }
-            .send-btn, .stop-btn { width: 40px; height: 40px; }
-            .speak-btn { bottom: 8px; right: 8px; }
-            .code-block-container { font-size: 13px; }
-        }
-    </style>
+@media(max-width:768px){
+  .brand{font-size:24px}
+  .message{max-width:90%;font-size:14px;padding:14px 18px 38px}
+}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <span class="brand">Trapside</span>
-        </div>
-        <div class="view" id="scroll-area">
-            <div id="chat-box"></div>
-        </div>
-        <div class="input-area">
-            <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Ask for code, algorithms, or system design..." rows="1"></textarea>
-                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
-            </div>
-        </div>
+<div class="container">
+  <div class="header"><span class="brand">Trapside</span></div>
+  <div class="view" id="scroll-area"><div id="chat-box"></div></div>
+
+  <div class="input-area">
+    <div class="input-container">
+      <textarea id="user-input" class="input-field" placeholder="Ask for code, algorithms, or system design..." rows="1"></textarea>
+      <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
     </div>
+  </div>
+</div>
 
-    <div id="code-modal" class="code-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span><i class="fas fa-code" style="margin-right: 8px;"></i> Full code</span>
-                <button class="close-modal" id="close-modal-btn"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <pre id="modal-code-content"></pre>
-            </div>
-        </div>
+<div id="code-modal" class="code-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span><i class="fas fa-code"></i> Full code</span>
+      <button id="close-modal-btn" class="close-modal"><i class="fas fa-times"></i></button>
     </div>
+    <div class="modal-body"><pre id="modal-code-content"></pre></div>
+  </div>
+</div>
 
-    <script type="module">
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+<script type="module">
+import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-        // -------------------------------------------------------------
-        //  UPGRADED CODING KNOWLEDGE – "SENIOR ARCHITECT" MODE
-        // -------------------------------------------------------------
-        const CODING_EXPERTISE = `
-You are Trapside, a Senior Principal Software Architect.
-Your goal is to provide **Production-Grade** solutions.
+const CODING_EXPERTISE = `
+You are Trapside, an elite software architect.
+Rules:
+1. Provide full runnable code.
+2. Explain non-trivial logic.
+3. Include edge cases & best practices.
+4. Format with proper code fences.
+5. Give test cases or usage examples.
+6. Produce clean, modern, secure code.
+7. Prefer simplicity + clarity.`.trim();
 
-**CRITICAL INSTRUCTIONS:**
-1. **FULL CODE ONLY**: Never use placeholders like "// ...rest of code" or "// TODO". Write the complete, working solution.
-2. **FORMATTING**: ALL code must be inside triple backticks with the language specified (e.g., \`\`\`python).
-3. **EXPLANATION**: Start with a high-level summary, then provide the code, then explain complex parts.
-4. **QUALITY**: Include error handling, type hinting (if applicable), and comments for tricky logic.
-5. **SYSTEM DESIGN**: If asked for design, use ASCII diagrams + Code structure.
+const synth=window.speechSynthesis;
+let activeBtn=null,abortController=null;
 
-**BEHAVIOR:**
-- If the user asks for a specific language, use it.
-- If vague, choose the industry standard for that task (e.g., Python for AI, JS for Web, Rust for Systems).
-- Think step-by-step before outputting the code block.
-`.trim();
+function speak(text,btn){
+  if(synth.speaking && activeBtn===btn){synth.cancel();btn.classList.remove("active");activeBtn=null;return}
+  if(synth.speaking){synth.cancel();if(activeBtn)activeBtn.classList.remove("active")}
+  const u=new SpeechSynthesisUtterance(text);
+  const v=synth.getVoices();
+  u.voice=v.find(x=>x.name.includes("Daniel"))||v.find(x=>x.lang.includes("en-GB"))||v[0];
+  u.pitch=1.3;u.rate=1.0;
+  u.onstart=()=>{btn.classList.add("active");activeBtn=btn}
+  u.onend=()=>{if(activeBtn===btn){btn.classList.remove("active");activeBtn=null}}
+  synth.speak(u);
+}
 
-        const synth = window.speechSynthesis;
-        let activeBtn = null;
-        let abortController = null;
-        let voicesLoaded = false;
+function createCodeBlock(code,lang=""){
+  const c=document.createElement("div");
+  c.className="code-block-container";
 
-        // Ensure voices are loaded
-        function loadVoices() {
-            const voices = synth.getVoices();
-            if (voices.length > 0) voicesLoaded = true;
-        }
-        loadVoices();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = loadVoices;
-        }
+  const pre=document.createElement("pre");
+  const ce=document.createElement("code");
+  ce.textContent=code;
+  pre.appendChild(ce);
+  c.appendChild(pre);
 
-        // ---------- FIXED SPEECH FUNCTION ----------
-        function speak(text, btn) {
-            if (!text) return;
+  const copy=document.createElement("button");
+  copy.className="copy-btn";
+  copy.innerHTML='<i class="fas fa-copy"></i>';
 
-            // Stop if already speaking this specific button
-            if (synth.speaking && activeBtn === btn) {
-                synth.cancel();
-                btn.classList.remove('active');
-                activeBtn = null;
-                return;
-            }
+  copy.onclick=async e=>{
+    e.stopPropagation();
+    try{
+      await navigator.clipboard.writeText(code);
+      copySuccess(copy);
+    }catch{
+      const t=document.createElement("textarea");
+      t.value=code;t.style.position="fixed";t.style.opacity="0";
+      document.body.appendChild(t);t.select();
+      try{document.execCommand("copy");copySuccess(copy)}catch{alert("Copy failed")}
+      document.body.removeChild(t);
+    }
+  };
 
-            // Stop any other speaking
-            synth.cancel();
-            if (activeBtn) {
-                activeBtn.classList.remove('active');
-            }
+  function copySuccess(btn){
+    btn.classList.add("copied");
+    btn.innerHTML='<i class="fas fa-check"></i>';
+    setTimeout(()=>{btn.classList.remove("copied");btn.innerHTML='<i class="fas fa-copy"></i>'},2000);
+  }
 
-            // Clean text for speech (remove code blocks for reading flow)
-            // We want it to read the prose, but maybe skip long code blocks
-            const textToRead = text.replace(/```[\s\S]*?```/g, " [Code Block] ");
+  c.appendChild(copy);
 
-            const utter = new SpeechSynthesisUtterance(textToRead);
-            const voices = synth.getVoices();
-            
-            // Try to find a good English voice
-            const preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
-                                   voices.find(v => v.lang.startsWith("en-US")) || 
-                                   voices.find(v => v.lang.startsWith("en")) || 
-                                   voices[0];
-            
-            if (preferredVoice) utter.voice = preferredVoice;
-            
-            utter.pitch = 1.0;
-            utter.rate = 1.0;
-            
-            utter.onstart = () => { 
-                btn.classList.add('active'); 
-                activeBtn = btn; 
-            };
-            
-            utter.onend = () => { 
-                btn.classList.remove('active'); 
-                activeBtn = null; 
-            };
-            
-            utter.onerror = (e) => { 
-                console.error("Speech error:", e);
-                btn.classList.remove('active'); 
-                activeBtn = null; 
-            };
+  c.onclick=e=>{
+    if(e.target.closest(".copy-btn"))return;
+    const m=document.getElementById("code-modal");
+    document.getElementById("modal-code-content").textContent=code;
+    m.classList.add("active");
+  };
 
-            synth.speak(utter);
-        }
+  return c;
+}
 
-        // ---------- FIXED CODE BLOCK GENERATOR (DOM BASED) ----------
-        function createCodeBlock(code, lang = '') {
-            const container = document.createElement('div');
-            container.className = 'code-block-container';
-            
-            const pre = document.createElement('pre');
-            const codeEl = document.createElement('code');
-            codeEl.textContent = code; // Safe text content
-            pre.appendChild(codeEl);
-            container.appendChild(pre);
-            
-            // Create Copy Button
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'copy-btn';
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            
-            // Direct event listener - NO innerHTML usage involved
-            copyBtn.onclick = async (e) => {
-                e.stopPropagation(); // Don't trigger modal
-                
-                try {
-                    await navigator.clipboard.writeText(code);
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    copyBtn.classList.add('copied');
-                } catch (err) {
-                    console.error('Clipboard failed', err);
-                    // Fallback
-                    const textArea = document.createElement("textarea");
-                    textArea.value = code;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(textArea);
-                    
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    copyBtn.classList.add('copied');
-                }
+function formatMessage(txt){
+  if(!txt)return txt;
+  const re=/```(\w*)\n([\s\S]*?)```/g;
+  let last=0,out=[],m;
+  while((m=re.exec(txt))){
+    if(m.index>last)out.push(document.createTextNode(txt.slice(last,m.index)));
+    out.push(createCodeBlock(m[2],m[1]));
+    last=m.index+m[0].length;
+  }
+  if(last<txt.length)out.push(document.createTextNode(txt.slice(last)));
+  if(!out.length)return txt;
 
-                setTimeout(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                    copyBtn.classList.remove('copied');
-                }, 2000);
-            };
-            
-            container.appendChild(copyBtn);
-            
-            // Modal Trigger
-            container.addEventListener('click', (e) => {
-                if (e.target.closest('.copy-btn')) return;
-                const modal = document.getElementById('code-modal');
-                const modalContent = document.getElementById('modal-code-content');
-                modalContent.textContent = code;
-                modal.classList.add('active');
-            });
-            
-            return container;
-        }
+  const div=document.createElement("div");
+  out.forEach(n=>div.appendChild(n));
+  return div.innerHTML;
+}
 
-        // ---------- FIXED MESSAGE FORMATTER (Returns DOM Nodes) ----------
-        // This prevents innerHTML from stripping event listeners
-        function createFormattedMessageNodes(text) {
-            const fragment = document.createDocumentFragment();
-            const blockRegex = /```(\w*)\n([\s\S]*?)```/g;
-            let lastIndex = 0;
-            let match;
-            
-            while ((match = blockRegex.exec(text)) !== null) {
-                // Add text before code
-                if (match.index > lastIndex) {
-                    const textPart = text.slice(lastIndex, match.index);
-                    const textNode = document.createElement('div');
-                    textNode.innerText = textPart; // Preserves newlines slightly better
-                    textNode.style.whiteSpace = 'pre-wrap';
-                    textNode.style.display = 'inline';
-                    fragment.appendChild(textNode);
-                }
-                
-                // Add code block
-                const lang = match[1];
-                const code = match[2];
-                fragment.appendChild(createCodeBlock(code, lang));
-                
-                lastIndex = match.index + match[0].length;
-            }
-            
-            // Add remaining text
-            if (lastIndex < text.length) {
-                const textPart = text.slice(lastIndex);
-                const textNode = document.createElement('div');
-                textNode.innerText = textPart;
-                textNode.style.whiteSpace = 'pre-wrap';
-                textNode.style.display = 'inline';
-                fragment.appendChild(textNode);
-            }
-            
-            // If no code blocks, just return text node
-            if (fragment.childNodes.length === 0) {
-                const span = document.createElement('span');
-                span.innerText = text;
-                return span;
-            }
+function addMessage(text,role,think=false){
+  const row=document.createElement("div");
+  row.className=`message-row ${role}-row`;
 
-            return fragment;
-        }
+  const msg=document.createElement("div");
+  msg.className=`message ${role}-message${think?" thinking":""}`;
 
-        // Add message function updated to use DOM nodes
-        function addMessage(text, role, isThinking = false) {
-            const row = document.createElement('div');
-            row.className = `message-row ${role}-row`;
-            const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
-            
-            if (role === 'ai' && !isThinking) {
-                // Use the DOM node creator
-                const contentNodes = createFormattedMessageNodes(text);
-                msg.appendChild(contentNodes);
-                
-                // Add Speak Button (as a DOM node)
-                const speakBtn = document.createElement('button');
-                speakBtn.className = 'speak-btn';
-                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                speakBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    speak(text, speakBtn);
-                };
-                msg.appendChild(speakBtn);
-            } else {
-                msg.innerText = text;
-            }
-            
-            row.appendChild(msg);
-            document.getElementById('chat-box').appendChild(row);
-            const scrollArea = document.getElementById('scroll-area');
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-            return msg; // Return the message element for updating
-        }
+  if(role==="ai"&&!think){
+    const f=formatMessage(text);
+    if(typeof f==="string")msg.innerHTML=f;else msg.innerText=text;
 
-        // ---------- CHAT CONTROLS ----------
-        function resetSendButton() {
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            sendBtn.className = 'send-btn';
-            sendBtn.onclick = handleChat;
-            abortController = null;
-            document.getElementById('user-input').disabled = false;
-            document.getElementById('user-input').focus();
-        }
-        
-        function setupStopButton() {
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
-            sendBtn.className = 'stop-btn';
-            sendBtn.onclick = stopGeneration;
-        }
-        
-        function stopGeneration() {
-            if (abortController) {
-                abortController.abort();
-                abortController = null;
-            }
-        }
+    const b=document.createElement("button");
+    b.className="speak-btn";
+    b.innerHTML='<i class="fas fa-volume-up"></i>';
+    b.onclick=e=>{e.stopPropagation();speak(text,b)};
+    msg.appendChild(b);
+  } else msg.innerText=text;
 
-        // ---------- WLLAMA INIT ----------
-        const wllama = new Wllama({
-            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-        });
+  row.appendChild(msg);
+  document.getElementById("chat-box").appendChild(row);
+  const v=document.getElementById("scroll-area");
+  v.scrollTop=v.scrollHeight;
+  return msg;
+}
 
-        async function init() {
-            try {
-                await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
-                addMessage("Trapside v2.0 Online. Senior Architect Mode Active. Ready for complex code.", "ai");
-            } catch (e) { 
-                console.error("Model loading failed:", e);
-                addMessage("System Offline. Check internet connection.", "ai"); 
-            }
-        }
+function resetBtn(){
+  const s=document.getElementById("send-btn");
+  s.className="send-btn";s.innerHTML='<i class="fas fa-arrow-up"></i>';
+  s.onclick=handleChat;
+  abortController=null;
+  document.getElementById("user-input").disabled=false;
+}
 
-        async function handleChat() {
-            const inputEl = document.getElementById('user-input');
-            const text = inputEl.value.trim();
-            if (!text) return;
-            
-            addMessage(text, 'user');
-            inputEl.value = '';
-            inputEl.style.height = 'auto';
-            
-            // Create AI message placeholder
-            const loaderMsg = addMessage("Analyzing requirements...", 'ai', true);
-            
-            inputEl.disabled = true;
-            setupStopButton();
-            
-            abortController = new AbortController();
-            const signal = abortController.signal;
-            
-            try {
-                // Construct the prompt
-                const prompt = `<think>system\n${CODING_EXPERTISE}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
-                
-                const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 1024, // Increased output limit for code
-                    stop: ["<think>"], 
-                    sampling: { temp: 0.3 }, // Lower temp for more precise code
-                    signal: signal
-                });
-                
-                // Clear the "Thinking..." text and state
-                loaderMsg.classList.remove('thinking');
-                loaderMsg.innerHTML = ''; // Clear content safely
-                
-                const cleanResult = result.trim();
-                
-                // 1. Append formatted content (Text + Code Blocks)
-                const formattedNodes = createFormattedMessageNodes(cleanResult);
-                loaderMsg.appendChild(formattedNodes);
-                
-                // 2. Append Speak Button
-                const speakBtn = document.createElement('button');
-                speakBtn.className = 'speak-btn';
-                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                speakBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    speak(cleanResult, speakBtn);
-                };
-                loaderMsg.appendChild(speakBtn);
-                
-            } catch (e) {
-                if (signal.aborted) {
-                    loaderMsg.classList.remove('thinking');
-                    loaderMsg.innerText = "[Stopped]";
-                } else {
-                    console.error("Generation error:", e);
-                    loaderMsg.classList.remove('thinking');
-                    loaderMsg.innerText = "Error generating code.";
-                }
-            } finally {
-                resetSendButton();
-            }
-        }
+function stopBtn(){
+  const s=document.getElementById("send-btn");
+  s.className="stop-btn";s.innerHTML='<i class="fas fa-stop"></i>';
+  s.onclick=()=>abortController?.abort();
+}
 
-        // ---------- EVENT LISTENERS ----------
-        document.getElementById('user-input').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
+const wllama=new Wllama({
+  'single-thread/wllama.wasm':'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+  'multi-thread/wllama.wasm':'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm'
+});
 
-        document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('user-input').onkeydown = (e) => { 
-            if(e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                handleChat(); 
-            }
-        };
+async function init(){
+  try{
+    await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF','SmolLM2-360M-Instruct-Q4_K_M.gguf');
+    addMessage("Trapside is online. Ask me anything about programming.","ai");
+  }catch{
+    addMessage("System Offline.","ai");
+  }
+}
 
-        const modal = document.getElementById('code-modal');
-        document.getElementById('close-modal-btn').onclick = () => modal.classList.remove('active');
-        window.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
+async function handleChat(){
+  const input=document.getElementById("user-input");
+  const text=input.value.trim();
+  if(!text)return;
+  addMessage(text,"user");
+  input.value="";input.style.height="auto";input.disabled=true;
 
-        init();
-    </script>
+  const loader=addMessage("Thinking...","ai",true);
+  stopBtn();
+
+  abortController=new AbortController();
+
+  try{
+    const prompt=`<think>system\n${CODING_EXPERTISE}\n</think>user\n${text}\n<think>\n<think>assistant\n`;
+
+    const r=await wllama.createCompletion(prompt,{
+      nPredict:600,stop:["<think>"],sampling:{temp:.5},signal:abortController.signal
+    });
+
+    loader.classList.remove("thinking");
+    const clean=r.trim();
+    const f=formatMessage(clean);
+    loader.innerHTML=typeof f==="string"?f:clean;
+
+    const b=document.createElement("button");
+    b.className="speak-btn";b.innerHTML='<i class="fas fa-volume-up"></i>';
+    b.onclick=e=>{e.stopPropagation();speak(clean,b)};
+    loader.appendChild(b);
+
+  }catch(e){
+    loader.classList.remove("thinking");
+    loader.innerText=abortController.signal.aborted?"[Stopped]":"Error generating response.";
+  }
+  resetBtn();
+}
+
+document.getElementById("user-input").addEventListener("input",function(){
+  this.style.height="auto";
+  this.style.height=this.scrollHeight+"px";
+});
+document.getElementById("send-btn").onclick=handleChat;
+document.getElementById("user-input").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleChat()}};
+
+document.getElementById("close-modal-btn").onclick=()=>document.getElementById("code-modal").classList.remove("active");
+window.onclick=e=>{if(e.target===document.getElementById("code-modal"))document.getElementById("code-modal").classList.remove("active")};
+
+init();
+</script>
 </body>
 </html>
