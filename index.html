@@ -102,6 +102,24 @@
             color: var(--accent);
             animation: pulse 1.5s infinite ease-in-out;
         }
+        
+        .reasoning-box {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #ffb84d;
+            font-style: italic;
+        }
+        
+        .reasoning-box strong {
+            color: #ffa500;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
         @keyframes pulse { 
             0% { opacity: 0.3; } 
             50% { opacity: 1; } 
@@ -215,7 +233,7 @@
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
 
-        .model-btn {
+        .model-btn, .thinking-mode-btn {
             pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
@@ -234,10 +252,16 @@
             flex-shrink: 0;
         }
 
-        .model-btn.active {
+        .model-btn.active, .thinking-mode-btn.active {
             background: var(--accent);
             box-shadow: 0 0 20px var(--accent);
             border-color: var(--accent);
+        }
+        
+        .thinking-mode-btn.active {
+            background: #ffa500;
+            box-shadow: 0 0 20px #ffa500;
+            border-color: #ffa500;
         }
 
         .view::-webkit-scrollbar { width: 6px; }
@@ -246,7 +270,7 @@
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
             .input-area { padding: 0 10px 20px 10px; }
-            .model-btn { width: 44px; height: 44px; }
+            .model-btn, .thinking-mode-btn { width: 44px; height: 44px; }
         }
     </style>
 </head>
@@ -259,6 +283,7 @@
                 <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
+            <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
             <button id="model-toggle" class="model-btn" title="Toggle Smart Model"><i class="fas fa-glasses"></i></button>
         </div>
     </div>
@@ -269,16 +294,25 @@
         const synth = window.speechSynthesis;
         let activeBtn = null;
         let abortController = null;
+        
+        // Conversation history tracking
+        let conversationHistory = [];
+        const MAX_HISTORY_LENGTH = 10; // Keep last 10 exchanges
+        
+        // Thinking mode toggle
+        let thinkingModeEnabled = true;
 
         let currentModel = 'smollm2';
         const models = {
             smollm2: {
                 repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
+                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf',
+                chatTemplate: 'smollm' // Uses <|im_start|> format
             },
             mobilama: {
                 repo: 'bartowski/MobiLlama-0.5B-Chat-GGUF',
-                file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf'
+                file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf',
+                chatTemplate: 'llama' // Uses [INST] format
             }
         };
 
@@ -299,12 +333,24 @@
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         });
 
-        function addMessage(text, role, isThinking = false) {
+        function addMessage(text, role, isThinking = false, reasoningText = null) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
-            msg.innerText = text;
+            
+            // Add reasoning box if provided
+            if (reasoningText && thinkingModeEnabled) {
+                const reasoningBox = document.createElement('div');
+                reasoningBox.className = 'reasoning-box';
+                reasoningBox.innerHTML = `<strong>🧠 Chain of Thought:</strong>${reasoningText}`;
+                msg.appendChild(reasoningBox);
+            }
+            
+            const textNode = document.createElement('div');
+            textNode.innerText = text;
+            msg.appendChild(textNode);
+            
             row.appendChild(msg);
             if (role === 'ai' && !isThinking) {
                 const btn = document.createElement('button');
@@ -325,7 +371,9 @@
             sendBtn.onclick = handleChat;
             document.getElementById('user-input').disabled = false;
             document.getElementById('model-toggle').disabled = false;
+            document.getElementById('thinking-mode-btn').disabled = false;
             document.getElementById('model-toggle').style.opacity = '1';
+            document.getElementById('thinking-mode-btn').style.opacity = '1';
         }
         
         function setupStopButton() {
@@ -333,6 +381,18 @@
             sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
             sendBtn.className = 'stop-btn';
             sendBtn.onclick = () => { if (abortController) abortController.abort(); };
+        }
+        
+        function toggleThinkingMode() {
+            thinkingModeEnabled = !thinkingModeEnabled;
+            const btn = document.getElementById('thinking-mode-btn');
+            if (thinkingModeEnabled) {
+                btn.classList.add('active');
+                addMessage("Thinking mode enabled. I'll show my reasoning process.", "ai");
+            } else {
+                btn.classList.remove('active');
+                addMessage("Thinking mode disabled. Direct answers only.", "ai");
+            }
         }
 
         async function toggleModel() {
@@ -346,13 +406,16 @@
                     await wllama.loadModelFromHF(models.mobilama.repo, models.mobilama.file);
                     currentModel = 'mobilama';
                     btn.classList.add('active');
+                    // Clear history on model switch for clean slate
+                    conversationHistory = [];
                 } else {
                     addMessage("Switching to SmolLM2-360M...", "ai");
                     await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
                     currentModel = 'smollm2';
                     btn.classList.remove('active');
+                    conversationHistory = [];
                 }
-                addMessage(`${currentModel.toUpperCase()} is online.`, "ai");
+                addMessage(`${currentModel.toUpperCase()} is online. Conversation history cleared.`, "ai");
             } catch (e) {
                 console.error(e);
                 addMessage("Model switch failed. Make sure your browser supports WebAssembly.", "ai");
@@ -365,8 +428,179 @@
         async function init() {
             try {
                 await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
-                addMessage("Trapside is online.", "ai");
-            } catch (e) { addMessage("System Offline.", "ai"); }
+                addMessage("Trapside is online with advanced reasoning enabled.", "ai");
+                // Set thinking mode active by default
+                document.getElementById('thinking-mode-btn').classList.add('active');
+            } catch (e) { 
+                console.error(e);
+                addMessage("System Offline. Error: " + e.message, "ai"); 
+            }
+        }
+        
+        // Build prompt with conversation history
+        function buildPromptWithHistory(userMessage) {
+            const modelConfig = models[currentModel];
+            
+            // Enhanced system prompt for better reasoning
+            const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities. 
+
+Core Principles:
+- Think step-by-step through problems
+- Break complex questions into smaller parts
+- Verify your reasoning before answering
+- Admit when you're uncertain
+- Provide clear, concise, accurate responses
+- Remember the conversation context
+
+When solving problems:
+1. Understand what is being asked
+2. Break down the problem
+3. Reason through each step
+4. Verify your logic
+5. Provide a clear answer`;
+
+            let prompt = '';
+            
+            // Format depends on model type
+            if (modelConfig.chatTemplate === 'llama') {
+                // MobiLlama format: [INST] ... [/INST]
+                prompt = `<s>[INST] <<SYS>>\n${systemPrompt}\n<</SYS>>\n\n`;
+                
+                // Add conversation history
+                for (const msg of conversationHistory) {
+                    if (msg.role === 'user') {
+                        prompt += `${msg.content} [/INST] `;
+                    } else {
+                        prompt += `${msg.content}</s><s>[INST] `;
+                    }
+                }
+                
+                prompt += `${userMessage} [/INST]`;
+            } else {
+                // SmolLM2 format: <|im_start|> ... <|im_end|>
+                prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
+                
+                // Add conversation history
+                for (const msg of conversationHistory) {
+                    prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+                }
+                
+                prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            }
+            
+            return prompt;
+        }
+        
+        // Multi-pass reasoning system
+        async function multiPassReasoning(userMessage) {
+            const modelConfig = models[currentModel];
+            let reasoningText = '';
+            let finalAnswer = '';
+            
+            if (thinkingModeEnabled) {
+                // PASS 1: Chain-of-Thought Reasoning
+                const thinkingPrompt = buildThinkingPrompt(userMessage);
+                
+                try {
+                    abortController = new AbortController();
+                    const thinkingResult = await wllama.createCompletion(thinkingPrompt, {
+                        nPredict: 300,
+                        sampling: {
+                            temp: 0.8,
+                            top_k: 40,
+                            top_p: 0.95,
+                            repeat_penalty: 1.2,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    reasoningText = thinkingResult.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        reasoningText = "Reasoning process interrupted.";
+                    }
+                }
+                
+                // PASS 2: Final Answer based on reasoning
+                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText);
+                
+                try {
+                    abortController = new AbortController();
+                    const answerResult = await wllama.createCompletion(answerPrompt, {
+                        nPredict: 400,
+                        sampling: {
+                            temp: 0.7,
+                            top_k: 40,
+                            top_p: 0.9,
+                            repeat_penalty: 1.15,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    finalAnswer = answerResult.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        finalAnswer = "Error generating final answer.";
+                    }
+                }
+            } else {
+                // Single pass without visible reasoning
+                const prompt = buildPromptWithHistory(userMessage);
+                
+                try {
+                    abortController = new AbortController();
+                    const result = await wllama.createCompletion(prompt, {
+                        nPredict: 400,
+                        sampling: {
+                            temp: 0.7,
+                            top_k: 40,
+                            top_p: 0.9,
+                            repeat_penalty: 1.15,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    finalAnswer = result.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        finalAnswer = "Error generating response.";
+                    }
+                }
+            }
+            
+            return { reasoning: reasoningText, answer: finalAnswer };
+        }
+        
+        function buildThinkingPrompt(userMessage) {
+            const modelConfig = models[currentModel];
+            const thinkingSystemPrompt = `Think through this step-by-step. Show your reasoning process clearly:
+1. What is being asked?
+2. What information do I need?
+3. How should I approach this?
+4. What's my reasoning?`;
+            
+            if (modelConfig.chatTemplate === 'llama') {
+                return `<s>[INST] <<SYS>>\n${thinkingSystemPrompt}\n<</SYS>>\n\n${userMessage}\n\nLet me think through this: [/INST]`;
+            } else {
+                return `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
+            }
+        }
+        
+        function buildAnswerPrompt(userMessage, reasoning) {
+            const modelConfig = models[currentModel];
+            const answerSystemPrompt = `Based on your reasoning, provide a clear, concise, and accurate answer. Be direct and helpful.`;
+            
+            if (modelConfig.chatTemplate === 'llama') {
+                return `<s>[INST] <<SYS>>\n${answerSystemPrompt}\n<</SYS>>\n\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nFinal answer: [/INST]`;
+            } else {
+                return `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
+            }
         }
 
         async function handleChat() {
@@ -375,31 +609,42 @@
             if (!text) return;
             
             addMessage(text, 'user');
-            input.value = ''; input.style.height = 'auto';
+            input.value = ''; 
+            input.style.height = 'auto';
+            
             const loader = addMessage("Thinking...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
             document.getElementById('model-toggle').disabled = true;
+            document.getElementById('thinking-mode-btn').disabled = true;
             setupStopButton();
             
-            abortController = new AbortController();
             try {
-                const sys = "You are Trapside, a helpful and expert assistant.";
-                // Prompt format for MobiLlama/SmolLM chat style
-                const prompt = `<|system|>\n${sys}</s>\n<|user|>\n${text}</s>\n<|assistant|>\n`;
-                const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 400, sampling: { temp: 0.7 }, signal: abortController.signal 
-                });
-                loader.classList.remove('thinking');
-                loader.innerText = result.trim();
-                const btn = document.createElement('button');
-                btn.className = 'speak-btn'; btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(result.trim(), btn);
-                loader.appendChild(btn);
+                // Multi-pass reasoning
+                const result = await multiPassReasoning(text);
+                
+                // Update conversation history (limit to last N exchanges)
+                conversationHistory.push({ role: 'user', content: text });
+                conversationHistory.push({ role: 'assistant', content: result.answer });
+                
+                // Keep only recent history
+                if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
+                    conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
+                }
+                
+                // Remove loading message
+                loader.remove();
+                
+                // Add final response with reasoning
+                const finalMsg = addMessage(result.answer, 'ai', false, result.reasoning);
+                
             } catch (e) {
+                console.error(e);
                 loader.classList.remove('thinking');
                 loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
-            } finally { resetSendButton(); }
+            } finally { 
+                resetSendButton(); 
+            }
         }
 
         document.getElementById('user-input').addEventListener('input', function() {
@@ -409,6 +654,7 @@
 
         document.getElementById('send-btn').onclick = handleChat;
         document.getElementById('model-toggle').onclick = toggleModel;
+        document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
         document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
         
         init();
