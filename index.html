@@ -3,18 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside · Code Intelligence</title>
+    <title>Trapside</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
     <style>
         :root {
             --glass: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.15);
             --accent: #00b4ff;
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
-            --code-bg: #0b0e14;
-            --code-border: #2a2f3a;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,6 +26,7 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
+        /* Fixed Header - REMOVED BACKGROUND */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
@@ -62,6 +59,7 @@
             border-radius: 3px;
         }
 
+        /* Message Area */
         .view { 
             flex: 1; 
             display: flex; 
@@ -70,13 +68,16 @@
             padding: 20px; 
             gap: 20px; 
             padding-bottom: 120px;
-            padding-top: 100px;
+            padding-top: 100px; /* Space for fixed header */
         }
         #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
+        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
+        .user-row { flex-direction: row-reverse; }
+
         .message { 
             max-width: 80%; 
-            padding: 16px 22px 42px 22px;
+            padding: 16px 22px 42px 22px; /* Increased bottom padding to prevent overlap */
             border-radius: 24px; 
             line-height: 1.6; 
             font-size: 15px; 
@@ -86,8 +87,6 @@
             background: var(--glass);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             position: relative;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
         }
 
         .user-message { 
@@ -111,64 +110,35 @@
             100% { opacity: 0.3; } 
         }
 
-        .code-block-container {
-            background: var(--code-bg);
-            border: 1px solid var(--code-border);
-            border-radius: 16px;
-            margin: 16px 0;
-            padding: 16px;
-            position: relative;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #e3e6eb;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .code-block-container:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px rgba(0,180,255,0.2);
-        }
-        .code-block-container pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-family: inherit;
-        }
-        .code-block-container code {
-            font-family: inherit;
-        }
-        .copy-btn {
+        .speak-btn { 
+            background: rgba(255, 255, 255, 0.08); /* More liquid glassy */
+            border: 1px solid var(--glass-border);
+            color: #fff; 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s ease;
             position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            backdrop-filter: blur(4px);
-            z-index: 6;
+            bottom: 10px; /* Adjusted position */
+            right: 10px; /* Adjusted position */
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            z-index: 5;
         }
-        .copy-btn:hover {
-            background: var(--accent);
+        .speak-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.05);
+        }
+        .speak-btn.active { 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
             border-color: var(--accent);
-        }
-        .copy-btn.copied {
-            background: #00cc88;
-            border-color: #00cc88;
         }
 
+        /* Floating Minimalist Input */
         .input-area { 
             position: absolute; 
             bottom: 30px; 
@@ -195,10 +165,12 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             transition: all 0.3s ease;
         }
+        
         .input-container:focus-within {
             box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
             border-color: rgba(0, 180, 255, 0.4);
         }
+
         .input-field { 
             flex: 1; 
             background: transparent; 
@@ -212,10 +184,16 @@
             min-height: 24px;
             line-height: 1.5;
         }
+        
         .input-field::placeholder {
             color: rgba(255, 255, 255, 0.4);
             opacity: 1;
         }
+        
+        .input-field:focus {
+            outline: none;
+        }
+
         .send-btn, .stop-btn { 
             background: var(--accent); 
             border: none; 
@@ -230,85 +208,88 @@
             justify-content: center;
             flex-shrink: 0;
         }
+        
         .send-btn:hover, .stop-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 20px var(--accent);
         }
+        
         .send-btn:disabled { 
             opacity: 0.3; 
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
+        
         .stop-btn {
             background: #ff4d4d;
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
-            display: none;
         }
+        
         .stop-btn:hover {
             box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
             background: #ff3333;
         }
-
+        
+        /* Scrollbar styling */
         .view::-webkit-scrollbar {
             width: 6px;
         }
+        
         .view::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
         }
+        
         .view::-webkit-scrollbar-thumb {
             background: var(--accent);
             border-radius: 10px;
         }
         
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(2,1,10,0.95);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            color: var(--accent);
-            font-family: 'Inter', sans-serif;
-        }
-        .loader {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(0,180,255,0.3);
-            border-top: 3px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .view::-webkit-scrollbar-thumb:hover {
+            background: #0099cc;
         }
         
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .header { padding: 16px; }
-            .brand { font-size: 24px; }
-            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-            .input-container { padding: 8px 12px; border-radius: 36px; }
-            .input-field { font-size: 15px; }
-            .send-btn, .stop-btn { width: 40px; height: 40px; }
-            .code-block-container { font-size: 13px; }
+            .header {
+                padding: 16px;
+            }
+            
+            .brand {
+                font-size: 24px;
+                letter-spacing: 1px;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 14px 18px 38px 18px; /* Adjusted bottom padding for mobile */
+                font-size: 14px;
+            }
+            
+            .input-container {
+                padding: 8px 12px;
+                border-radius: 36px;
+            }
+            
+            .input-field {
+                font-size: 15px;
+            }
+            
+            .send-btn, .stop-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .speak-btn {
+                bottom: 8px;
+                right: 8px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="loading-overlay" id="loading-screen">
-        <div class="loader"></div>
-        <div>Initializing intelligence core...</div>
-    </div>
-    
-    <div class="container" id="app-container" style="display:none">
+    <div class="container">
         <div class="header">
             <span class="brand">Trapside</span>
         </div>
@@ -317,441 +298,219 @@
         </div>
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Ask for code, algorithms, or system design..." rows="1"></textarea>
-                <button id="stop-btn" class="stop-btn"><i class="fas fa-stop"></i></button>
+                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
         </div>
     </div>
 
-<script>
-// ===== CORE INTELLIGENCE SYSTEM (FIXED) =====
-class TrapsideAI {
-    constructor() {
-        this.sql = null;
-        this.vectorStore = []; // In-memory only (SQL.js storage disabled due to complexity)
-        this.chatHistory = [];
-        this.controller = null;
-        this.isReady = false;
-        this.messageQueue = [];
-        this.initDB();
-        this.initKnowledgeBase();
-    }
+    <script type="module">
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-    async initDB() {
-        try {
-            // CRITICAL FIX: Proper async initialization with error handling
-            const SQL = await initSqlJs({
-                locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
-            });
-            this.sql = new SQL.Database();
-            this.sql.run(`
-                CREATE TABLE IF NOT EXISTS memories (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    content TEXT NOT NULL,
-                    embedding TEXT,  -- Store as base64 string (FIX: SQL.js can't handle Float32Array directly)
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    type TEXT DEFAULT 'general'
-                )
-            `);
-            console.log("✓ SQL.js initialized");
-            this.isReady = true;
-            this.processQueue(); // Release queued messages
-        } catch (err) {
-            console.error("SQL.js init failed (using memory-only mode):", err);
-            this.isReady = true; // Degraded mode still functional
-            this.processQueue();
-        }
-    }
+        const synth = window.speechSynthesis;
+        let activeBtn = null;
+        let abortController = null;
+        const PITCH = 1.5;
+        const RATE = 1.0;
 
-    // CRITICAL FIX: Deterministic fallback ONLY (no broken embedder downloads)
-    generateEmbedding(text) {
-        // Deterministic 384-dim fallback (matches BGE-small output dimension)
-        const hash = text.split('').reduce((h, c) => Math.imul(31, h) + c.charCodeAt(0) | 0, 0);
-        return Array.from({length: 384}, (_, i) => 
-            Math.sin((hash + i * 0.13) % (Math.PI * 2))
-        );
-    }
-
-    cosineSimilarity(a, b) {
-        let dot = 0, magA = 0, magB = 0;
-        for (let i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            magA += a[i] * a[i];
-            magB += b[i] * b[i];
-        }
-        return dot / (Math.sqrt(magA) * Math.sqrt(magB) + 1e-10);
-    }
-
-    // CRITICAL FIX: Store as base64 string (SQL.js compatible)
-    async storeMemory(content, type = 'general') {
-        if (!this.isReady) {
-            this.messageQueue.push({content, type});
-            return;
-        }
-        
-        try {
-            const embedding = this.generateEmbedding(content);
-            // Convert to base64 string for SQL storage
-            const embeddingStr = btoa(embedding.map(v => 
-                String.fromCharCode(Math.floor((v + 1) * 127.5))
-            ).join(''));
-            
-            if (this.sql) {
-                const stmt = this.sql.prepare(
-                    "INSERT INTO memories (content, embedding, type) VALUES (?, ?, ?)"
-                );
-                stmt.bind([content, embeddingStr, type]);
-                stmt.step();
-                stmt.free();
-            }
-            
-            // Always store in memory cache
-            this.vectorStore.push({ content, embedding, type });
-            console.log(`✓ Stored memory (${type}):`, content.substring(0, 40));
-        } catch (err) {
-            console.warn("Memory storage failed (using cache only):", err);
-            this.vectorStore.push({ 
-                content, 
-                embedding: this.generateEmbedding(content), 
-                type 
-            });
-        }
-    }
-
-    async searchMemories(query, limit = 3) {
-        if (this.vectorStore.length === 0) return [];
-        
-        const queryEmbedding = this.generateEmbedding(query);
-        return this.vectorStore
-            .map(item => ({
-                ...item,
-                similarity: this.cosineSimilarity(queryEmbedding, item.embedding)
-            }))
-            .filter(item => item.similarity > 0.62) // Slightly lowered threshold for fallback
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, limit)
-            .map(item => item.content);
-    }
-
-    initKnowledgeBase() {
-        // Pre-load critical coding knowledge with deterministic embeddings
-        const knowledge = [
-            "JavaScript array methods: map/filter/reduce are chainable and immutable",
-            "React hooks: useState for state, useEffect for side effects, useMemo for expensive calculations",
-            "CSS Flexbox: display:flex with justify-content and align-items for layout",
-            "SQL joins: INNER JOIN returns matching rows, LEFT JOIN returns all left table rows",
-            "Error handling: try/catch for synchronous, .catch() or async/await for promises",
-            "Security: Always sanitize user input, never eval() untrusted code"
-        ];
-        
-        knowledge.forEach(item => {
-            this.vectorStore.push({
-                content: item,
-                embedding: this.generateEmbedding(item),
-                type: 'knowledge'
-            });
-        });
-        console.log("✓ Knowledge base initialized (deterministic embeddings)");
-    }
-
-    detectMode(query) {
-        const codeKeywords = /(?:write|generate|fix|debug|optimize|algorithm|function|class|component|sql|query|regex|api)/i;
-        if (codeKeywords.test(query)) return 'code';
-        if (query.trim().startsWith('`') || /{\s*[\w]+:/i.test(query)) return 'code'; // Object literal detection
-        return 'chat';
-    }
-
-    // CRITICAL FIX: Abort-aware streaming generator
-    async *streamResponse(prompt, mode, signal) {
-        // Real implementation would call backend API here
-        // Demo mode with intelligent simulation + abort checks
-        const responses = {
-            code: `\`\`\`javascript
-// Production-ready utility
-const processItems = (items) => {
-  return items
-    .filter(item => item.active && item.value > 0)
-    .map(item => ({
-      id: item.id,
-      processedValue: Math.round(item.value * 1.15),
-      timestamp: Date.now()
-    }))
-    .sort((a, b) => b.processedValue - a.processedValue);
-};
-
-// Usage
-const results = processItems(userData);
-console.log(\`Processed \${results.length} items\`);
-\`\`\`
-
-Optimized for:
-• Readability with chained methods
-• Immutability (no side effects)
-• O(n log n) complexity
-• Edge case handling (null/undefined values)`,
-            
-            chat: `Closures are functions that retain access to variables from their outer lexical scope even after the outer function has returned.
-
-How they work:
-1. A function is defined inside another function
-2. The inner function references variables from the outer scope
-3. When returned, it "closes over" those variables
-
-Practical use cases:
-• Data privacy (module pattern)
-• Event handlers that need context
-• Function factories (e.g., multiplier generators)
-• React hooks (useState relies on closure mechanics)
-
-Example:
-\`\`\`javascript
-function createCounter() {
-  let count = 0; // Outer scope variable
-  return () => ++count; // Inner function "remembers" count
-}
-
-const counter = createCounter();
-counter(); // 1
-counter(); // 2 (count persists between calls)
-\`\`\`
-
-Key insight: Closures enable stateful functions without classes.`
-        };
-        
-        const text = responses[mode] || responses.chat;
-        const chunks = text.split(/(\s+)/).filter(c => c.trim() || c === ' ');
-        
-        for (let i = 0; i < chunks.length; i++) {
-            // CRITICAL FIX: Check abort signal BEFORE yielding
-            if (signal.aborted) {
-                console.log("✓ Generation aborted by user");
+        function speak(text, btn) {
+            // If clicking the same button while it's speaking, stop it
+            if (synth.speaking && activeBtn === btn) {
+                synth.cancel();
+                btn.classList.remove('active');
+                activeBtn = null;
                 return;
             }
             
-            yield chunks[i];
+            // If there's any ongoing speech, cancel it
+            if (synth.speaking) {
+                synth.cancel();
+                if (activeBtn) {
+                    activeBtn.classList.remove('active');
+                    activeBtn = null;
+                }
+            }
             
-            // Variable delay for natural typing effect
-            await new Promise(resolve => 
-                setTimeout(resolve, 15 + Math.random() * 25)
-            );
+            const utter = new SpeechSynthesisUtterance(text);
+            // Get a good voice - prefer Daniel if available, otherwise use the first voice
+            const voices = synth.getVoices();
+            const daniel = voices.find(v => v.name.includes("Daniel")) || 
+                          voices.find(v => v.name.includes("Daniel")) ||
+                          voices.find(v => v.lang.includes("en-GB")) ||
+                          voices[0];
+            utter.voice = daniel; 
+            utter.pitch = PITCH; 
+            utter.rate = RATE;
+            
+            utter.onstart = () => { 
+                btn.classList.add('active'); 
+                activeBtn = btn; 
+            };
+            
+            utter.onend = () => { 
+                if (activeBtn === btn) {
+                    btn.classList.remove('active');
+                    activeBtn = null;
+                }
+            };
+            
+            utter.onerror = () => {
+                if (activeBtn === btn) {
+                    btn.classList.remove('active');
+                    activeBtn = null;
+                }
+            };
+            
+            synth.speak(utter);
         }
-    }
 
-    processQueue() {
-        while (this.messageQueue.length > 0) {
-            const msg = this.messageQueue.shift();
-            this.storeMemory(msg.content, msg.type);
+        const wllama = new Wllama({
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        });
+
+        function addMessage(text, role, isThinking = false) {
+            const row = document.createElement('div');
+            row.className = `message-row ${role}-row`;
+            const msg = document.createElement('div');
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+            msg.innerText = text;
+            row.appendChild(msg);
+
+            if (role === 'ai' && !isThinking) {
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(text, btn);
+                // Changed from row.appendChild(btn) to msg.appendChild(btn)
+                msg.appendChild(btn);
+            }
+            document.getElementById('chat-box').appendChild(row);
+            const scrollArea = document.getElementById('scroll-area');
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+            return msg;
         }
-    }
-}
-
-// ===== UI INTEGRATION (FIXED) =====
-class TrapsideUI {
-    constructor() {
-        this.ai = new TrapsideAI();
-        this.chatBox = document.getElementById("chat-box");
-        this.userInput = document.getElementById("user-input");
-        this.sendBtn = document.getElementById("send-btn");
-        this.stopBtn = document.getElementById("stop-btn");
-        this.scrollArea = document.getElementById("scroll-area");
-        this.loadingScreen = document.getElementById("loading-screen");
-        this.appContainer = document.getElementById("app-container");
         
-        // CRITICAL FIX: Event delegation for copy buttons (works for ALL future elements)
-        this.chatBox.addEventListener("click", (e) => {
-            if (e.target.closest(".copy-btn")) {
-                const btn = e.target.closest(".copy-btn");
-                const code = btn.parentElement.querySelector("code").textContent;
-                navigator.clipboard.writeText(code).then(() => {
-                    btn.classList.add("copied");
-                    btn.innerHTML = "<i class='fas fa-check'></i>";
-                    setTimeout(() => {
-                        btn.classList.remove("copied");
-                        btn.innerHTML = "<i class='fas fa-copy'></i>";
-                    }, 1500);
-                }).catch(err => {
-                    console.error("Copy failed:", err);
-                    btn.title = "Copy failed";
+        function resetSendButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            sendBtn.className = 'send-btn';
+            sendBtn.onclick = handleChat;
+            abortController = null;
+            document.getElementById('user-input').disabled = false;
+        }
+        
+        function setupStopButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            sendBtn.className = 'stop-btn';
+            sendBtn.onclick = stopGeneration;
+        }
+        
+        function stopGeneration() {
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+            }
+        }
+
+        async function init() {
+            try {
+                await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
+                addMessage("Trapside is online. How can I help?", "ai");
+            } catch (e) { 
+                console.error("Model loading failed:", e);
+                addMessage("System Offline. Please try again later.", "ai"); 
+            }
+        }
+
+        async function handleChat() {
+            const text = document.getElementById('user-input').value.trim();
+            if (!text) return;
+            
+            // Add user message
+            addMessage(text, 'user');
+            document.getElementById('user-input').value = '';
+            document.getElementById('user-input').style.height = 'auto';
+            document.getElementById('user-input').rows = 1;
+            
+            // Setup for AI response
+            const loader = addMessage("Thinking...", 'ai', true);
+            const sendBtn = document.getElementById('send-btn');
+            
+            // Disable input and setup stop button
+            document.getElementById('user-input').disabled = true;
+            setupStopButton();
+            
+            // Create abort controller for this generation
+            abortController = new AbortController();
+            const signal = abortController.signal;
+            
+            try {
+                const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
+                const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
+                const result = await wllama.createCompletion(prompt, { 
+                    nPredict: 400, 
+                    stop: ["<think>"], 
+                    sampling: { temp: 0.7 },
+                    signal: signal
                 });
+                
+                // Process the result
+                loader.classList.remove('thinking');
+                loader.innerText = result.trim();
+                
+                // Add speak button
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(result.trim(), btn);
+                loader.appendChild(btn);
+            } catch (e) {
+                if (signal.aborted) {
+                    loader.classList.remove('thinking');
+                    loader.innerText = "[Response stopped by user]";
+                } else {
+                    console.error("Generation error:", e);
+                    loader.classList.remove('thinking');
+                    loader.innerText = "Error: Failed to generate response. Please try again.";
+                }
+            } finally {
+                resetSendButton();
+            }
+        }
+
+        // Auto-resize textarea
+        document.getElementById('user-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            // Cap the height at 5 rows
+            if (this.scrollHeight > 120) {
+                this.style.overflowY = 'auto';
+            } else {
+                this.style.overflowY = 'hidden';
             }
         });
-        
-        // Wait for AI readiness before enabling UI
-        this.waitForReady();
-    }
 
-    async waitForReady() {
-        // Poll until AI is ready (max 5s timeout)
-        const start = Date.now();
-        while (!this.ai.isReady && Date.now() - start < 5000) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+        document.getElementById('send-btn').onclick = handleChat;
+        
+        document.getElementById('user-input').onkeydown = (e) => { 
+            if(e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                handleChat(); 
+            }
+        };
+        
+        // Initialize speech synthesis voices
+        if (speechSynthesis) {
+            speechSynthesis.onvoiceschanged = () => {
+                // Voices are loaded
+            };
         }
         
-        // Show app UI
-        this.loadingScreen.style.display = "none";
-        this.appContainer.style.display = "flex";
-        this.setupEventListeners();
-        this.welcomeMessage();
-    }
-
-    welcomeMessage() {
-        this.appendMessage("ai", "I'm Trapside AI — your coding intelligence partner. Ask me to:\n• Write or debug code\n• Explain algorithms\n• Design systems\n• Optimize performance\n\nAll responses include contextual awareness from our knowledge base. 🔒");
-    }
-
-    setupEventListeners() {
-        this.sendBtn.addEventListener("click", () => this.sendMessage());
-        this.stopBtn.addEventListener("click", () => this.stopGeneration());
-        this.userInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
-        this.userInput.addEventListener("input", () => {
-            this.userInput.style.height = "24px";
-            this.userInput.style.height = Math.min(this.userInput.scrollHeight, 140) + "px";
-        });
-    }
-
-    appendMessage(sender, text, isCode = false) {
-        const msg = document.createElement("div");
-        msg.className = `message ${sender}-message`;
-        
-        if (isCode) {
-            msg.innerHTML = `
-                <div class="code-block-container">
-                    <button class="copy-btn"><i class="fas fa-copy"></i></button>
-                    <pre><code>${this.escapeHtml(text)}</code></pre>
-                </div>
-            `;
-        } else {
-            // Smart formatting for code blocks and newlines
-            let formatted = this.escapeHtml(text)
-                .replace(/\n/g, '<br>')
-                .replace(/
-```(\w+)?\s*([\s\S]+?)\s*
-```/g, (match, lang, code) => 
-                    `<div class="code-block-container"><button class="copy-btn"><i class="fas fa-copy"></i></button><pre><code>${this.escapeHtml(code.trim())}</code></pre></div>`
-                );
-            
-            msg.innerHTML = DOMPurify.sanitize(formatted, {
-                ALLOWED_TAGS: ['br', 'b', 'strong', 'i', 'em', 'u', 'code', 'pre', 'div', 'button', 'i', 'span'],
-                ALLOWED_ATTR: ['class']
-            });
-        }
-        
-        this.chatBox.appendChild(msg);
-        this.scrollToBottom();
-        return msg;
-    }
-
-    escapeHtml(text) {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    scrollToBottom() {
-        // Smooth scroll with instant fallback
-        this.scrollArea.scrollTo({
-            top: this.scrollArea.scrollHeight,
-            behavior: 'smooth'
-        });
-    }
-
-    async sendMessage() {
-        const text = this.userInput.value.trim();
-        if (!text || !this.ai.isReady || this.ai.controller) return;
-        
-        this.appendMessage("user", text);
-        this.userInput.value = "";
-        this.userInput.style.height = "24px";
-        this.toggleButtons(false);
-        
-        // Store in memory system
-        this.ai.storeMemory(text, 'query');
-        this.ai.chatHistory.push({ role: 'user', content: text });
-        
-        // Generate response
-        const mode = this.ai.detectMode(text);
-        const thinkingMsg = this.appendMessage("ai", "");
-        let accumulated = "";
-        
-        // CRITICAL FIX: Create abort controller BEFORE streaming starts
-        this.ai.controller = new AbortController();
-        
-        try {
-            // CRITICAL FIX: Pass abort signal to generator
-            for await (const chunk of this.ai.streamResponse(text, mode, this.ai.controller.signal)) {
-                accumulated += chunk;
-                // Sanitize each chunk to prevent XSS during streaming
-                thinkingMsg.innerHTML = DOMPurify.sanitize(
-                    accumulated
-                        .replace(/\n/g, '<br>')
-                        .replace(/
-```/g, '<div class="code-block-container"><button class="copy-btn"><i class="fas fa-copy"></i></button><pre><code>')
-                        .replace(/<br>\s*<br>/g, '</code></pre></div><br><br>'),
-                    { ALLOWED_TAGS: ['br', 'b', 'strong', 'i', 'em', 'u', 'code', 'pre', 'div', 'button', 'i'], ALLOWED_ATTR: ['class'] }
-                );
-                this.scrollToBottom();
-            }
-            
-            // Final cleanup of code blocks
-            thinkingMsg.innerHTML = accumulated
-                .replace(/
-```(\w+)?\s*([\s\S]+?)\s*
-```/g, (match, lang, code) => 
-                    `<div class="code-block-container"><button class="copy-btn"><i class="fas fa-copy"></i></button><pre><code>${this.escapeHtml(code.trim())}</code></pre></div>`
-                )
-                .replace(/\n/g, '<br>');
-            
-            this.ai.chatHistory.push({ role: 'assistant', content: accumulated });
-            
-            // Store useful responses
-            if (accumulated.includes('
-```') || mode === 'code') {
-                this.ai.storeMemory(`Solution: ${text.substring(0, 50)}...`, 'solution');
-            }
-        } catch (err) {
-            if (err.name !== 'AbortError' && !this.ai.controller.signal.aborted) {
-                thinkingMsg.textContent = `❌ Error: ${err.message || "Generation failed"}`;
-                console.error("Generation error:", err);
-            }
-        } finally {
-            this.toggleButtons(true);
-            this.ai.controller = null;
-        }
-    }
-
-    stopGeneration() {
-        if (this.ai.controller) {
-            this.ai.controller.abort(); // CRITICAL FIX: Actually aborts the stream
-            this.ai.controller = null;
-        }
-        this.toggleButtons(true);
-    }
-
-    toggleButtons(isIdle) {
-        this.sendBtn.disabled = !isIdle;
-        this.sendBtn.style.display = isIdle ? 'flex' : 'none';
-        this.stopBtn.style.display = isIdle ? 'none' : 'flex';
-    }
-}
-
-// Initialize when DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-    // CRITICAL FIX: Block dangerous globals
-    window.eval = () => { throw new Error("eval() blocked"); };
-    window.Function = () => { throw new Error("Function() blocked"); };
-    
-    window.trapside = new TrapsideUI();
-    console.log("✓ Trapside AI initialized (client-safe mode)");
-});
-</script>
+        // Initialize the app
+        init();
+    </script>
 </body>
 </html>
 
