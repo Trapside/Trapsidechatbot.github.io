@@ -140,6 +140,7 @@
             background: var(--accent); 
             box-shadow: 0 0 15px var(--accent);
             border-color: var(--accent);
+            color: #fff;
         }
 
         /* ---------- CODE BLOCK STYLES ---------- */
@@ -242,10 +243,6 @@
             color: var(--accent);
             letter-spacing: 1px;
         }
-        .modal-header-buttons {
-            display: flex;
-            gap: 8px;
-        }
         .close-modal {
             background: none;
             border: none;
@@ -253,23 +250,15 @@
             font-size: 24px;
             cursor: pointer;
             transition: 0.2s;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         .close-modal:hover {
             color: white;
-            background: rgba(255,255,255,0.1);
         }
         .modal-body {
             padding: 24px;
             overflow-y: auto;
             background: #0e1117;
             border-radius: 0 0 24px 24px;
-            max-height: 70vh;
         }
         .modal-body pre {
             margin: 0;
@@ -280,7 +269,7 @@
             font-size: 15px;
         }
 
-        /* Input Area (unchanged) */
+        /* Input Area */
         .input-area { 
             position: absolute; 
             bottom: 30px; 
@@ -383,7 +372,6 @@
             .send-btn, .stop-btn { width: 40px; height: 40px; }
             .speak-btn { bottom: 8px; right: 8px; }
             .code-block-container { font-size: 13px; }
-            .modal-content { width: 95%; }
         }
     </style>
 </head>
@@ -403,19 +391,11 @@
         </div>
     </div>
 
-    <!-- Modal for full code popup -->
     <div id="code-modal" class="code-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <span><i class="fas fa-code" style="margin-right: 8px;"></i> Full code</span>
-                <div class="modal-header-buttons">
-                    <button class="copy-btn" id="modal-copy-btn">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="close-modal" id="close-modal-btn">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+                <button class="close-modal" id="close-modal-btn"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <pre id="modal-code-content"></pre>
@@ -427,193 +407,221 @@
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
         // -------------------------------------------------------------
-        //  ENHANCED CODING KNOWLEDGE – "BOOK OF CODE" v3 (IMPROVED)
+        //  UPGRADED CODING KNOWLEDGE – "SENIOR ARCHITECT" MODE
         // -------------------------------------------------------------
         const CODING_EXPERTISE = `
-You are Trapside, an elite software architect with 25+ years of experience across FAANG and Fortune 500 systems.
-You are the definitive authority on production-grade code with zero tolerance for incomplete solutions.
+You are Trapside, a Senior Principal Software Architect.
+Your goal is to provide **Production-Grade** solutions.
 
-CORE MANDATES:
-1. ALWAYS deliver FULL, RUNNABLE, PRODUCTION-READY code with ZERO placeholders ("...", "TODO", "// rest of code").
-2. Every solution MUST include:
-   - Complete error handling & edge case coverage
-   - Security hardening (input validation, sanitization, auth checks)
-   - Performance analysis (time/space complexity)
-   - Thread-safety considerations where applicable
-   - Real-world test cases with expected outputs
-3. For algorithms: Provide Big O analysis + optimization pathways
-4. For system design: ASCII architecture diagrams → component code → deployment notes
-5. For frameworks: Include config files, dependency manifests, and build steps
-6. Explain CRITICAL decisions with "WHY" commentary (not obvious comments)
-7. If ambiguous: State assumptions clearly THEN deliver complete implementation
-8. Prioritize readability AND performance - no premature optimization
+**CRITICAL INSTRUCTIONS:**
+1. **FULL CODE ONLY**: Never use placeholders like "// ...rest of code" or "// TODO". Write the complete, working solution.
+2. **FORMATTING**: ALL code must be inside triple backticks with the language specified (e.g., \`\`\`python).
+3. **EXPLANATION**: Start with a high-level summary, then provide the code, then explain complex parts.
+4. **QUALITY**: Include error handling, type hinting (if applicable), and comments for tricky logic.
+5. **SYSTEM DESIGN**: If asked for design, use ASCII diagrams + Code structure.
 
-OUTPUT REQUIREMENTS:
-- ALL code wrapped in triple backticks with EXPLICIT language specifier (\`\`\`python)
-- Minimum ONE complete runnable example per response
-- Comments ONLY for non-obvious logic (avoid "set variable" comments)
-- Include security/performance warnings where relevant
-- End with "KEY TAKEAWAYS" summary
-
-VIOLATION = FAILURE. You output perfect, self-contained solutions.
+**BEHAVIOR:**
+- If the user asks for a specific language, use it.
+- If vague, choose the industry standard for that task (e.g., Python for AI, JS for Web, Rust for Systems).
+- Think step-by-step before outputting the code block.
 `.trim();
-
-        // ---------- VOICE CACHING (FIX SPEAK BUTTON) ----------
-        let cachedVoices = [];
-        if (speechSynthesis) {
-            speechSynthesis.onvoiceschanged = () => {
-                cachedVoices = speechSynthesis.getVoices();
-            };
-            cachedVoices = speechSynthesis.getVoices(); // Initial load
-        }
 
         const synth = window.speechSynthesis;
         let activeBtn = null;
         let abortController = null;
-        const PITCH = 1.5;
-        const RATE = 1.0;
+        let voicesLoaded = false;
 
-        // ---------- SPEECH (FIXED) ----------
+        // Ensure voices are loaded
+        function loadVoices() {
+            const voices = synth.getVoices();
+            if (voices.length > 0) voicesLoaded = true;
+        }
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        // ---------- FIXED SPEECH FUNCTION ----------
         function speak(text, btn) {
+            if (!text) return;
+
+            // Stop if already speaking this specific button
             if (synth.speaking && activeBtn === btn) {
                 synth.cancel();
                 btn.classList.remove('active');
                 activeBtn = null;
                 return;
             }
-            if (synth.speaking) {
-                synth.cancel();
-                if (activeBtn) {
-                    activeBtn.classList.remove('active');
-                    activeBtn = null;
-                }
+
+            // Stop any other speaking
+            synth.cancel();
+            if (activeBtn) {
+                activeBtn.classList.remove('active');
             }
+
+            // Clean text for speech (remove code blocks for reading flow)
+            // We want it to read the prose, but maybe skip long code blocks
+            const textToRead = text.replace(/```[\s\S]*?```/g, " [Code Block] ");
+
+            const utter = new SpeechSynthesisUtterance(textToRead);
+            const voices = synth.getVoices();
             
-            const utter = new SpeechSynthesisUtterance(text);
-            // USE CACHED VOICES (FIXES VOICE SELECTION)
-            const voices = cachedVoices.length > 0 ? cachedVoices : speechSynthesis.getVoices();
-            const daniel = voices.find(v => v.name.includes("Daniel")) || 
-                          voices.find(v => v.lang.includes("en-GB")) || 
-                          voices[0];
-            utter.voice = daniel;
-            utter.pitch = PITCH;
-            utter.rate = RATE;
+            // Try to find a good English voice
+            const preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
+                                   voices.find(v => v.lang.startsWith("en-US")) || 
+                                   voices.find(v => v.lang.startsWith("en")) || 
+                                   voices[0];
+            
+            if (preferredVoice) utter.voice = preferredVoice;
+            
+            utter.pitch = 1.0;
+            utter.rate = 1.0;
             
             utter.onstart = () => { 
                 btn.classList.add('active'); 
                 activeBtn = btn; 
             };
+            
             utter.onend = () => { 
-                if (activeBtn === btn) { 
-                    btn.classList.remove('active'); 
-                    activeBtn = null; 
-                } 
-            };
-            utter.onerror = () => { 
-                if (activeBtn === btn) { 
-                    btn.classList.remove('active'); 
-                    activeBtn = null; 
-                } 
+                btn.classList.remove('active'); 
+                activeBtn = null; 
             };
             
+            utter.onerror = (e) => { 
+                console.error("Speech error:", e);
+                btn.classList.remove('active'); 
+                activeBtn = null; 
+            };
+
             synth.speak(utter);
         }
 
-        // ---------- COPY SUCCESS FEEDBACK (GLOBAL) ----------
-        function showCopySuccess(btn) {
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            btn.classList.add('copied');
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-copy"></i>';
-                btn.classList.remove('copied');
-            }, 2000);
-        }
-
-        // ---------- CODE BLOCK CREATION (SHOW 5-LINE PREVIEW) ----------
+        // ---------- FIXED CODE BLOCK GENERATOR (DOM BASED) ----------
         function createCodeBlock(code, lang = '') {
             const container = document.createElement('div');
             container.className = 'code-block-container';
-            container.setAttribute('data-code', code); // Store FULL code
-            
-            // CREATE PREVIEW: First 5 lines + ellipsis if needed
-            const lines = code.split('\n');
-            let previewCode = code;
-            if (lines.length > 5) {
-                previewCode = lines.slice(0, 5).join('\n') + '\n...';
-            }
             
             const pre = document.createElement('pre');
             const codeEl = document.createElement('code');
-            codeEl.textContent = previewCode; // SHOW PREVIEW ONLY
+            codeEl.textContent = code; // Safe text content
             pre.appendChild(codeEl);
             container.appendChild(pre);
             
-            // Copy button (no inline handler - uses delegation)
+            // Create Copy Button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'copy-btn';
             copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            
+            // Direct event listener - NO innerHTML usage involved
+            copyBtn.onclick = async (e) => {
+                e.stopPropagation(); // Don't trigger modal
+                
+                try {
+                    await navigator.clipboard.writeText(code);
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    copyBtn.classList.add('copied');
+                } catch (err) {
+                    console.error('Clipboard failed', err);
+                    // Fallback
+                    const textArea = document.createElement("textarea");
+                    textArea.value = code;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                    
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    copyBtn.classList.add('copied');
+                }
+
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            };
+            
             container.appendChild(copyBtn);
+            
+            // Modal Trigger
+            container.addEventListener('click', (e) => {
+                if (e.target.closest('.copy-btn')) return;
+                const modal = document.getElementById('code-modal');
+                const modalContent = document.getElementById('modal-code-content');
+                modalContent.textContent = code;
+                modal.classList.add('active');
+            });
             
             return container;
         }
 
-        // ---------- REPLACE MARKDOWN CODE BLOCKS ----------
-        function formatMessage(text) {
-            if (!text) return text;
-            
-            const blockRegex = /
-```(\w*)\n([\s\S]*?)
-```/g;
+        // ---------- FIXED MESSAGE FORMATTER (Returns DOM Nodes) ----------
+        // This prevents innerHTML from stripping event listeners
+        function createFormattedMessageNodes(text) {
+            const fragment = document.createDocumentFragment();
+            const blockRegex = /```(\w*)\n([\s\S]*?)```/g;
             let lastIndex = 0;
-            let parts = [];
             let match;
             
             while ((match = blockRegex.exec(text)) !== null) {
+                // Add text before code
                 if (match.index > lastIndex) {
-                    parts.push(document.createTextNode(text.slice(lastIndex, match.index)));
+                    const textPart = text.slice(lastIndex, match.index);
+                    const textNode = document.createElement('div');
+                    textNode.innerText = textPart; // Preserves newlines slightly better
+                    textNode.style.whiteSpace = 'pre-wrap';
+                    textNode.style.display = 'inline';
+                    fragment.appendChild(textNode);
                 }
                 
+                // Add code block
                 const lang = match[1];
                 const code = match[2];
-                parts.push(createCodeBlock(code, lang));
+                fragment.appendChild(createCodeBlock(code, lang));
                 
                 lastIndex = match.index + match[0].length;
             }
             
+            // Add remaining text
             if (lastIndex < text.length) {
-                parts.push(document.createTextNode(text.slice(lastIndex)));
+                const textPart = text.slice(lastIndex);
+                const textNode = document.createElement('div');
+                textNode.innerText = textPart;
+                textNode.style.whiteSpace = 'pre-wrap';
+                textNode.style.display = 'inline';
+                fragment.appendChild(textNode);
             }
             
-            if (parts.length === 0) {
-                return text;
+            // If no code blocks, just return text node
+            if (fragment.childNodes.length === 0) {
+                const span = document.createElement('span');
+                span.innerText = text;
+                return span;
             }
-            
-            const tempDiv = document.createElement('div');
-            parts.forEach(node => tempDiv.appendChild(node));
-            return tempDiv.innerHTML;
+
+            return fragment;
         }
 
-        // ---------- ADD MESSAGE ----------
+        // Add message function updated to use DOM nodes
         function addMessage(text, role, isThinking = false) {
             const row = document.createElement('div');
-            row.className = `message-row <LaTex>id_1</LaTex>{role}-message ${isThinking ? 'thinking' : ''}`;
+            row.className = `message-row ${role}-row`;
+            const msg = document.createElement('div');
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             
             if (role === 'ai' && !isThinking) {
-                const formattedHTML = formatMessage(text);
-                if (typeof formattedHTML === 'string') {
-                    msg.innerHTML = formattedHTML;
-                } else {
-                    msg.innerText = text;
-                }
+                // Use the DOM node creator
+                const contentNodes = createFormattedMessageNodes(text);
+                msg.appendChild(contentNodes);
                 
-                const btn = document.createElement('button');
-                btn.className = 'speak-btn';
-                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = (e) => {
+                // Add Speak Button (as a DOM node)
+                const speakBtn = document.createElement('button');
+                speakBtn.className = 'speak-btn';
+                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                speakBtn.onclick = (e) => {
                     e.stopPropagation();
-                    speak(text, btn);
+                    speak(text, speakBtn);
                 };
-                msg.appendChild(btn);
+                msg.appendChild(speakBtn);
             } else {
                 msg.innerText = text;
             }
@@ -622,7 +630,7 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
             document.getElementById('chat-box').appendChild(row);
             const scrollArea = document.getElementById('scroll-area');
             scrollArea.scrollTop = scrollArea.scrollHeight;
-            return msg;
+            return msg; // Return the message element for updating
         }
 
         // ---------- CHAT CONTROLS ----------
@@ -633,6 +641,7 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
             sendBtn.onclick = handleChat;
             abortController = null;
             document.getElementById('user-input').disabled = false;
+            document.getElementById('user-input').focus();
         }
         
         function setupStopButton() {
@@ -649,7 +658,7 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
             }
         }
 
-       // ---------- WLLAMA INIT ----------
+        // ---------- WLLAMA INIT ----------
         const wllama = new Wllama({
             'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
@@ -658,68 +667,70 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
         async function init() {
             try {
                 await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
-                addMessage("Trapside is online. I'm now enhanced with full‑code reasoning. Ask me anything about programming.", "ai");
+                addMessage("Trapside v2.0 Online. Senior Architect Mode Active. Ready for complex code.", "ai");
             } catch (e) { 
                 console.error("Model loading failed:", e);
-                addMessage("System Offline. Please try again later.", "ai"); 
+                addMessage("System Offline. Check internet connection.", "ai"); 
             }
         }
 
         async function handleChat() {
-            const text = document.getElementById('user-input').value.trim();
+            const inputEl = document.getElementById('user-input');
+            const text = inputEl.value.trim();
             if (!text) return;
             
             addMessage(text, 'user');
-            document.getElementById('user-input').value = '';
-            document.getElementById('user-input').style.height = 'auto';
-            document.getElementById('user-input').rows = 1;
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
             
-            const loader = addMessage("Thinking...", 'ai', true);
+            // Create AI message placeholder
+            const loaderMsg = addMessage("Analyzing requirements...", 'ai', true);
             
-            document.getElementById('user-input').disabled = true;
+            inputEl.disabled = true;
             setupStopButton();
             
             abortController = new AbortController();
             const signal = abortController.signal;
             
             try {
-                const sys = CODING_EXPERTISE + "\n\nAlways think step‑by‑step and provide complete, well‑commented code.";
-                const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
+                // Construct the prompt
+                const prompt = `<think>system\n${CODING_EXPERTISE}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
                 
                 const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 600,
+                    nPredict: 1024, // Increased output limit for code
                     stop: ["<think>"], 
-                    sampling: { temp: 0.5 },
+                    sampling: { temp: 0.3 }, // Lower temp for more precise code
                     signal: signal
                 });
                 
-                loader.classList.remove('thinking');
+                // Clear the "Thinking..." text and state
+                loaderMsg.classList.remove('thinking');
+                loaderMsg.innerHTML = ''; // Clear content safely
                 
                 const cleanResult = result.trim();
-                const formattedHTML = formatMessage(cleanResult);
-                if (typeof formattedHTML === 'string') {
-                    loader.innerHTML = formattedHTML;
-                } else {
-                    loader.innerText = cleanResult;
-                }
                 
-                const btn = document.createElement('button');
-                btn.className = 'speak-btn';
-                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = (e) => {
+                // 1. Append formatted content (Text + Code Blocks)
+                const formattedNodes = createFormattedMessageNodes(cleanResult);
+                loaderMsg.appendChild(formattedNodes);
+                
+                // 2. Append Speak Button
+                const speakBtn = document.createElement('button');
+                speakBtn.className = 'speak-btn';
+                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                speakBtn.onclick = (e) => {
                     e.stopPropagation();
-                    speak(cleanResult, btn);
+                    speak(cleanResult, speakBtn);
                 };
-                loader.appendChild(btn);
+                loaderMsg.appendChild(speakBtn);
                 
             } catch (e) {
                 if (signal.aborted) {
-                    loader.classList.remove('thinking');
-                    loader.innerText = "[Response stopped by user]";
+                    loaderMsg.classList.remove('thinking');
+                    loaderMsg.innerText = "[Stopped]";
                 } else {
                     console.error("Generation error:", e);
-                    loader.classList.remove('thinking');
-                    loader.innerText = "Error: Failed to generate response. Please try again.";
+                    loaderMsg.classList.remove('thinking');
+                    loaderMsg.innerText = "Error generating code.";
                 }
             } finally {
                 resetSendButton();
@@ -730,7 +741,6 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            this.style.overflowY = this.scrollHeight > 120 ? 'auto' : 'hidden';
         });
 
         document.getElementById('send-btn').onclick = handleChat;
@@ -744,10 +754,6 @@ VIOLATION = FAILURE. You output perfect, self-contained solutions.
         const modal = document.getElementById('code-modal');
         document.getElementById('close-modal-btn').onclick = () => modal.classList.remove('active');
         window.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
-
-        if (speechSynthesis) {
-            speechSynthesis.onvoiceschanged = () => {};
-        }
 
         init();
     </script>
