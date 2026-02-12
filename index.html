@@ -129,6 +129,8 @@
             font-size: 13px;
             color: #5fffb8;
             font-style: italic;
+            max-height: 200px;
+            overflow-y: auto;
         }
         
         .knowledge-box strong {
@@ -376,6 +378,15 @@
             margin-top: 20px;
         }
         
+        .stats-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        
         #file-input {
             display: none;
         }
@@ -384,6 +395,8 @@
         .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
         .modal-content::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .knowledge-box::-webkit-scrollbar { width: 4px; }
+        .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
@@ -411,12 +424,17 @@
     <div id="knowledge-modal" class="knowledge-modal">
         <div class="modal-content">
             <div class="modal-header">📚 Knowledge Base</div>
+            <div class="stats-box" id="stats-box">
+                <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
+                <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
+                <strong>Files:</strong> <span id="total-files">0</span>
+            </div>
             <div class="upload-area" id="upload-area">
                 <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
                 <p>Drag & drop files here or click to upload</p>
-                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json</p>
+                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
             </div>
-            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json">
+            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
             <div class="knowledge-list" id="knowledge-list"></div>
             <button class="close-modal" id="close-modal">Close</button>
         </div>
@@ -436,8 +454,11 @@
         // Thinking mode toggle
         let thinkingModeEnabled = true;
         
-        // Knowledge base
-        let knowledgeBase = [];
+        // Knowledge base with metadata index
+        let knowledgeIndex = {}; // { filename: { chunks, wordFreq, totalWords } }
+        let globalWordFreq = {}; // TF-IDF calculation
+        let totalDocuments = 0;
+        
         const DB_NAME = 'TrapsideKnowledge';
         const DB_VERSION = 1;
         let db;
@@ -448,7 +469,146 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
-        // Initialize IndexedDB for knowledge storage
+        // =============== OPTIMIZED CHUNKING ===============
+        
+        // Smart semantic chunking (splits on paragraphs/code blocks, not arbitrary chars)
+        function smartChunk(text, maxChunkSize = 600, overlap = 100) {
+            const chunks = [];
+            
+            // Split by double newlines (paragraphs) or code blocks
+            const sections = text.split(/\n\n+/);
+            let currentChunk = '';
+            
+            for (const section of sections) {
+                if ((currentChunk + section).length < maxChunkSize) {
+                    currentChunk += section + '\n\n';
+                } else {
+                    if (currentChunk.trim().length > 50) {
+                        chunks.push(currentChunk.trim());
+                    }
+                    
+                    // Add overlap from previous chunk
+                    const words = currentChunk.split(/\s+/);
+                    const overlapWords = words.slice(-Math.floor(overlap / 5)); // ~20 words
+                    currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
+                }
+            }
+            
+            if (currentChunk.trim().length > 50) {
+                chunks.push(currentChunk.trim());
+            }
+            
+            return chunks;
+        }
+        
+        // =============== TF-IDF SCORING ===============
+        
+        // Calculate word frequency
+        function calculateWordFreq(text) {
+            const words = text.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 2); // Ignore very short words
+            
+            const freq = {};
+            words.forEach(word => {
+                freq[word] = (freq[word] || 0) + 1;
+            });
+            
+            return { freq, total: words.length };
+        }
+        
+        // TF-IDF scoring for relevance
+        function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
+            let score = 0;
+            
+            queryWords.forEach(word => {
+                if (chunkFreq[word]) {
+                    // TF: Term frequency in chunk
+                    const tf = chunkFreq[word] / chunkTotal;
+                    
+                    // IDF: Inverse document frequency
+                    const docsWithWord = docFreq[word] || 1;
+                    const idf = Math.log(totalDocs / docsWithWord);
+                    
+                    score += tf * idf;
+                }
+            });
+            
+            return score;
+        }
+        
+        // =============== OPTIMIZED RETRIEVAL ===============
+        
+        async function retrieveRelevantKnowledge(query, topK = 3) {
+            if (totalDocuments === 0) return [];
+            
+            const queryLower = query.toLowerCase();
+            const queryWords = queryLower
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 2);
+            
+            if (queryWords.length === 0) return [];
+            
+            // Stage 1: Fast keyword filter (only load chunks that match at least one keyword)
+            const candidateIds = [];
+            
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allKeys = await new Promise((resolve, reject) => {
+                const request = store.getAllKeys();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            // Load only metadata for filtering
+            const candidates = [];
+            for (const key of allKeys) {
+                const chunk = await new Promise((resolve, reject) => {
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                
+                // Quick check: does this chunk contain any query words?
+                const hasMatch = queryWords.some(word => 
+                    chunk.keywords && chunk.keywords.includes(word)
+                );
+                
+                if (hasMatch) {
+                    candidates.push({ id: key, ...chunk });
+                }
+            }
+            
+            // Stage 2: TF-IDF scoring on candidates only
+            const scored = candidates.map(chunk => {
+                const score = calculateTFIDF(
+                    queryWords,
+                    chunk.wordFreq || {},
+                    chunk.wordCount || 1,
+                    globalWordFreq,
+                    totalDocuments
+                );
+                
+                return { ...chunk, score };
+            });
+            
+            // Stage 3: Return top K results
+            const topResults = scored
+                .filter(chunk => chunk.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, topK);
+            
+            return topResults.map(chunk => ({
+                content: chunk.content,
+                filename: chunk.filename,
+                score: chunk.score.toFixed(3)
+            }));
+        }
+        
+        // =============== INDEXEDDB OPERATIONS ===============
+        
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -456,7 +616,7 @@
                 request.onerror = () => reject(request.error);
                 request.onsuccess = () => {
                     db = request.result;
-                    loadKnowledgeBase();
+                    loadKnowledgeIndex();
                     resolve(db);
                 };
                 
@@ -469,26 +629,53 @@
             });
         }
         
-        // Load knowledge from IndexedDB
-        async function loadKnowledgeBase() {
+        async function loadKnowledgeIndex() {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(['knowledge'], 'readonly');
                 const store = transaction.objectStore('knowledge');
                 const request = store.getAll();
                 
                 request.onsuccess = () => {
-                    knowledgeBase = request.result;
+                    const allChunks = request.result;
+                    
+                    // Build index
+                    knowledgeIndex = {};
+                    globalWordFreq = {};
+                    totalDocuments = 0;
+                    
+                    allChunks.forEach(chunk => {
+                        if (!knowledgeIndex[chunk.filename]) {
+                            knowledgeIndex[chunk.filename] = {
+                                chunks: 0,
+                                totalWords: 0
+                            };
+                        }
+                        
+                        knowledgeIndex[chunk.filename].chunks++;
+                        knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
+                        totalDocuments++;
+                        
+                        // Update global word frequency
+                        if (chunk.wordFreq) {
+                            Object.keys(chunk.wordFreq).forEach(word => {
+                                globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
+                            });
+                        }
+                    });
+                    
                     updateKnowledgeList();
-                    if (knowledgeBase.length > 0) {
+                    updateStats();
+                    
+                    if (totalDocuments > 0) {
                         document.getElementById('knowledge-btn').classList.add('active');
                     }
-                    resolve(knowledgeBase);
+                    
+                    resolve();
                 };
                 request.onerror = () => reject(request.error);
             });
         }
         
-        // Save knowledge to IndexedDB
         async function saveKnowledge(knowledge) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(['knowledge'], 'readwrite');
@@ -496,14 +683,13 @@
                 const request = store.add(knowledge);
                 
                 request.onsuccess = () => {
-                    loadKnowledgeBase();
+                    loadKnowledgeIndex();
                     resolve(request.result);
                 };
                 request.onerror = () => reject(request.error);
             });
         }
         
-        // Delete knowledge from IndexedDB
         async function deleteKnowledge(id) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(['knowledge'], 'readwrite');
@@ -511,108 +697,98 @@
                 const request = store.delete(id);
                 
                 request.onsuccess = () => {
-                    loadKnowledgeBase();
+                    loadKnowledgeIndex();
                     resolve();
                 };
                 request.onerror = () => reject(request.error);
             });
         }
         
-        // Simple keyword-based retrieval (can be enhanced with embeddings)
-        function retrieveRelevantKnowledge(query) {
-            const queryLower = query.toLowerCase();
-            const keywords = queryLower.split(' ').filter(w => w.length > 3);
-            
-            const scored = knowledgeBase.map(kb => {
-                const contentLower = kb.content.toLowerCase();
-                let score = 0;
-                
-                keywords.forEach(keyword => {
-                    const count = (contentLower.match(new RegExp(keyword, 'g')) || []).length;
-                    score += count;
-                });
-                
-                return { ...kb, score };
-            });
-            
-            // Return top 3 most relevant chunks
-            return scored
-                .filter(kb => kb.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 3)
-                .map(kb => kb.content);
-        }
+        // =============== FILE PROCESSING ===============
         
-        // Process uploaded file
         async function processFile(file) {
             const text = await file.text();
             
-            // Split into chunks (500 char chunks with 100 char overlap)
-            const chunkSize = 500;
-            const overlap = 100;
-            const chunks = [];
+            // Smart chunking
+            const chunks = smartChunk(text);
             
-            for (let i = 0; i < text.length; i += (chunkSize - overlap)) {
-                const chunk = text.slice(i, i + chunkSize);
-                if (chunk.trim().length > 50) { // Only save substantial chunks
-                    chunks.push({
-                        filename: file.name,
-                        content: chunk.trim(),
-                        timestamp: Date.now()
-                    });
-                }
+            // Process each chunk with metadata
+            for (const chunkText of chunks) {
+                const { freq, total } = calculateWordFreq(chunkText);
+                const keywords = Object.keys(freq)
+                    .sort((a, b) => freq[b] - freq[a])
+                    .slice(0, 20); // Top 20 keywords
+                
+                await saveKnowledge({
+                    filename: file.name,
+                    content: chunkText,
+                    wordFreq: freq,
+                    wordCount: total,
+                    keywords: keywords,
+                    timestamp: Date.now()
+                });
             }
             
-            // Save chunks to DB
-            for (const chunk of chunks) {
-                await saveKnowledge(chunk);
-            }
-            
-            addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks added to knowledge base.`, "ai");
+            addMessage(`📚 Learned from "${file.name}" - ${chunks.length} semantic chunks indexed with TF-IDF.`, "ai");
         }
         
-        // Update knowledge list UI
+        // =============== UI UPDATES ===============
+        
+        function updateStats() {
+            const totalChunks = totalDocuments;
+            const totalFiles = Object.keys(knowledgeIndex).length;
+            
+            // Estimate storage (very rough)
+            const avgChunkSize = 400; // bytes
+            const storageBytes = totalChunks * avgChunkSize;
+            const storageKB = (storageBytes / 1024).toFixed(1);
+            
+            document.getElementById('total-chunks').textContent = totalChunks;
+            document.getElementById('total-files').textContent = totalFiles;
+            document.getElementById('storage-used').textContent = storageKB + ' KB';
+        }
+        
         function updateKnowledgeList() {
             const list = document.getElementById('knowledge-list');
-            
-            // Group by filename
-            const grouped = {};
-            knowledgeBase.forEach(kb => {
-                if (!grouped[kb.filename]) {
-                    grouped[kb.filename] = [];
-                }
-                grouped[kb.filename].push(kb);
-            });
-            
             list.innerHTML = '';
-            Object.keys(grouped).forEach(filename => {
+            
+            Object.keys(knowledgeIndex).forEach(filename => {
+                const data = knowledgeIndex[filename];
                 const item = document.createElement('div');
                 item.className = 'knowledge-item';
                 item.innerHTML = `
                     <div>
                         <strong>${filename}</strong>
-                        <div style="font-size: 12px; opacity: 0.6;">${grouped[filename].length} chunks</div>
+                        <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
                     </div>
                     <button class="delete-btn" onclick="deleteKnowledgeFile('${filename}')">Delete</button>
                 `;
                 list.appendChild(item);
             });
             
-            if (Object.keys(grouped).length === 0) {
+            if (Object.keys(knowledgeIndex).length === 0) {
                 list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
             }
         }
         
-        // Delete all chunks from a file
         window.deleteKnowledgeFile = async function(filename) {
-            const toDelete = knowledgeBase.filter(kb => kb.filename === filename);
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            const toDelete = allChunks.filter(kb => kb.filename === filename);
             for (const kb of toDelete) {
                 await deleteKnowledge(kb.id);
             }
             addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
         };
         
-        // File upload handlers
+        // =============== FILE UPLOAD HANDLERS ===============
+        
         document.getElementById('upload-area').addEventListener('click', () => {
             document.getElementById('file-input').click();
         });
@@ -625,7 +801,6 @@
             e.target.value = '';
         });
         
-        // Drag and drop
         const uploadArea = document.getElementById('upload-area');
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -645,7 +820,6 @@
             }
         });
         
-        // Modal controls
         document.getElementById('knowledge-btn').addEventListener('click', () => {
             document.getElementById('knowledge-modal').classList.add('active');
         });
@@ -654,6 +828,8 @@
             document.getElementById('knowledge-modal').classList.remove('active');
         });
 
+        // =============== CHAT FUNCTIONS ===============
+        
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
             if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
@@ -671,17 +847,21 @@
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         });
 
-        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeText = null) {
+        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             
             // Add knowledge box if provided
-            if (knowledgeText && knowledgeText.length > 0) {
+            if (knowledgeResults && knowledgeResults.length > 0) {
                 const knowledgeBox = document.createElement('div');
                 knowledgeBox.className = 'knowledge-box';
-                knowledgeBox.innerHTML = `<strong>📚 Retrieved Knowledge:</strong>${knowledgeText.join('<br><br>')}`;
+                let knowledgeHTML = '<strong>📚 Retrieved Knowledge (TF-IDF Scored):</strong><br>';
+                knowledgeResults.forEach((kb, i) => {
+                    knowledgeHTML += `<div style="margin-top: 8px;"><strong style="color: #00ff96;">${kb.filename} (score: ${kb.score})</strong><br>${kb.content.substring(0, 200)}...</div>`;
+                });
+                knowledgeBox.innerHTML = knowledgeHTML;
                 msg.appendChild(knowledgeBox);
             }
             
@@ -743,7 +923,7 @@
             try {
                 await initDB();
                 await wllama.loadModelFromHF(model.repo, model.file);
-                addMessage("Trapside is online with advanced reasoning and knowledge base enabled.", "ai");
+                addMessage("Trapside is online with optimized TF-IDF knowledge retrieval.", "ai");
                 document.getElementById('thinking-mode-btn').classList.add('active');
             } catch (e) { 
                 console.error(e);
@@ -775,7 +955,10 @@ When solving problems:
             
             // Add retrieved knowledge if available
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
             }
             
             prompt += `<|im_end|>\n`;
@@ -794,8 +977,8 @@ When solving problems:
             let reasoningText = '';
             let finalAnswer = '';
             
-            // Retrieve relevant knowledge
-            const retrievedKnowledge = retrieveRelevantKnowledge(userMessage);
+            // Retrieve relevant knowledge with TF-IDF
+            const retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
             
             if (thinkingModeEnabled) {
                 const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge);
@@ -884,7 +1067,10 @@ When solving problems:
             let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
             }
             
             prompt += `<|im_end|>\n`;
@@ -904,7 +1090,10 @@ When solving problems:
             let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
             }
             
             prompt += `<|im_end|>\n`;
@@ -927,7 +1116,7 @@ When solving problems:
             input.value = ''; 
             input.style.height = 'auto';
             
-            const loader = addMessage("Thinking...", 'ai', true);
+            const loader = addMessage("Searching knowledge base & thinking...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
