@@ -449,7 +449,7 @@
             try {
                 // CHANGED SYSTEM PROMPT TO MAKE TRAPSIDE CONCISE AND CODING-SMART
                 const sys = "You are Trapside. Respond with extreme precision: only essential information, no fluff. For code: output clean, production-ready solutions with minimal necessary comments. Format code blocks properly. Never mention other AIs. Always refer to yourself as Trapside. Think step-by-step internally but output only the final concise answer.";
-                const prompt = `<think>system\n${sys}<think>\n<think>user\n${text}<think>\n<think>assistant\n`;
+                const prompt = `<think>system\n${sys}<think>\n</tool_call>user\n${text}<think>\n</tool_call>assistant\n`;
                 const result = await wllama.createCompletion(prompt, { 
                     nPredict: 400, 
                     stop: ["<think>"], 
@@ -457,15 +457,17 @@
                     signal: signal
                 });
                 
-                // Process the result
+                // CRITICAL FIX: Properly truncate output at first stop token to prevent conversation history leakage
+                let cleanResult = result.split('<think>')[0].trim();
+                
                 loader.classList.remove('thinking');
-                loader.innerText = result.trim();
+                loader.innerText = cleanResult || "No response generated.";
                 
                 // Add speak button
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(result.trim(), btn);
+                btn.onclick = () => speak(cleanResult || "No response generated.", btn);
                 loader.appendChild(btn);
             } catch (e) {
                 if (signal.aborted) {
