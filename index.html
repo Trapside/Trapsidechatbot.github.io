@@ -26,7 +26,7 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Fixed Header with Glass Effect */
+        /* Fixed Header */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
@@ -45,9 +45,7 @@
         .brand { 
             font-weight: 900; 
             font-size: 28px; 
-            background: linear-gradient(180deg, #fff 0%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff; /* Fixed logo issue - changed from gradient to solid white */
             letter-spacing: 2px; 
             text-transform: uppercase; 
             filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
