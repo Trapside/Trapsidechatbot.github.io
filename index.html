@@ -26,7 +26,7 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Fixed Header - REMOVED BACKGROUND */
+        /* Fixed Header */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
@@ -68,7 +68,7 @@
             padding: 20px; 
             gap: 20px; 
             padding-bottom: 120px;
-            padding-top: 100px; /* Space for fixed header */
+            padding-top: 100px; 
         }
         #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
@@ -77,7 +77,7 @@
 
         .message { 
             max-width: 80%; 
-            padding: 16px 22px 42px 22px; /* Increased bottom padding to prevent overlap */
+            padding: 16px 22px 42px 22px; 
             border-radius: 24px; 
             line-height: 1.6; 
             font-size: 15px; 
@@ -111,7 +111,7 @@
         }
 
         .speak-btn { 
-            background: rgba(255, 255, 255, 0.08); /* More liquid glassy */
+            background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--glass-border);
             color: #fff; 
             width: 34px; 
@@ -123,8 +123,8 @@
             justify-content: center; 
             transition: all 0.3s ease;
             position: absolute;
-            bottom: 10px; /* Adjusted position */
-            right: 10px; /* Adjusted position */
+            bottom: 10px; 
+            right: 10px; 
             box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
             z-index: 5;
         }
@@ -138,7 +138,7 @@
             border-color: var(--accent);
         }
 
-        /* Floating Minimalist Input */
+        /* Floating Minimalist Input Area */
         .input-area { 
             position: absolute; 
             bottom: 30px; 
@@ -148,14 +148,17 @@
             pointer-events: none;
             display: flex;
             justify-content: center;
+            align-items: flex-end; /* Align items to bottom */
+            gap: 12px; /* Gap between input box and model button */
+            max-width: 860px; /* Increased max-width to fit button */
+            margin: 0 auto;
         }
+
         .input-container { 
             pointer-events: auto;
             display: flex; 
             gap: 12px; 
-            max-width: 800px; 
-            width: 100%;
-            margin: 0 auto; 
+            flex: 1; /* Takes up remaining space */
             padding: 10px 14px; 
             border-radius: 40px;
             background: var(--glass);
@@ -230,6 +233,41 @@
             box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
             background: #ff3333;
         }
+
+        /* New Model Toggle Button */
+        .model-btn {
+            pointer-events: auto;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            width: 50px; /* Slightly larger to match input height */
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        .model-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .model-btn.active {
+            background: var(--accent);
+            box-shadow: 0 0 20px var(--accent);
+            border-color: var(--accent);
+        }
+
+        .model-btn i {
+            font-size: 18px;
+        }
         
         /* Scrollbar styling */
         .view::-webkit-scrollbar {
@@ -263,10 +301,14 @@
             
             .message {
                 max-width: 90%;
-                padding: 14px 18px 38px 18px; /* Adjusted bottom padding for mobile */
+                padding: 14px 18px 38px 18px; 
                 font-size: 14px;
             }
             
+            .input-area {
+                padding: 0 10px 20px 10px;
+            }
+
             .input-container {
                 padding: 8px 12px;
                 border-radius: 36px;
@@ -281,6 +323,11 @@
                 height: 40px;
             }
             
+            .model-btn {
+                width: 44px;
+                height: 44px;
+            }
+
             .speak-btn {
                 bottom: 8px;
                 right: 8px;
@@ -301,6 +348,9 @@
                 <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
+            <button id="model-toggle" class="model-btn" title="Toggle Smart Model">
+                <i class="fas fa-glasses"></i>
+            </button>
         </div>
     </div>
 
@@ -313,8 +363,22 @@
         const PITCH = 1.5;
         const RATE = 1.0;
 
+        // Model Configuration
+        let currentModel = 'smollm2';
+        const models = {
+            smollm2: {
+                repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
+                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf',
+                name: 'SmolLM2'
+            },
+            tinyllama: {
+                repo: 'TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
+                file: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+                name: 'TinyLlama-1.1B'
+            }
+        };
+
         function speak(text, btn) {
-            // If clicking the same button while it's speaking, stop it
             if (synth.speaking && activeBtn === btn) {
                 synth.cancel();
                 btn.classList.remove('active');
@@ -322,7 +386,6 @@
                 return;
             }
             
-            // If there's any ongoing speech, cancel it
             if (synth.speaking) {
                 synth.cancel();
                 if (activeBtn) {
@@ -332,7 +395,6 @@
             }
             
             const utter = new SpeechSynthesisUtterance(text);
-            // Get a good voice - prefer Daniel if available, otherwise use the first voice
             const voices = synth.getVoices();
             const daniel = voices.find(v => v.name.includes("Daniel")) || 
                           voices.find(v => v.name.includes("Daniel")) ||
@@ -382,7 +444,6 @@
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
                 btn.onclick = () => speak(text, btn);
-                // Changed from row.appendChild(btn) to msg.appendChild(btn)
                 msg.appendChild(btn);
             }
             document.getElementById('chat-box').appendChild(row);
@@ -398,6 +459,9 @@
             sendBtn.onclick = handleChat;
             abortController = null;
             document.getElementById('user-input').disabled = false;
+            // Re-enable toggle button
+            document.getElementById('model-toggle').disabled = false;
+            document.getElementById('model-toggle').style.opacity = '1';
         }
         
         function setupStopButton() {
@@ -414,9 +478,50 @@
             }
         }
 
+        // New function to handle model toggling
+        async function toggleModel() {
+            const btn = document.getElementById('model-toggle');
+            const input = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            
+            // Disable interactions while switching
+            input.disabled = true;
+            sendBtn.disabled = true;
+            btn.disabled = true;
+            input.placeholder = "Switching brains...";
+            
+            try {
+                if (currentModel === 'smollm2') {
+                    // Switch to TinyLlama
+                    addMessage("Downloading TinyLlama-1.1B... please wait.", "ai");
+                    await wllama.loadModelFromHF(models.tinyllama.repo, models.tinyllama.file);
+                    currentModel = 'tinyllama';
+                    btn.classList.add('active');
+                    addMessage("TinyLlama-1.1B Loaded. Smart Mode Active.", "ai");
+                } else {
+                    // Switch back to SmolLM2
+                    addMessage("Switching back to SmolLM2...", "ai");
+                    await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
+                    currentModel = 'smollm2';
+                    btn.classList.remove('active');
+                    addMessage("SmolLM2 Loaded.", "ai");
+                }
+            } catch (e) {
+                console.error("Model switch failed:", e);
+                addMessage(`Error switching to ${currentModel === 'smollm2' ? 'TinyLlama' : 'SmolLM2'}.`, "ai");
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                btn.disabled = false;
+                input.placeholder = "Deep reasoning...";
+                input.focus();
+            }
+        }
+
         async function init() {
             try {
-                await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
+                // Load default model (SmolLM2)
+                await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
                 addMessage("Trapside is online. How can I help?", "ai");
             } catch (e) { 
                 console.error("Model loading failed:", e);
@@ -428,27 +533,29 @@
             const text = document.getElementById('user-input').value.trim();
             if (!text) return;
             
-            // Add user message
             addMessage(text, 'user');
             document.getElementById('user-input').value = '';
             document.getElementById('user-input').style.height = 'auto';
             document.getElementById('user-input').rows = 1;
             
-            // Setup for AI response
             const loader = addMessage("Thinking...", 'ai', true);
             const sendBtn = document.getElementById('send-btn');
             
-            // Disable input and setup stop button
+            // Disable input, model toggle, and setup stop button
             document.getElementById('user-input').disabled = true;
+            document.getElementById('model-toggle').disabled = true;
+            document.getElementById('model-toggle').style.opacity = '0.5';
+            
             setupStopButton();
             
-            // Create abort controller for this generation
             abortController = new AbortController();
             const signal = abortController.signal;
             
             try {
                 const sys = "You are Trapside, an expert like Claude Opus. Be nuanced, thoughtful, and articulate. Think step-by-step.";
+                // Adjust prompt format based on prompt requirements, keeping structure similar
                 const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
+                
                 const result = await wllama.createCompletion(prompt, { 
                     nPredict: 400, 
                     stop: ["<think>"], 
@@ -456,11 +563,9 @@
                     signal: signal
                 });
                 
-                // Process the result
                 loader.classList.remove('thinking');
                 loader.innerText = result.trim();
                 
-                // Add speak button
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
@@ -484,7 +589,6 @@
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            // Cap the height at 5 rows
             if (this.scrollHeight > 120) {
                 this.style.overflowY = 'auto';
             } else {
@@ -493,6 +597,7 @@
         });
 
         document.getElementById('send-btn').onclick = handleChat;
+        document.getElementById('model-toggle').onclick = toggleModel; // Bind click event
         
         document.getElementById('user-input').onkeydown = (e) => { 
             if(e.key === 'Enter' && !e.shiftKey) { 
@@ -501,16 +606,11 @@
             }
         };
         
-        // Initialize speech synthesis voices
         if (speechSynthesis) {
-            speechSynthesis.onvoiceschanged = () => {
-                // Voices are loaded
-            };
+            speechSynthesis.onvoiceschanged = () => {};
         }
         
-        // Initialize the app
         init();
     </script>
 </body>
 </html>
-
