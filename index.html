@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,477 +13,478 @@
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
         }
 
-```
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    body { 
-        font-family: 'Inter', -apple-system, sans-serif; 
-        background: var(--liquid-bg);
-        background-attachment: fixed;
-        color: #fff; 
-        height: 100vh; 
-        overflow: hidden; 
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--liquid-bg);
+            background-attachment: fixed;
+            color: #fff; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
 
-    .container { height: 100vh; display: flex; flex-direction: column; }
-    
-    .header { 
-        padding: 24px; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center;
-        z-index: 10;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-    }
+        .container { height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { 
+            padding: 24px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            z-index: 10;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
 
-    .brand { 
-        font-weight: 900; 
-        font-size: 28px; 
-        color: #fff;
-        letter-spacing: 2px; 
-        text-transform: uppercase; 
-        filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
-        position: relative;
-    }
-    
-    .brand::after {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 60px;
-        height: 3px;
-        background: var(--accent);
-        border-radius: 3px;
-    }
-    
-    .header-knowledge-btn {
-        position: absolute;
-        right: 24px;
-        background: var(--glass);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border: 1px solid var(--glass-border);
-        width: 50px; 
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    }
-    
-    .header-knowledge-btn:hover {
-        transform: scale(1.05);
-    }
-    
-    .header-knowledge-btn.active {
-        background: #00ff96;
-        box-shadow: 0 0 20px #00ff96;
-        border-color: #00ff96;
-    }
+        .brand { 
+            font-weight: 900; 
+            font-size: 28px; 
+            color: #fff;
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+            position: relative;
+        }
+        
+        .brand::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
+        }
+        
+        .header-knowledge-btn {
+            position: absolute;
+            right: 24px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .header-knowledge-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .header-knowledge-btn.active {
+            background: #00ff96;
+            box-shadow: 0 0 20px #00ff96;
+            border-color: #00ff96;
+        }
 
-    .view { 
-        flex: 1; 
-        display: flex; 
-        flex-direction: column; 
-        overflow-y: auto; 
-        padding: 20px; 
-        gap: 20px; 
-        padding-bottom: 120px;
-        padding-top: 100px; 
-    }
-    #chat-box { display: flex; flex-direction: column; gap: 16px; }
+        .view { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+            padding: 20px; 
+            gap: 20px; 
+            padding-bottom: 120px;
+            padding-top: 100px; 
+        }
+        #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
-    .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
-    .user-row { flex-direction: row-reverse; }
+        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
+        .user-row { flex-direction: row-reverse; }
 
-    .message { 
-        max-width: 80%; 
-        padding: 16px 22px 42px 22px; 
-        border-radius: 24px; 
-        line-height: 1.6; 
-        font-size: 15px; 
-        backdrop-filter: blur(15px); 
-        -webkit-backdrop-filter: blur(15px);
-        border: 1px solid var(--glass-border);
-        background: var(--glass);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        position: relative;
-    }
+        .message { 
+            max-width: 80%; 
+            padding: 16px 22px 42px 22px; 
+            border-radius: 24px; 
+            line-height: 1.6; 
+            font-size: 15px; 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
 
-    .user-message { 
-        background: rgba(0, 180, 255, 0.1); 
-        border-color: rgba(0, 180, 255, 0.3);
-        border-bottom-right-radius: 4px;
-    }
+        .user-message { 
+            background: rgba(0, 180, 255, 0.1); 
+            border-color: rgba(0, 180, 255, 0.3);
+            border-bottom-right-radius: 4px;
+        }
 
-    .ai-message { 
-        border-bottom-left-radius: 4px; 
-    }
+        .ai-message { 
+            border-bottom-left-radius: 4px; 
+        }
 
-    .thinking { 
-        font-weight: bold;
-        color: var(--accent);
-        animation: pulse 1.5s infinite ease-in-out;
-    }
-    
-    .pill-container {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
-        flex-wrap: wrap;
-    }
-    
-    .pill-button {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: 1px solid;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .reasoning-pill {
-        background: rgba(255, 165, 0, 0.15);
-        border-color: rgba(255, 165, 0, 0.4);
-        color: #ffa500;
-    }
-    
-    .reasoning-pill:hover {
-        background: rgba(255, 165, 0, 0.25);
-    }
-    
-    .knowledge-pill {
-        background: rgba(0, 255, 150, 0.15);
-        border-color: rgba(0, 255, 150, 0.4);
-        color: #00ff96;
-    }
-    
-    .knowledge-pill:hover {
-        background: rgba(0, 255, 150, 0.25);
-    }
-    
-    .reasoning-box {
-        background: rgba(255, 165, 0, 0.1);
-        border: 1px solid rgba(255, 165, 0, 0.3);
-        border-radius: 16px;
-        padding: 12px 16px;
-        margin-bottom: 12px;
-        font-size: 13px;
-        color: #ffb84d;
-        font-style: italic;
-        display: none;
-    }
-    
-    .reasoning-box.expanded {
-        display: block;
-    }
-    
-    .reasoning-box strong {
-        color: #ffa500;
-        display: block;
-        margin-bottom: 6px;
-    }
-    
-    .knowledge-box {
-        background: rgba(0, 255, 150, 0.1);
-        border: 1px solid rgba(0, 255, 150, 0.3);
-        border-radius: 16px;
-        padding: 12px 16px;
-        margin-bottom: 12px;
-        font-size: 13px;
-        color: #5fffb8;
-        font-style: italic;
-        max-height: 200px;
-        overflow-y: auto;
-        display: none;
-    }
-    
-    .knowledge-box.expanded {
-        display: block;
-    }
-    
-    .knowledge-box strong {
-        color: #00ff96;
-        display: block;
-        margin-bottom: 6px;
-    }
-    
-    @keyframes pulse { 
-        0% { opacity: 0.3; } 
-        50% { opacity: 1; } 
-        100% { opacity: 0.3; } 
-    }
+        .thinking { 
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .thinking-steps {
+            animation: fadeInOut 2s infinite ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .pill-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .pill-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .reasoning-pill {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid rgba(255, 165, 0, 0.4);
+            color: #ffa500;
+        }
+        
+        .reasoning-pill:hover {
+            background: rgba(255, 165, 0, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .knowledge-pill {
+            background: rgba(0, 255, 150, 0.2);
+            border: 1px solid rgba(0, 255, 150, 0.4);
+            color: #00ff96;
+        }
+        
+        .knowledge-pill:hover {
+            background: rgba(0, 255, 150, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .reasoning-box {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #ffb84d;
+            font-style: italic;
+            display: none;
+        }
+        
+        .reasoning-box.expanded {
+            display: block;
+        }
+        
+        .reasoning-box strong {
+            color: #ffa500;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
+        .knowledge-box {
+            background: rgba(0, 255, 150, 0.1);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #5fffb8;
+            font-style: italic;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .knowledge-box.expanded {
+            display: block;
+        }
+        
+        .knowledge-box strong {
+            color: #00ff96;
+            display: block;
+            margin-bottom: 6px;
+        }
 
-    .speak-btn { 
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid var(--glass-border);
-        color: #fff; 
-        width: 34px; 
-        height: 34px; 
-        border-radius: 50%; 
-        cursor: pointer; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        transition: all 0.3s ease;
-        position: absolute;
-        bottom: 10px; 
-        right: 10px; 
-        box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
-        z-index: 5;
-    }
-    .speak-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
-        transform: scale(1.05);
-    }
-    .speak-btn.active { 
-        background: var(--accent); 
-        box-shadow: 0 0 15px var(--accent);
-        border-color: var(--accent);
-    }
+        .speak-btn { 
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            color: #fff; 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s ease;
+            position: absolute;
+            bottom: 10px; 
+            right: 10px; 
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            z-index: 5;
+        }
+        .speak-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.05);
+        }
+        .speak-btn.active { 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
+            border-color: var(--accent);
+        }
 
-    .input-area { 
-        position: absolute; 
-        bottom: 30px; 
-        left: 0; 
-        right: 0;
-        padding: 0 20px; 
-        pointer-events: none;
-        display: flex;
-        justify-content: center;
-        align-items: flex-end; 
-        gap: 12px; 
-        max-width: 860px; 
-        margin: 0 auto;
-    }
+        .input-area { 
+            position: absolute; 
+            bottom: 30px; 
+            left: 0; 
+            right: 0;
+            padding: 0 20px; 
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            gap: 12px; 
+            max-width: 860px; 
+            margin: 0 auto;
+        }
 
-    .input-container { 
-        pointer-events: auto;
-        display: flex; 
-        gap: 12px; 
-        flex: 1; 
-        padding: 10px 14px; 
-        border-radius: 40px;
-        background: var(--glass);
-        backdrop-filter: blur(30px);
-        -webkit-backdrop-filter: blur(30px);
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-        transition: all 0.3s ease;
-    }
-    
-    .input-container:focus-within {
-        box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
-        border-color: rgba(0, 180, 255, 0.4);
-    }
+        .input-container { 
+            pointer-events: auto;
+            display: flex; 
+            gap: 12px; 
+            flex: 1; 
+            padding: 10px 14px; 
+            border-radius: 40px;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .input-container:focus-within {
+            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
+            border-color: rgba(0, 180, 255, 0.4);
+        }
 
-    .input-field { 
-        flex: 1; 
-        background: transparent; 
-        border: none; 
-        padding: 10px 15px; 
-        color: #fff; 
-        font-size: 16px; 
-        outline: none; 
-        resize: none;
-        max-height: 120px;
-        min-height: 24px;
-        line-height: 1.5;
-    }
-    
-    .input-field::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-        opacity: 1;
-    }
+        .input-field { 
+            flex: 1; 
+            background: transparent; 
+            border: none; 
+            padding: 10px 15px; 
+            color: #fff; 
+            font-size: 16px; 
+            outline: none; 
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.5;
+        }
+        
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 1;
+        }
 
-    .send-btn, .stop-btn { 
-        background: var(--accent); 
-        border: none; 
-        border-radius: 50%; 
-        width: 44px; 
-        height: 44px; 
-        color: #fff; 
-        cursor: pointer; 
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    
-    .send-btn:disabled { 
-        opacity: 0.3; 
-        cursor: not-allowed;
-    }
-    
-    .stop-btn {
-        background: #ff4d4d;
-        box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
-    }
+        .send-btn, .stop-btn { 
+            background: var(--accent); 
+            border: none; 
+            border-radius: 50%; 
+            width: 44px; 
+            height: 44px; 
+            color: #fff; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed;
+        }
+        
+        .stop-btn {
+            background: #ff4d4d;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+        }
 
-    .thinking-mode-btn {
-        pointer-events: auto;
-        background: var(--glass);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border: 1px solid var(--glass-border);
-        width: 50px; 
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-        flex-shrink: 0;
-    }
+        .thinking-mode-btn {
+            pointer-events: auto;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
 
-    .thinking-mode-btn.active {
-        background: #ffa500;
-        box-shadow: 0 0 20px #ffa500;
-        border-color: #ffa500;
-    }
-    
-    .knowledge-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(10px);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        padding: 20px;
-    }
-    
-    .knowledge-modal.active {
-        display: flex;
-    }
-    
-    .modal-content {
-        background: var(--glass);
-        backdrop-filter: blur(30px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        padding: 30px;
-        max-width: 600px;
-        width: 100%;
-        max-height: 80vh;
-        overflow-y: auto;
-    }
-    
-    .modal-header {
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 20px;
-        color: #00ff96;
-    }
-    
-    .upload-area {
-        border: 2px dashed var(--glass-border);
-        border-radius: 16px;
-        padding: 40px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-    }
-    
-    .upload-area:hover {
-        border-color: var(--accent);
-        background: rgba(0, 180, 255, 0.05);
-    }
-    
-    .upload-area.dragover {
-        border-color: #00ff96;
-        background: rgba(0, 255, 150, 0.1);
-    }
-    
-    .knowledge-list {
-        margin-top: 20px;
-    }
-    
-    .knowledge-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
-        padding: 12px 16px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .delete-btn {
-        background: #ff4d4d;
-        border: none;
-        border-radius: 8px;
-        padding: 6px 12px;
-        color: white;
-        cursor: pointer;
-        font-size: 12px;
-    }
-    
-    .close-modal {
-        background: var(--accent);
-        border: none;
-        border-radius: 12px;
-        padding: 12px 24px;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-        width: 100%;
-        margin-top: 20px;
-    }
-    
-    .stats-box {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 20px;
-        font-size: 13px;
-    }
-    
-    #file-input {
-        display: none;
-    }
+        .thinking-mode-btn.active {
+            background: #ffa500;
+            box-shadow: 0 0 20px #ffa500;
+            border-color: #ffa500;
+        }
+        
+        .knowledge-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .knowledge-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #00ff96;
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(0, 180, 255, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: #00ff96;
+            background: rgba(0, 255, 150, 0.1);
+        }
+        
+        .knowledge-list {
+            margin-top: 20px;
+        }
+        
+        .knowledge-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .delete-btn {
+            background: #ff4d4d;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .close-modal {
+            background: var(--accent);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .stats-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        
+        #file-input {
+            display: none;
+        }
 
-    .view::-webkit-scrollbar { width: 6px; }
-    .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-    .modal-content::-webkit-scrollbar { width: 6px; }
-    .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-    .knowledge-box::-webkit-scrollbar { width: 4px; }
-    .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .view::-webkit-scrollbar { width: 6px; }
+        .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .knowledge-box::-webkit-scrollbar { width: 4px; }
+        .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
-    @media (max-width: 768px) {
-        .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-        .input-area { padding: 0 10px 20px 10px; }
-        .thinking-mode-btn { width: 44px; height: 44px; }
-        .modal-content { padding: 20px; }
-        .header-knowledge-btn { width: 44px; height: 44px; right: 16px; }
-    }
-</style>
-```
-
+        @media (max-width: 768px) {
+            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
+            .input-area { padding: 0 10px 20px 10px; }
+            .thinking-mode-btn { width: 44px; height: 44px; }
+            .modal-content { padding: 20px; }
+            .header-knowledge-btn { width: 44px; height: 44px; right: 16px; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -501,818 +501,812 @@
             <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
         </div>
     </div>
-
-```
-<!-- Knowledge Base Modal -->
-<div id="knowledge-modal" class="knowledge-modal">
-    <div class="modal-content">
-        <div class="modal-header">📚 Knowledge Base</div>
-        <div class="stats-box" id="stats-box">
-            <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
-            <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
-            <strong>Files:</strong> <span id="total-files">0</span>
+    
+    <!-- Knowledge Base Modal -->
+    <div id="knowledge-modal" class="knowledge-modal">
+        <div class="modal-content">
+            <div class="modal-header">📚 Knowledge Base</div>
+            <div class="stats-box" id="stats-box">
+                <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
+                <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
+                <strong>Files:</strong> <span id="total-files">0</span>
+            </div>
+            <div class="upload-area" id="upload-area">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
+                <p>Drag & drop files here or click to upload</p>
+                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
+            </div>
+            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
+            <div class="knowledge-list" id="knowledge-list"></div>
+            <button class="close-modal" id="close-modal">Close</button>
         </div>
-        <div class="upload-area" id="upload-area">
-            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
-            <p>Drag & drop files here or click to upload</p>
-            <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
-        </div>
-        <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
-        <div class="knowledge-list" id="knowledge-list"></div>
-        <button class="close-modal" id="close-modal">Close</button>
     </div>
-</div>
 
-<script type="module">
-    import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+    <script type="module">
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-    const synth = window.speechSynthesis;
-    let activeBtn = null;
-    let abortController = null;
-    
-    // Conversation history tracking
-    let conversationHistory = [];
-    const MAX_HISTORY_LENGTH = 10;
-    
-    // Thinking mode toggle
-    let thinkingModeEnabled = true;
-    
-    // Knowledge base with metadata index
-    let knowledgeIndex = {}; // { filename: { chunks, wordFreq, totalWords } }
-    let globalWordFreq = {}; // TF-IDF calculation
-    let totalDocuments = 0;
-    
-    const DB_NAME = 'TrapsideKnowledge';
-    const DB_VERSION = 1;
-    let db;
-
-    // Single model configuration
-    const model = {
-        repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-        file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
-    };
-
-    // =============== OPTIMIZED CHUNKING ===============
-    
-    // Smart semantic chunking (splits on paragraphs/code blocks, not arbitrary chars)
-    function smartChunk(text, maxChunkSize = 600, overlap = 100) {
-        const chunks = [];
+        const synth = window.speechSynthesis;
+        let activeBtn = null;
+        let abortController = null;
         
-        // Split by double newlines (paragraphs) or code blocks
-        const sections = text.split(/\n\n+/);
-        let currentChunk = '';
+        // Conversation history tracking
+        let conversationHistory = [];
+        const MAX_HISTORY_LENGTH = 10;
         
-        for (const section of sections) {
-            if ((currentChunk + section).length < maxChunkSize) {
-                currentChunk += section + '\n\n';
-            } else {
-                if (currentChunk.trim().length > 50) {
-                    chunks.push(currentChunk.trim());
+        // Thinking mode toggle
+        let thinkingModeEnabled = true;
+        
+        // Knowledge base with metadata index
+        let knowledgeIndex = {}; // { filename: { chunks, wordFreq, totalWords } }
+        let globalWordFreq = {}; // TF-IDF calculation
+        let totalDocuments = 0;
+        
+        const DB_NAME = 'TrapsideKnowledge';
+        const DB_VERSION = 1;
+        let db;
+
+        // Single model configuration
+        const model = {
+            repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
+            file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
+        };
+
+        // =============== OPTIMIZED CHUNKING ===============
+        
+        // Smart semantic chunking (splits on paragraphs/code blocks, not arbitrary chars)
+        function smartChunk(text, maxChunkSize = 600, overlap = 100) {
+            const chunks = [];
+            
+            // Split by double newlines (paragraphs) or code blocks
+            const sections = text.split(/\n\n+/);
+            let currentChunk = '';
+            
+            for (const section of sections) {
+                if ((currentChunk + section).length < maxChunkSize) {
+                    currentChunk += section + '\n\n';
+                } else {
+                    if (currentChunk.trim().length > 50) {
+                        chunks.push(currentChunk.trim());
+                    }
+                    
+                    // Add overlap from previous chunk
+                    const words = currentChunk.split(/\s+/);
+                    const overlapWords = words.slice(-Math.floor(overlap / 5)); // ~20 words
+                    currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
                 }
-                
-                // Add overlap from previous chunk
-                const words = currentChunk.split(/\s+/);
-                const overlapWords = words.slice(-Math.floor(overlap / 5)); // ~20 words
-                currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
             }
+            
+            if (currentChunk.trim().length > 50) {
+                chunks.push(currentChunk.trim());
+            }
+            
+            return chunks;
         }
         
-        if (currentChunk.trim().length > 50) {
-            chunks.push(currentChunk.trim());
+        // =============== TF-IDF SCORING ===============
+        
+        // Calculate word frequency
+        function calculateWordFreq(text) {
+            const words = text.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 2); // Ignore very short words
+            
+            const freq = {};
+            words.forEach(word => {
+                freq[word] = (freq[word] || 0) + 1;
+            });
+            
+            return { freq, total: words.length };
         }
         
-        return chunks;
-    }
-    
-    // =============== TF-IDF SCORING ===============
-    
-    // Calculate word frequency
-    function calculateWordFreq(text) {
-        const words = text.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter(w => w.length > 2); // Ignore very short words
+        // TF-IDF scoring for relevance
+        function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
+            let score = 0;
+            
+            queryWords.forEach(word => {
+                if (chunkFreq[word]) {
+                    // TF: Term frequency in chunk
+                    const tf = chunkFreq[word] / chunkTotal;
+                    
+                    // IDF: Inverse document frequency
+                    const docsWithWord = docFreq[word] || 1;
+                    const idf = Math.log(totalDocs / docsWithWord);
+                    
+                    score += tf * idf;
+                }
+            });
+            
+            return score;
+        }
         
-        const freq = {};
-        words.forEach(word => {
-            freq[word] = (freq[word] || 0) + 1;
-        });
+        // =============== OPTIMIZED RETRIEVAL ===============
         
-        return { freq, total: words.length };
-    }
-    
-    // TF-IDF scoring for relevance
-    function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
-        let score = 0;
-        
-        queryWords.forEach(word => {
-            if (chunkFreq[word]) {
-                // TF: Term frequency in chunk
-                const tf = chunkFreq[word] / chunkTotal;
-                
-                // IDF: Inverse document frequency
-                const docsWithWord = docFreq[word] || 1;
-                const idf = Math.log(totalDocs / docsWithWord);
-                
-                score += tf * idf;
-            }
-        });
-        
-        return score;
-    }
-    
-    // =============== OPTIMIZED RETRIEVAL ===============
-    
-    async function retrieveRelevantKnowledge(query, topK = 3) {
-        if (totalDocuments === 0) return [];
-        
-        const queryLower = query.toLowerCase();
-        const queryWords = queryLower
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter(w => w.length > 2);
-        
-        if (queryWords.length === 0) return [];
-        
-        // Stage 1: Fast keyword filter (only load chunks that match at least one keyword)
-        const candidateIds = [];
-        
-        const transaction = db.transaction(['knowledge'], 'readonly');
-        const store = transaction.objectStore('knowledge');
-        const allKeys = await new Promise((resolve, reject) => {
-            const request = store.getAllKeys();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-        
-        // Load only metadata for filtering
-        const candidates = [];
-        for (const key of allKeys) {
-            const chunk = await new Promise((resolve, reject) => {
-                const request = store.get(key);
+        async function retrieveRelevantKnowledge(query, topK = 3) {
+            if (totalDocuments === 0) return [];
+            
+            const queryLower = query.toLowerCase();
+            const queryWords = queryLower
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 2);
+            
+            if (queryWords.length === 0) return [];
+            
+            // Stage 1: Fast keyword filter (only load chunks that match at least one keyword)
+            const candidateIds = [];
+            
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allKeys = await new Promise((resolve, reject) => {
+                const request = store.getAllKeys();
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = () => reject(request.error);
             });
             
-            // Quick check: does this chunk contain any query words?
-            const hasMatch = queryWords.some(word => 
-                chunk.keywords && chunk.keywords.includes(word)
-            );
-            
-            if (hasMatch) {
-                candidates.push({ id: key, ...chunk });
-            }
-        }
-        
-        // Stage 2: TF-IDF scoring on candidates only
-        const scored = candidates.map(chunk => {
-            const score = calculateTFIDF(
-                queryWords,
-                chunk.wordFreq || {},
-                chunk.wordCount || 1,
-                globalWordFreq,
-                totalDocuments
-            );
-            
-            return { ...chunk, score };
-        });
-        
-        // Stage 3: Return top K results
-        const topResults = scored
-            .filter(chunk => chunk.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, topK);
-        
-        return topResults.map(chunk => ({
-            content: chunk.content,
-            filename: chunk.filename,
-            score: chunk.score.toFixed(3)
-        }));
-    }
-    
-    // =============== INDEXEDDB OPERATIONS ===============
-    
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-                db = request.result;
-                loadKnowledgeIndex();
-                resolve(db);
-            };
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('knowledge')) {
-                    db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
-                }
-            };
-        });
-    }
-    
-    async function loadKnowledgeIndex() {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['knowledge'], 'readonly');
-            const store = transaction.objectStore('knowledge');
-            const request = store.getAll();
-            
-            request.onsuccess = () => {
-                const allChunks = request.result;
-                
-                // Build index
-                knowledgeIndex = {};
-                globalWordFreq = {};
-                totalDocuments = 0;
-                
-                allChunks.forEach(chunk => {
-                    if (!knowledgeIndex[chunk.filename]) {
-                        knowledgeIndex[chunk.filename] = {
-                            chunks: 0,
-                            totalWords: 0
-                        };
-                    }
-                    
-                    knowledgeIndex[chunk.filename].chunks++;
-                    knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
-                    totalDocuments++;
-                    
-                    // Update global word frequency
-                    if (chunk.wordFreq) {
-                        Object.keys(chunk.wordFreq).forEach(word => {
-                            globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
-                        });
-                    }
+            // Load only metadata for filtering
+            const candidates = [];
+            for (const key of allKeys) {
+                const chunk = await new Promise((resolve, reject) => {
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
                 });
                 
-                updateKnowledgeList();
-                updateStats();
-                updateKnowledgeButtonGlow();
+                // Quick check: does this chunk contain any query words?
+                const hasMatch = queryWords.some(word => 
+                    chunk.keywords && chunk.keywords.includes(word)
+                );
                 
-                resolve();
-            };
-            request.onerror = () => reject(request.error);
-        });
-    }
-    
-    function updateKnowledgeButtonGlow() {
-        const knowledgeBtn = document.getElementById('knowledge-btn');
-        if (totalDocuments > 0) {
-            knowledgeBtn.classList.add('active');
-        } else {
-            knowledgeBtn.classList.remove('active');
+                if (hasMatch) {
+                    candidates.push({ id: key, ...chunk });
+                }
+            }
+            
+            // Stage 2: TF-IDF scoring on candidates only
+            const scored = candidates.map(chunk => {
+                const score = calculateTFIDF(
+                    queryWords,
+                    chunk.wordFreq || {},
+                    chunk.wordCount || 1,
+                    globalWordFreq,
+                    totalDocuments
+                );
+                
+                return { ...chunk, score };
+            });
+            
+            // Stage 3: Return top K results
+            const topResults = scored
+                .filter(chunk => chunk.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, topK);
+            
+            return topResults.map(chunk => ({
+                content: chunk.content,
+                filename: chunk.filename,
+                score: chunk.score.toFixed(3)
+            }));
         }
-    }
-    
-    async function saveKnowledge(knowledge) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['knowledge'], 'readwrite');
-            const store = transaction.objectStore('knowledge');
-            const request = store.add(knowledge);
-            
-            request.onsuccess = () => {
-                loadKnowledgeIndex();
-                resolve(request.result);
-            };
-            request.onerror = () => reject(request.error);
-        });
-    }
-    
-    async function deleteKnowledge(id) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['knowledge'], 'readwrite');
-            const store = transaction.objectStore('knowledge');
-            const request = store.delete(id);
-            
-            request.onsuccess = () => {
-                loadKnowledgeIndex();
-                resolve();
-            };
-            request.onerror = () => reject(request.error);
-        });
-    }
-    
-    // =============== FILE PROCESSING ===============
-    
-    async function processFile(file) {
-        const text = await file.text();
         
-        // Smart chunking
-        const chunks = smartChunk(text);
+        // =============== INDEXEDDB OPERATIONS ===============
         
-        // Process each chunk with metadata
-        for (const chunkText of chunks) {
-            const { freq, total } = calculateWordFreq(chunkText);
-            const keywords = Object.keys(freq)
-                .sort((a, b) => freq[b] - freq[a])
-                .slice(0, 20); // Top 20 keywords
-            
-            await saveKnowledge({
-                filename: file.name,
-                content: chunkText,
-                wordFreq: freq,
-                wordCount: total,
-                keywords: keywords,
-                timestamp: Date.now()
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    loadKnowledgeIndex();
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('knowledge')) {
+                        db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
             });
         }
-    }
-    
-    // =============== UI UPDATES ===============
-    
-    function updateStats() {
-        const totalChunks = totalDocuments;
-        const totalFiles = Object.keys(knowledgeIndex).length;
         
-        // Estimate storage (very rough)
-        const avgChunkSize = 400; // bytes
-        const storageBytes = totalChunks * avgChunkSize;
-        const storageKB = (storageBytes / 1024).toFixed(1);
-        
-        document.getElementById('total-chunks').textContent = totalChunks;
-        document.getElementById('total-files').textContent = totalFiles;
-        document.getElementById('storage-used').textContent = storageKB + ' KB';
-    }
-    
-    function updateKnowledgeList() {
-        const list = document.getElementById('knowledge-list');
-        list.innerHTML = '';
-        
-        Object.keys(knowledgeIndex).forEach(filename => {
-            const data = knowledgeIndex[filename];
-            const item = document.createElement('div');
-            item.className = 'knowledge-item';
-            item.innerHTML = `
-                <div>
-                    <strong>${filename}</strong>
-                    <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
-                </div>
-                <button class="delete-btn" onclick="deleteKnowledgeFile('${filename}')">Delete</button>
-            `;
-            list.appendChild(item);
-        });
-        
-        if (Object.keys(knowledgeIndex).length === 0) {
-            list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
-        }
-    }
-    
-    window.deleteKnowledgeFile = async function(filename) {
-        const transaction = db.transaction(['knowledge'], 'readonly');
-        const store = transaction.objectStore('knowledge');
-        const allChunks = await new Promise((resolve, reject) => {
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-        
-        const toDelete = allChunks.filter(kb => kb.filename === filename);
-        for (const kb of toDelete) {
-            await deleteKnowledge(kb.id);
-        }
-    };
-    
-    // =============== FILE UPLOAD HANDLERS ===============
-    
-    document.getElementById('upload-area').addEventListener('click', () => {
-        document.getElementById('file-input').click();
-    });
-    
-    document.getElementById('file-input').addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
-        for (const file of files) {
-            await processFile(file);
-        }
-        e.target.value = '';
-    });
-    
-    const uploadArea = document.getElementById('upload-area');
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-    
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
-    
-    uploadArea.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        const files = Array.from(e.dataTransfer.files);
-        for (const file of files) {
-            await processFile(file);
-        }
-    });
-    
-    document.getElementById('knowledge-btn').addEventListener('click', () => {
-        document.getElementById('knowledge-modal').classList.add('active');
-    });
-    
-    document.getElementById('close-modal').addEventListener('click', () => {
-        document.getElementById('knowledge-modal').classList.remove('active');
-    });
-
-    // =============== CHAT FUNCTIONS ===============
-    
-    function speak(text, btn) {
-        if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
-        if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
-        const utter = new SpeechSynthesisUtterance(text);
-        const voices = synth.getVoices();
-        utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
-        utter.pitch = 1.5; utter.rate = 1.0;
-        utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
-        utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
-        synth.speak(utter);
-    }
-
-    const wllama = new Wllama({
-        'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-        'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-    });
-
-    function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null) {
-        const row = document.createElement('div');
-        row.className = `message-row ${role}-row`;
-        const msg = document.createElement('div');
-        msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
-        
-        // Add pills and expandable boxes only if there's content
-        if ((reasoningText || knowledgeResults) && !isThinking) {
-            const pillContainer = document.createElement('div');
-            pillContainer.className = 'pill-container';
-            
-            // Create unique IDs for this message
-            const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            const reasoningBoxId = messageId + '_reasoning';
-            const knowledgeBoxId = messageId + '_knowledge';
-            
-            // Add reasoning pill if reasoning exists
-            if (reasoningText && thinkingModeEnabled) {
-                const reasoningPill = document.createElement('div');
-                reasoningPill.className = 'pill-button reasoning-pill';
-                reasoningPill.innerHTML = '<i class="fas fa-brain"></i> Reasoning';
-                reasoningPill.onclick = function() {
-                    const reasoningBox = document.getElementById(reasoningBoxId);
-                    const knowledgeBox = document.getElementById(knowledgeBoxId);
+        async function loadKnowledgeIndex() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readonly');
+                const store = transaction.objectStore('knowledge');
+                const request = store.getAll();
+                
+                request.onsuccess = () => {
+                    const allChunks = request.result;
                     
-                    if (reasoningBox.classList.contains('expanded')) {
-                        reasoningBox.classList.remove('expanded');
-                    } else {
-                        reasoningBox.classList.add('expanded');
-                        if (knowledgeBox) knowledgeBox.classList.remove('expanded');
-                    }
-                };
-                pillContainer.appendChild(reasoningPill);
-            }
-            
-            // Add knowledge pill if knowledge exists
-            if (knowledgeResults && knowledgeResults.length > 0) {
-                const knowledgePill = document.createElement('div');
-                knowledgePill.className = 'pill-button knowledge-pill';
-                knowledgePill.innerHTML = '<i class="fas fa-book"></i> Knowledge';
-                knowledgePill.onclick = function() {
-                    const knowledgeBox = document.getElementById(knowledgeBoxId);
-                    const reasoningBox = document.getElementById(reasoningBoxId);
+                    // Build index
+                    knowledgeIndex = {};
+                    globalWordFreq = {};
+                    totalDocuments = 0;
                     
-                    if (knowledgeBox.classList.contains('expanded')) {
-                        knowledgeBox.classList.remove('expanded');
+                    allChunks.forEach(chunk => {
+                        if (!knowledgeIndex[chunk.filename]) {
+                            knowledgeIndex[chunk.filename] = {
+                                chunks: 0,
+                                totalWords: 0
+                            };
+                        }
+                        
+                        knowledgeIndex[chunk.filename].chunks++;
+                        knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
+                        totalDocuments++;
+                        
+                        // Update global word frequency
+                        if (chunk.wordFreq) {
+                            Object.keys(chunk.wordFreq).forEach(word => {
+                                globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
+                            });
+                        }
+                    });
+                    
+                    updateKnowledgeList();
+                    updateStats();
+                    
+                    // Only glow if there's data
+                    if (totalDocuments > 0) {
+                        document.getElementById('knowledge-btn').classList.add('active');
                     } else {
-                        knowledgeBox.classList.add('expanded');
-                        if (reasoningBox) reasoningBox.classList.remove('expanded');
+                        document.getElementById('knowledge-btn').classList.remove('active');
                     }
+                    
+                    resolve();
                 };
-                pillContainer.appendChild(knowledgePill);
-            }
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        async function saveKnowledge(knowledge) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readwrite');
+                const store = transaction.objectStore('knowledge');
+                const request = store.add(knowledge);
+                
+                request.onsuccess = () => {
+                    loadKnowledgeIndex();
+                    resolve(request.result);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        async function deleteKnowledge(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readwrite');
+                const store = transaction.objectStore('knowledge');
+                const request = store.delete(id);
+                
+                request.onsuccess = () => {
+                    loadKnowledgeIndex();
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // =============== FILE PROCESSING ===============
+        
+        async function processFile(file) {
+            const text = await file.text();
             
-            msg.appendChild(pillContainer);
+            // Smart chunking
+            const chunks = smartChunk(text);
             
-            // Add reasoning box (hidden by default)
-            if (reasoningText && thinkingModeEnabled) {
-                const reasoningBox = document.createElement('div');
-                reasoningBox.id = reasoningBoxId;
-                reasoningBox.className = 'reasoning-box';
-                reasoningBox.innerHTML = `<strong>🧠 Chain of Thought:</strong>${reasoningText}`;
-                msg.appendChild(reasoningBox);
-            }
-            
-            // Add knowledge box (hidden by default)
-            if (knowledgeResults && knowledgeResults.length > 0) {
-                const knowledgeBox = document.createElement('div');
-                knowledgeBox.id = knowledgeBoxId;
-                knowledgeBox.className = 'knowledge-box';
-                let knowledgeHTML = '<strong>📚 Retrieved Knowledge (TF-IDF Scored):</strong><br>';
-                knowledgeResults.forEach((kb, i) => {
-                    knowledgeHTML += `<div style="margin-top: 8px;"><strong style="color: #00ff96;">${kb.filename} (score: ${kb.score})</strong><br>${kb.content.substring(0, 200)}...</div>`;
+            // Process each chunk with metadata
+            for (const chunkText of chunks) {
+                const { freq, total } = calculateWordFreq(chunkText);
+                const keywords = Object.keys(freq)
+                    .sort((a, b) => freq[b] - freq[a])
+                    .slice(0, 20); // Top 20 keywords
+                
+                await saveKnowledge({
+                    filename: file.name,
+                    content: chunkText,
+                    wordFreq: freq,
+                    wordCount: total,
+                    keywords: keywords,
+                    timestamp: Date.now()
                 });
-                knowledgeBox.innerHTML = knowledgeHTML;
-                msg.appendChild(knowledgeBox);
             }
         }
         
-        const textNode = document.createElement('div');
-        textNode.innerText = text;
-        msg.appendChild(textNode);
+        // =============== UI UPDATES ===============
         
-        row.appendChild(msg);
-        if (role === 'ai' && !isThinking) {
-            const btn = document.createElement('button');
-            btn.className = 'speak-btn';
-            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            btn.onclick = () => speak(text, btn);
-            msg.appendChild(btn);
+        function updateStats() {
+            const totalChunks = totalDocuments;
+            const totalFiles = Object.keys(knowledgeIndex).length;
+            
+            // Estimate storage (very rough)
+            const avgChunkSize = 400; // bytes
+            const storageBytes = totalChunks * avgChunkSize;
+            const storageKB = (storageBytes / 1024).toFixed(1);
+            
+            document.getElementById('total-chunks').textContent = totalChunks;
+            document.getElementById('total-files').textContent = totalFiles;
+            document.getElementById('storage-used').textContent = storageKB + ' KB';
         }
-        document.getElementById('chat-box').appendChild(row);
-        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-        return msg;
-    }
-    
-    function resetSendButton() {
-        const sendBtn = document.getElementById('send-btn');
-        sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-        sendBtn.className = 'send-btn';
-        sendBtn.onclick = handleChat;
-        document.getElementById('user-input').disabled = false;
-        document.getElementById('thinking-mode-btn').disabled = false;
-        document.getElementById('thinking-mode-btn').style.opacity = '1';
-    }
-    
-    function setupStopButton() {
-        const sendBtn = document.getElementById('send-btn');
-        sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
-        sendBtn.className = 'stop-btn';
-        sendBtn.onclick = () => { if (abortController) abortController.abort(); };
-    }
-    
-    function toggleThinkingMode() {
-        thinkingModeEnabled = !thinkingModeEnabled;
-        const btn = document.getElementById('thinking-mode-btn');
-        if (thinkingModeEnabled) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
+        
+        function updateKnowledgeList() {
+            const list = document.getElementById('knowledge-list');
+            list.innerHTML = '';
+            
+            Object.keys(knowledgeIndex).forEach(filename => {
+                const data = knowledgeIndex[filename];
+                const item = document.createElement('div');
+                item.className = 'knowledge-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${filename}</strong>
+                        <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteKnowledgeFile('${filename}')">Delete</button>
+                `;
+                list.appendChild(item);
+            });
+            
+            if (Object.keys(knowledgeIndex).length === 0) {
+                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
+            }
         }
-    }
+        
+        window.deleteKnowledgeFile = async function(filename) {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            const toDelete = allChunks.filter(kb => kb.filename === filename);
+            for (const kb of toDelete) {
+                await deleteKnowledge(kb.id);
+            }
+        };
+        
+        // =============== FILE UPLOAD HANDLERS ===============
+        
+        document.getElementById('upload-area').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+        
+        document.getElementById('file-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                await processFile(file);
+            }
+            e.target.value = '';
+        });
+        
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            for (const file of files) {
+                await processFile(file);
+            }
+        });
+        
+        document.getElementById('knowledge-btn').addEventListener('click', () => {
+            document.getElementById('knowledge-modal').classList.add('active');
+        });
+        
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('knowledge-modal').classList.remove('active');
+        });
 
-    async function init() {
-        try {
-            await initDB();
-            await wllama.loadModelFromHF(model.repo, model.file);
-            addMessage("Trapside is online with optimized TF-IDF knowledge retrieval.", "ai");
-            document.getElementById('thinking-mode-btn').classList.add('active');
-        } catch (e) { 
-            console.error(e);
-            addMessage("System Offline. Error: " + e.message, "ai"); 
+        // =============== CHAT FUNCTIONS ===============
+        
+        function speak(text, btn) {
+            if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
+            if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
+            const utter = new SpeechSynthesisUtterance(text);
+            const voices = synth.getVoices();
+            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
+            utter.pitch = 1.5; utter.rate = 1.0;
+            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
+            synth.speak(utter);
         }
-    }
-    
-    function buildPromptWithHistory(userMessage, retrievedKnowledge = []) {
-        const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities and access to a knowledge base.
-```
+
+        const wllama = new Wllama({
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        });
+
+        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null) {
+            const row = document.createElement('div');
+            row.className = `message-row ${role}-row`;
+            const msg = document.createElement('div');
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+            
+            // Add collapsible pills if there's reasoning or knowledge
+            if ((reasoningText && thinkingModeEnabled) || (knowledgeResults && knowledgeResults.length > 0)) {
+                const pillContainer = document.createElement('div');
+                pillContainer.className = 'pill-container';
+                
+                if (reasoningText && thinkingModeEnabled) {
+                    const reasoningPill = document.createElement('button');
+                    reasoningPill.className = 'pill-btn reasoning-pill';
+                    reasoningPill.innerHTML = '<i class="fas fa-brain"></i> Reasoning';
+                    pillContainer.appendChild(reasoningPill);
+                    
+                    const reasoningBox = document.createElement('div');
+                    reasoningBox.className = 'reasoning-box';
+                    reasoningBox.innerHTML = `<strong>🧠 Chain of Thought:</strong>${reasoningText}`;
+                    
+                    reasoningPill.onclick = () => {
+                        const knowledgeBox = msg.querySelector('.knowledge-box');
+                        if (reasoningBox.classList.contains('expanded')) {
+                            reasoningBox.classList.remove('expanded');
+                        } else {
+                            reasoningBox.classList.add('expanded');
+                            if (knowledgeBox) knowledgeBox.classList.remove('expanded');
+                        }
+                    };
+                    
+                    msg.appendChild(pillContainer);
+                    msg.appendChild(reasoningBox);
+                }
+                
+                if (knowledgeResults && knowledgeResults.length > 0) {
+                    const knowledgePill = document.createElement('button');
+                    knowledgePill.className = 'pill-btn knowledge-pill';
+                    knowledgePill.innerHTML = '<i class="fas fa-book"></i> Knowledge';
+                    
+                    if (!pillContainer.parentNode) {
+                        msg.appendChild(pillContainer);
+                    }
+                    pillContainer.appendChild(knowledgePill);
+                    
+                    const knowledgeBox = document.createElement('div');
+                    knowledgeBox.className = 'knowledge-box';
+                    let knowledgeHTML = '<strong>📚 Retrieved Knowledge (TF-IDF Scored):</strong><br>';
+                    knowledgeResults.forEach((kb, i) => {
+                        knowledgeHTML += `<div style="margin-top: 8px;"><strong style="color: #00ff96;">${kb.filename} (score: ${kb.score})</strong><br>${kb.content.substring(0, 200)}...</div>`;
+                    });
+                    knowledgeBox.innerHTML = knowledgeHTML;
+                    
+                    knowledgePill.onclick = () => {
+                        const reasoningBox = msg.querySelector('.reasoning-box');
+                        if (knowledgeBox.classList.contains('expanded')) {
+                            knowledgeBox.classList.remove('expanded');
+                        } else {
+                            knowledgeBox.classList.add('expanded');
+                            if (reasoningBox) reasoningBox.classList.remove('expanded');
+                        }
+                    };
+                    
+                    msg.appendChild(knowledgeBox);
+                }
+            }
+            
+            const textNode = document.createElement('div');
+            textNode.innerText = text;
+            msg.appendChild(textNode);
+            
+            row.appendChild(msg);
+            if (role === 'ai' && !isThinking) {
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(text, btn);
+                msg.appendChild(btn);
+            }
+            document.getElementById('chat-box').appendChild(row);
+            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+            return msg;
+        }
+        
+        function resetSendButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            sendBtn.className = 'send-btn';
+            sendBtn.onclick = handleChat;
+            document.getElementById('user-input').disabled = false;
+            document.getElementById('thinking-mode-btn').disabled = false;
+            document.getElementById('thinking-mode-btn').style.opacity = '1';
+        }
+        
+        function setupStopButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            sendBtn.className = 'stop-btn';
+            sendBtn.onclick = () => { if (abortController) abortController.abort(); };
+        }
+        
+        function toggleThinkingMode() {
+            thinkingModeEnabled = !thinkingModeEnabled;
+            const btn = document.getElementById('thinking-mode-btn');
+            if (thinkingModeEnabled) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        async function init() {
+            try {
+                await initDB();
+                await wllama.loadModelFromHF(model.repo, model.file);
+                addMessage("Trapside is online with optimized TF-IDF knowledge retrieval.", "ai");
+                document.getElementById('thinking-mode-btn').classList.add('active');
+            } catch (e) { 
+                console.error(e);
+                addMessage("System Offline. Error: " + e.message, "ai"); 
+            }
+        }
+        
+        function buildPromptWithHistory(userMessage, retrievedKnowledge = []) {
+            const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities and access to a knowledge base.
 
 Core Principles:
-
 - Think step-by-step through problems
 - Use the provided knowledge base context when relevant
 - Break complex questions into smaller parts
 - Verify your reasoning before answering
-- Admit when you’re uncertain
+- Admit when you're uncertain
 - Provide clear, concise, accurate responses
 - Remember the conversation context
 
 When solving problems:
-
 1. Check if knowledge base has relevant information
-1. Understand what is being asked
-1. Break down the problem
-1. Reason through each step
-1. Verify your logic
-1. Provide a clear answer`;
-   
-   ```
-        let prompt = `<|im_start|>system\n${systemPrompt}`;
-        
-        // Add retrieved knowledge if available
-        if (retrievedKnowledge.length > 0) {
-            prompt += `\n\nKnowledge Base Context:\n`;
-            retrievedKnowledge.forEach((kb, i) => {
-                prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
-            });
-        }
-        
-        prompt += `<|im_end|>\n`;
-        
-        // Add conversation history
-        for (const msg of conversationHistory) {
-            prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-        }
-        
-        prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
-        
-        return prompt;
-    }
-    
-    async function multiPassReasoning(userMessage, loaderMsg) {
-        let reasoningText = '';
-        let finalAnswer = '';
-        
-        // Update loader: Searching knowledge base
-        loaderMsg.innerText = "Searching knowledge base...";
-        
-        // Retrieve relevant knowledge with TF-IDF
-        const retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
-        
-        if (thinkingModeEnabled) {
-            // Update loader: Deep reasoning
-            loaderMsg.innerText = "Deep reasoning...";
-            
-            const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge);
-            
-            try {
-                abortController = new AbortController();
-                const thinkingResult = await wllama.createCompletion(thinkingPrompt, {
-                    nPredict: 300,
-                    sampling: {
-                        temp: 0.8,
-                        top_k: 40,
-                        top_p: 0.95,
-                        repeat_penalty: 1.2,
-                        presence_penalty: 0.1,
-                        frequency_penalty: 0.1
-                    },
-                    signal: abortController.signal
-                });
-                
-                reasoningText = thinkingResult.trim();
-            } catch (e) {
-                if (!abortController.signal.aborted) {
-                    reasoningText = "Reasoning process interrupted.";
-                }
-            }
-            
-            // Update loader: Refining answer
-            loaderMsg.innerText = "Refining answer...";
-            
-            const answerPrompt = buildAnswerPrompt(userMessage, reasoningText, retrievedKnowledge);
-            
-            try {
-                abortController = new AbortController();
-                const answerResult = await wllama.createCompletion(answerPrompt, {
-                    nPredict: 400,
-                    sampling: {
-                        temp: 0.7,
-                        top_k: 40,
-                        top_p: 0.9,
-                        repeat_penalty: 1.15,
-                        presence_penalty: 0.1,
-                        frequency_penalty: 0.1
-                    },
-                    signal: abortController.signal
-                });
-                
-                finalAnswer = answerResult.trim();
-            } catch (e) {
-                if (!abortController.signal.aborted) {
-                    finalAnswer = "Error generating final answer.";
-                }
-            }
-        } else {
-            // Update loader: Thinking
-            loaderMsg.innerText = "Thinking...";
-            
-            const prompt = buildPromptWithHistory(userMessage, retrievedKnowledge);
-            
-            try {
-                abortController = new AbortController();
-                const result = await wllama.createCompletion(prompt, {
-                    nPredict: 400,
-                    sampling: {
-                        temp: 0.7,
-                        top_k: 40,
-                        top_p: 0.9,
-                        repeat_penalty: 1.15,
-                        presence_penalty: 0.1,
-                        frequency_penalty: 0.1
-                    },
-                    signal: abortController.signal
-                });
-                
-                finalAnswer = result.trim();
-            } catch (e) {
-                if (!abortController.signal.aborted) {
-                    finalAnswer = "Error generating response.";
-                }
-            }
-        }
-        
-        return { reasoning: reasoningText, answer: finalAnswer, knowledge: retrievedKnowledge };
-    }
-    
-    function buildThinkingPrompt(userMessage, retrievedKnowledge = []) {
-        const thinkingSystemPrompt = `Think through this step-by-step. Use the knowledge base if relevant:
-   ```
-1. What is being asked?
-1. What knowledge from the knowledge base is relevant?
-1. How should I approach this?
-1. What’s my reasoning?`;
-   
-   ```
-        let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
-        
-        if (retrievedKnowledge.length > 0) {
-            prompt += `\n\nKnowledge Base Context:\n`;
-            retrievedKnowledge.forEach((kb, i) => {
-                prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
-            });
-        }
-        
-        prompt += `<|im_end|>\n`;
-        
-        for (const msg of conversationHistory) {
-            prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-        }
-        
-        prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
-        
-        return prompt;
-    }
-    
-    function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = []) {
-        const answerSystemPrompt = `Based on your reasoning, the conversation history, and knowledge base, provide a clear, concise, and accurate answer.`;
-        
-        let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
-        
-        if (retrievedKnowledge.length > 0) {
-            prompt += `\n\nKnowledge Base Context:\n`;
-            retrievedKnowledge.forEach((kb, i) => {
-                prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
-            });
-        }
-        
-        prompt += `<|im_end|>\n`;
-        
-        for (const msg of conversationHistory) {
-            prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-        }
-        
-        prompt += `<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
-        
-        return prompt;
-    }
-   
-    async function handleChat() {
-        const input = document.getElementById('user-input');
-        const text = input.value.trim();
-        if (!text) return;
-        
-        addMessage(text, 'user');
-        input.value = ''; 
-        input.style.height = 'auto';
-        
-        const loader = addMessage("Thinking...", 'ai', true);
-        
-        document.getElementById('user-input').disabled = true;
-        document.getElementById('thinking-mode-btn').disabled = true;
-        setupStopButton();
-        
-        try {
-            const result = await multiPassReasoning(text, loader);
-            
-            conversationHistory.push({ role: 'user', content: text });
-            conversationHistory.push({ role: 'assistant', content: result.answer });
-            
-            if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
-                conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
-            }
-            
-            loader.remove();
-            
-            addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge);
-            
-        } catch (e) {
-            console.error(e);
-            loader.classList.remove('thinking');
-            loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
-        } finally { 
-            resetSendButton(); 
-        }
-    }
-   
-    document.getElementById('user-input').addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-   
-    document.getElementById('send-btn').onclick = handleChat;
-    document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
-    document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
-    
-    init();
-   ```
-   
-    </script>
+2. Understand what is being asked
+3. Break down the problem
+4. Reason through each step
+5. Verify your logic
+6. Provide a clear answer`;
 
+            let prompt = `<|im_start|>system\n${systemPrompt}`;
+            
+            // Add retrieved knowledge if available
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
+            }
+            
+            prompt += `<|im_end|>\n`;
+            
+            // Add conversation history
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            
+            return prompt;
+        }
+        
+        async function multiPassReasoning(userMessage, loaderElement) {
+            let reasoningText = '';
+            let finalAnswer = '';
+            
+            // Dynamic thinking messages
+            const thinkingSteps = [
+                "Thinking...",
+                "Searching knowledge base...",
+                "Refining answer...",
+            ];
+            
+            if (thinkingModeEnabled) {
+                thinkingSteps.splice(1, 0, "Deep reasoning...");
+            }
+            
+            let stepIndex = 0;
+            const thinkingInterval = setInterval(() => {
+                if (loaderElement && loaderElement.parentNode) {
+                    const textElement = loaderElement.querySelector('.thinking-steps');
+                    if (textElement) {
+                        textElement.textContent = thinkingSteps[stepIndex];
+                        stepIndex = (stepIndex + 1) % thinkingSteps.length;
+                    }
+                }
+            }, 1500);
+            
+            // Retrieve relevant knowledge with TF-IDF
+            const retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
+            
+            if (thinkingModeEnabled) {
+                const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge);
+                
+                try {
+                    abortController = new AbortController();
+                    const thinkingResult = await wllama.createCompletion(thinkingPrompt, {
+                        nPredict: 300,
+                        sampling: {
+                            temp: 0.8,
+                            top_k: 40,
+                            top_p: 0.95,
+                            repeat_penalty: 1.2,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    reasoningText = thinkingResult.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        reasoningText = "Reasoning process interrupted.";
+                    }
+                }
+                
+                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText, retrievedKnowledge);
+                
+                try {
+                    abortController = new AbortController();
+                    const answerResult = await wllama.createCompletion(answerPrompt, {
+                        nPredict: 400,
+                        sampling: {
+                            temp: 0.7,
+                            top_k: 40,
+                            top_p: 0.9,
+                            repeat_penalty: 1.15,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    finalAnswer = answerResult.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        finalAnswer = "Error generating final answer.";
+                    }
+                }
+            } else {
+                const prompt = buildPromptWithHistory(userMessage, retrievedKnowledge);
+                
+                try {
+                    abortController = new AbortController();
+                    const result = await wllama.createCompletion(prompt, {
+                        nPredict: 400,
+                        sampling: {
+                            temp: 0.7,
+                            top_k: 40,
+                            top_p: 0.9,
+                            repeat_penalty: 1.15,
+                            presence_penalty: 0.1,
+                            frequency_penalty: 0.1
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    finalAnswer = result.trim();
+                } catch (e) {
+                    if (!abortController.signal.aborted) {
+                        finalAnswer = "Error generating response.";
+                    }
+                }
+            }
+            
+            clearInterval(thinkingInterval);
+            
+            return { reasoning: reasoningText, answer: finalAnswer, knowledge: retrievedKnowledge };
+        }
+        
+        function buildThinkingPrompt(userMessage, retrievedKnowledge = []) {
+            const thinkingSystemPrompt = `Think through this step-by-step. Use the knowledge base if relevant:
+1. What is being asked?
+2. What knowledge from the knowledge base is relevant?
+3. How should I approach this?
+4. What's my reasoning?`;
+            
+            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
+            
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
+            }
+            
+            prompt += `<|im_end|>\n`;
+            
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
+            
+            return prompt;
+        }
+        
+        function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = []) {
+            const answerSystemPrompt = `Based on your reasoning, the conversation history, and knowledge base, provide a clear, concise, and accurate answer.`;
+            
+            let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
+            
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n`;
+                retrievedKnowledge.forEach((kb, i) => {
+                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                });
+            }
+            
+            prompt += `<|im_end|>\n`;
+            
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
+            
+            return prompt;
+        }
+
+        async function handleChat() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            addMessage(text, 'user');
+            input.value = ''; 
+            input.style.height = 'auto';
+            
+            const loader = document.createElement('div');
+            loader.className = 'message-row ai-row';
+            const loaderMsg = document.createElement('div');
+            loaderMsg.className = 'message ai-message thinking';
+            loaderMsg.innerHTML = '<span class="thinking-steps">Thinking...</span>';
+            loader.appendChild(loaderMsg);
+            document.getElementById('chat-box').appendChild(loader);
+            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+            
+            document.getElementById('user-input').disabled = true;
+            document.getElementById('thinking-mode-btn').disabled = true;
+            setupStopButton();
+            
+            try {
+                const result = await multiPassReasoning(text, loaderMsg);
+                
+                conversationHistory.push({ role: 'user', content: text });
+                conversationHistory.push({ role: 'assistant', content: result.answer });
+                
+                if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
+                    conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
+                }
+                
+                loader.remove();
+                
+                addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge);
+                
+            } catch (e) {
+                console.error(e);
+                loaderMsg.classList.remove('thinking');
+                loaderMsg.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
+            } finally { 
+                resetSendButton(); 
+            }
+        }
+
+        document.getElementById('user-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        document.getElementById('send-btn').onclick = handleChat;
+        document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
+        document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
+        
+        init();
+    </script>
 </body>
 </html>
