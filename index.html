@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside</title>
+    <title>Trapside · Code Intelligence</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -11,6 +11,8 @@
             --glass-border: rgba(255, 255, 255, 0.15);
             --accent: #00b4ff;
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
+            --code-bg: #0b0e14;
+            --code-border: #2a2f3a;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -26,7 +28,7 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
-        /* Fixed Header - REMOVED BACKGROUND */
+        /* Fixed Header - transparent */
         .header { 
             padding: 24px; 
             display: flex; justify-content: center; align-items: center;
@@ -68,7 +70,7 @@
             padding: 20px; 
             gap: 20px; 
             padding-bottom: 120px;
-            padding-top: 100px; /* Space for fixed header */
+            padding-top: 100px;
         }
         #chat-box { display: flex; flex-direction: column; gap: 16px; }
 
@@ -77,7 +79,7 @@
 
         .message { 
             max-width: 80%; 
-            padding: 16px 22px 42px 22px; /* Increased bottom padding for speak button */
+            padding: 16px 22px 42px 22px;
             border-radius: 24px; 
             line-height: 1.6; 
             font-size: 15px; 
@@ -87,6 +89,8 @@
             background: var(--glass);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             position: relative;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .user-message { 
@@ -111,7 +115,7 @@
         }
 
         .speak-btn { 
-            background: rgba(255, 255, 255, 0.08); /* More liquid glassy */
+            background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--glass-border);
             color: #fff; 
             width: 34px; 
@@ -125,8 +129,8 @@
             position: absolute;
             bottom: 10px;
             right: 10px;
-            z-index: 5;
             box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            z-index: 5;
         }
         .speak-btn:hover {
             background: rgba(255, 255, 255, 0.12);
@@ -138,7 +142,133 @@
             border-color: var(--accent);
         }
 
-        /* Floating Minimalist Input */
+        /* ---------- CODE BLOCK STYLES ---------- */
+        .code-block-container {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 16px;
+            margin: 16px 0;
+            padding: 16px;
+            position: relative;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #e3e6eb;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .code-block-container:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(0,180,255,0.2);
+        }
+        .code-block-container pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: inherit;
+        }
+        .code-block-container code {
+            font-family: inherit;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
+            z-index: 6;
+        }
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .copy-btn.copied {
+            background: #00cc88;
+            border-color: #00cc88;
+        }
+
+        /* ---------- MODAL POPUP ---------- */
+        .code-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .code-modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #0a0c12;
+            border: 1px solid var(--accent);
+            border-radius: 24px;
+            max-width: 90%;
+            max-height: 90%;
+            width: 900px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,180,255,0.3);
+        }
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid #2a2f3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header span {
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .close-modal:hover {
+            color: white;
+        }
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            background: #0e1117;
+            border-radius: 0 0 24px 24px;
+        }
+        .modal-body pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'JetBrains Mono', monospace;
+            color: #e3e6eb;
+            font-size: 15px;
+        }
+
+        /* Input Area (unchanged) */
         .input-area { 
             position: absolute; 
             bottom: 30px; 
@@ -165,12 +295,10 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             transition: all 0.3s ease;
         }
-        
         .input-container:focus-within {
             box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
             border-color: rgba(0, 180, 255, 0.4);
         }
-
         .input-field { 
             flex: 1; 
             background: transparent; 
@@ -184,16 +312,10 @@
             min-height: 24px;
             line-height: 1.5;
         }
-        
         .input-field::placeholder {
             color: rgba(255, 255, 255, 0.4);
             opacity: 1;
         }
-        
-        .input-field:focus {
-            outline: none;
-        }
-
         .send-btn, .stop-btn { 
             background: var(--accent); 
             border: none; 
@@ -208,83 +330,47 @@
             justify-content: center;
             flex-shrink: 0;
         }
-        
         .send-btn:hover, .stop-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 20px var(--accent);
         }
-        
         .send-btn:disabled { 
             opacity: 0.3; 
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        
         .stop-btn {
             background: #ff4d4d;
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
-        
         .stop-btn:hover {
             box-shadow: 0 0 20px rgba(255, 77, 77, 0.7);
             background: #ff3333;
         }
         
-        /* Scrollbar styling */
+        /* Scrollbar */
         .view::-webkit-scrollbar {
             width: 6px;
         }
-        
         .view::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
         }
-        
         .view::-webkit-scrollbar-thumb {
             background: var(--accent);
             border-radius: 10px;
         }
         
-        .view::-webkit-scrollbar-thumb:hover {
-            background: #0099cc;
-        }
-        
-        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .header {
-                padding: 16px;
-            }
-            
-            .brand {
-                font-size: 24px;
-                letter-spacing: 1px;
-            }
-            
-            .message {
-                max-width: 90%;
-                padding: 14px 18px 38px 18px;
-                font-size: 14px;
-            }
-            
-            .speak-btn {
-                bottom: 8px;
-                right: 8px;
-            }
-            
-            .input-container {
-                padding: 8px 12px;
-                border-radius: 36px;
-            }
-            
-            .input-field {
-                font-size: 15px;
-            }
-            
-            .send-btn, .stop-btn {
-                width: 40px;
-                height: 40px;
-            }
+            .header { padding: 16px; }
+            .brand { font-size: 24px; }
+            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
+            .input-container { padding: 8px 12px; border-radius: 36px; }
+            .input-field { font-size: 15px; }
+            .send-btn, .stop-btn { width: 40px; height: 40px; }
+            .speak-btn { bottom: 8px; right: 8px; }
+            .code-block-container { font-size: 13px; }
         }
     </style>
 </head>
@@ -298,8 +384,21 @@
         </div>
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
+                <textarea id="user-input" class="input-field" placeholder="Ask for code, algorithms, or system design..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for full code popup -->
+    <div id="code-modal" class="code-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span><i class="fas fa-code" style="margin-right: 8px;"></i> Full code</span>
+                <button class="close-modal" id="close-modal-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <pre id="modal-code-content"></pre>
             </div>
         </div>
     </div>
@@ -307,22 +406,39 @@
     <script type="module">
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
+        // -------------------------------------------------------------
+        //  CODING KNOWLEDGE ENHANCEMENT – EMBEDDED "BOOK" 
+        // -------------------------------------------------------------
+        const CODING_EXPERTISE = `
+You are Trapside, an elite software architect with 20+ years of experience. 
+You embody the following "Book of Code Knowledge":
+
+1. ALWAYS provide FULL, RUNNABLE code. Never use "// ..." or placeholders.
+2. Explain the WHY behind every non‑trivial line. Teach, don't just dump.
+3. Cover edge cases, error handling, and performance considerations.
+4. Use design patterns, clean code principles, and modern idioms.
+5. When asked, generate production‑ready examples (Python, JavaScript, Rust, Go, etc.)
+6. If the request is vague, ask clarifying questions – but still give a complete base example.
+7. For algorithms: show complexity analysis, test cases, and optimizations.
+8. For system design: include component diagrams in ASCII, then code skeletons.
+
+You think step‑by‑step, reason aloud, and then output the final answer with code blocks marked by \`\`\`.
+`.trim();
+
         const synth = window.speechSynthesis;
         let activeBtn = null;
         let abortController = null;
         const PITCH = 1.5;
         const RATE = 1.0;
 
+        // ---------- SPEECH ----------
         function speak(text, btn) {
-            // If clicking the same button while it's speaking, stop it
             if (synth.speaking && activeBtn === btn) {
                 synth.cancel();
                 btn.classList.remove('active');
                 activeBtn = null;
                 return;
             }
-            
-            // If there's any ongoing speech, cancel it
             if (synth.speaking) {
                 synth.cancel();
                 if (activeBtn) {
@@ -330,67 +446,142 @@
                     activeBtn = null;
                 }
             }
-            
             const utter = new SpeechSynthesisUtterance(text);
-            // Get a good voice - prefer Daniel if available, otherwise use the first voice
             const voices = synth.getVoices();
-            const daniel = voices.find(v => v.name.includes("Daniel")) || 
-                          voices.find(v => v.name.includes("Daniel")) ||
-                          voices.find(v => v.lang.includes("en-GB")) ||
-                          voices[0];
-            utter.voice = daniel; 
-            utter.pitch = PITCH; 
+            const daniel = voices.find(v => v.name.includes("Daniel")) || voices.find(v => v.lang.includes("en-GB")) || voices[0];
+            utter.voice = daniel;
+            utter.pitch = PITCH;
             utter.rate = RATE;
-            
-            utter.onstart = () => { 
-                btn.classList.add('active'); 
-                activeBtn = btn; 
-            };
-            
-            utter.onend = () => { 
-                if (activeBtn === btn) {
-                    btn.classList.remove('active');
-                    activeBtn = null;
-                }
-            };
-            
-            utter.onerror = () => {
-                if (activeBtn === btn) {
-                    btn.classList.remove('active');
-                    activeBtn = null;
-                }
-            };
-            
+            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
+            utter.onerror = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
             synth.speak(utter);
         }
 
-        const wllama = new Wllama({
-            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-        });
+        // ---------- CODE BLOCK RENDERING ----------
+        function createCodeBlock(code, lang = '') {
+            const container = document.createElement('div');
+            container.className = 'code-block-container';
+            
+            const pre = document.createElement('pre');
+            const codeEl = document.createElement('code');
+            codeEl.textContent = code;  // plain text – no XSS
+            pre.appendChild(codeEl);
+            container.appendChild(pre);
+            
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(code).then(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                });
+            };
+            container.appendChild(copyBtn);
+            
+            // Click anywhere on container -> open modal with full code
+            container.addEventListener('click', (e) => {
+                // Don't open if the click is on the copy button (already handled)
+                if (e.target.closest('.copy-btn')) return;
+                
+                const modal = document.getElementById('code-modal');
+                const modalContent = document.getElementById('modal-code-content');
+                modalContent.textContent = code;
+                modal.classList.add('active');
+            });
+            
+            return container;
+        }
 
+        // Replace ```code``` fences with rich code blocks
+        function formatMessage(text) {
+            if (!text) return text;
+            
+            // Pattern to match triple backtick blocks with optional language
+            const blockRegex = /```(\w*)\n([\s\S]*?)```/g;
+            let lastIndex = 0;
+            let parts = [];
+            let match;
+            
+            while ((match = blockRegex.exec(text)) !== null) {
+                // Text before this block
+                if (match.index > lastIndex) {
+                    parts.push(document.createTextNode(text.slice(lastIndex, match.index)));
+                }
+                
+                const lang = match[1];
+                const code = match[2];
+                parts.push(createCodeBlock(code, lang));
+                
+                lastIndex = match.index + match[0].length;
+            }
+            
+            // Remaining text after last block
+            if (lastIndex < text.length) {
+                parts.push(document.createTextNode(text.slice(lastIndex)));
+            }
+            
+            // If no code blocks, return original text as single text node (but as HTML string for innerHTML)
+            if (parts.length === 0) {
+                return text;
+            }
+            
+            // Build a fragment and then return as HTML string (simplified: we need to embed nodes)
+            // We'll use a <span> wrapper to inject via innerHTML – but we need actual DOM nodes.
+            // Better: return a DocumentFragment or an array of nodes.
+            // To keep it simple, we create a temporary div, append nodes, and return innerHTML.
+            const tempDiv = document.createElement('div');
+            parts.forEach(node => tempDiv.appendChild(node));
+            return tempDiv.innerHTML; // This will serialize the nodes we built
+        }
+
+        // Add a message with proper formatting for AI messages
         function addMessage(text, role, isThinking = false) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
-            msg.innerText = text;
-            row.appendChild(msg);
-
+            
             if (role === 'ai' && !isThinking) {
+                // Format the message: replace code blocks with interactive boxes
+                const formattedHTML = formatMessage(text);
+                // If formattedHTML is a string, set innerHTML (our function returns HTML string now)
+                if (typeof formattedHTML === 'string') {
+                    msg.innerHTML = formattedHTML;
+                } else {
+                    // Fallback (should not happen)
+                    msg.innerText = text;
+                }
+                
+                // Add speak button after content
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(text, btn);
-                // Changed from row.appendChild(btn) to msg.appendChild(btn)
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    speak(text, btn);
+                };
                 msg.appendChild(btn);
+            } else {
+                // User message or thinking state – plain text
+                msg.innerText = text;
             }
+            
+            row.appendChild(msg);
             document.getElementById('chat-box').appendChild(row);
             const scrollArea = document.getElementById('scroll-area');
             scrollArea.scrollTop = scrollArea.scrollHeight;
             return msg;
         }
-        
+
+        // ---------- CHAT CONTROLS ----------
         function resetSendButton() {
             const sendBtn = document.getElementById('send-btn');
             sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
@@ -414,10 +605,16 @@
             }
         }
 
+        // ---------- WLLAMA INIT ----------
+        const wllama = new Wllama({
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        });
+
         async function init() {
             try {
                 await wllama.loadModelFromHF('bartowski/SmolLM2-360M-Instruct-GGUF', 'SmolLM2-360M-Instruct-Q4_K_M.gguf');
-                addMessage("Trapside online. Ask precisely.", "ai");
+                addMessage("Trapside is online. I'm now enhanced with full‑code reasoning. Ask me anything about programming.", "ai");
             } catch (e) { 
                 console.error("Model loading failed:", e);
                 addMessage("System Offline. Please try again later.", "ai"); 
@@ -428,47 +625,52 @@
             const text = document.getElementById('user-input').value.trim();
             if (!text) return;
             
-            // Add user message
             addMessage(text, 'user');
             document.getElementById('user-input').value = '';
             document.getElementById('user-input').style.height = 'auto';
             document.getElementById('user-input').rows = 1;
             
-            // Setup for AI response
             const loader = addMessage("Thinking...", 'ai', true);
-            const sendBtn = document.getElementById('send-btn');
             
-            // Disable input and setup stop button
             document.getElementById('user-input').disabled = true;
             setupStopButton();
             
-            // Create abort controller for this generation
             abortController = new AbortController();
             const signal = abortController.signal;
             
             try {
-                // CHANGED SYSTEM PROMPT TO MAKE TRAPSIDE CONCISE AND CODING-SMART
-                const sys = "You are Trapside. Respond with extreme precision: only essential information, no fluff. For code: output clean, production-ready solutions with minimal necessary comments. Format code blocks properly. Never mention other AIs. Always refer to yourself as Trapside. Think step-by-step internally but output only the final concise answer.";
-                const prompt = `<think>system\n${sys}<think>\n</tool_call>user\n${text}<think>\n</tool_call>assistant\n`;
+                // === ENHANCED SYSTEM PROMPT WITH CODING BOOK ===
+                const sys = CODING_EXPERTISE + "\n\nAlways think step‑by‑step and provide complete, well‑commented code.";
+                const prompt = `<think>system\n${sys}<think>\n</think>user\n${text}<think>\n<think>assistant\n`;
+                
                 const result = await wllama.createCompletion(prompt, { 
-                    nPredict: 400, 
+                    nPredict: 600,        // more room for full code
                     stop: ["<think>"], 
-                    sampling: { temp: 0.7 },
+                    sampling: { temp: 0.5 }, // lower temp for precise code
                     signal: signal
                 });
                 
-                // CRITICAL FIX: Properly truncate output at first stop token to prevent conversation history leakage
-                let cleanResult = result.split('<think>')[0].trim();
-                
+                // Remove thinking class and update with formatted content
                 loader.classList.remove('thinking');
-                loader.innerText = cleanResult || "No response generated.";
                 
-                // Add speak button
+                const cleanResult = result.trim();
+                const formattedHTML = formatMessage(cleanResult);
+                if (typeof formattedHTML === 'string') {
+                    loader.innerHTML = formattedHTML;
+                } else {
+                    loader.innerText = cleanResult;
+                }
+                
+                // Add speak button (speaks raw text, not HTML)
                 const btn = document.createElement('button');
                 btn.className = 'speak-btn';
                 btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(cleanResult || "No response generated.", btn);
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    speak(cleanResult, btn);
+                };
                 loader.appendChild(btn);
+                
             } catch (e) {
                 if (signal.aborted) {
                     loader.classList.remove('thinking');
@@ -483,37 +685,32 @@
             }
         }
 
-        // Auto-resize textarea
+        // ---------- EVENT LISTENERS ----------
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            // Cap the height at 5 rows
-            if (this.scrollHeight > 120) {
-                this.style.overflowY = 'auto';
-            } else {
-                this.style.overflowY = 'hidden';
-            }
+            this.style.overflowY = this.scrollHeight > 120 ? 'auto' : 'hidden';
         });
 
         document.getElementById('send-btn').onclick = handleChat;
-        
         document.getElementById('user-input').onkeydown = (e) => { 
             if(e.key === 'Enter' && !e.shiftKey) { 
                 e.preventDefault(); 
                 handleChat(); 
             }
         };
-        
-        // Initialize speech synthesis voices
+
+        // Modal close handlers
+        const modal = document.getElementById('code-modal');
+        document.getElementById('close-modal-btn').onclick = () => modal.classList.remove('active');
+        window.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
+
+        // Preload voices
         if (speechSynthesis) {
-            speechSynthesis.onvoiceschanged = () => {
-                // Voices are loaded
-            };
+            speechSynthesis.onvoiceschanged = () => {};
         }
-        
-        // Initialize the app
+
         init();
     </script>
 </body>
 </html>
-
