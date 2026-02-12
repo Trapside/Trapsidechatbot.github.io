@@ -28,7 +28,9 @@
         
         .header { 
             padding: 24px; 
-            display: flex; justify-content: center; align-items: center;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
             z-index: 10;
             position: fixed;
             top: 0;
@@ -56,6 +58,35 @@
             height: 3px;
             background: var(--accent);
             border-radius: 3px;
+        }
+        
+        .header-knowledge-btn {
+            position: absolute;
+            right: 24px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .header-knowledge-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .header-knowledge-btn.active {
+            background: #00ff96;
+            box-shadow: 0 0 20px #00ff96;
+            border-color: #00ff96;
         }
 
         .view { 
@@ -252,7 +283,7 @@
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
 
-        .thinking-mode-btn, .knowledge-btn {
+        .thinking-mode-btn {
             pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
@@ -275,12 +306,6 @@
             background: #ffa500;
             box-shadow: 0 0 20px #ffa500;
             border-color: #ffa500;
-        }
-        
-        .knowledge-btn.active {
-            background: #00ff96;
-            box-shadow: 0 0 20px #00ff96;
-            border-color: #00ff96;
         }
         
         .knowledge-modal {
@@ -401,14 +426,18 @@
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
             .input-area { padding: 0 10px 20px 10px; }
-            .thinking-mode-btn, .knowledge-btn { width: 44px; height: 44px; }
+            .thinking-mode-btn { width: 44px; height: 44px; }
             .modal-content { padding: 20px; }
+            .header-knowledge-btn { width: 44px; height: 44px; right: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header"><span class="brand">Trapside</span></div>
+        <div class="header">
+            <span class="brand">Trapside</span>
+            <button id="knowledge-btn" class="header-knowledge-btn" title="Knowledge Base"><i class="fas fa-book"></i></button>
+        </div>
         <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
@@ -416,7 +445,6 @@
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
             <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
-            <button id="knowledge-btn" class="knowledge-btn" title="Knowledge Base"><i class="fas fa-book"></i></button>
         </div>
     </div>
     
