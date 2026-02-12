@@ -233,7 +233,7 @@
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
 
-        .model-btn, .thinking-mode-btn {
+        .thinking-mode-btn {
             pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
@@ -252,12 +252,6 @@
             flex-shrink: 0;
         }
 
-        .model-btn.active, .thinking-mode-btn.active {
-            background: var(--accent);
-            box-shadow: 0 0 20px var(--accent);
-            border-color: var(--accent);
-        }
-        
         .thinking-mode-btn.active {
             background: #ffa500;
             box-shadow: 0 0 20px #ffa500;
@@ -270,7 +264,7 @@
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
             .input-area { padding: 0 10px 20px 10px; }
-            .model-btn, .thinking-mode-btn { width: 44px; height: 44px; }
+            .thinking-mode-btn { width: 44px; height: 44px; }
         }
     </style>
 </head>
@@ -284,7 +278,6 @@
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
             <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
-            <button id="model-toggle" class="model-btn" title="Toggle Smart Model"><i class="fas fa-glasses"></i></button>
         </div>
     </div>
 
@@ -302,18 +295,10 @@
         // Thinking mode toggle
         let thinkingModeEnabled = true;
 
-        let currentModel = 'smollm2';
-        const models = {
-            smollm2: {
-                repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf',
-                chatTemplate: 'smollm' // Uses <|im_start|> format
-            },
-            mobilama: {
-                repo: 'bartowski/MobiLlama-0.5B-Chat-GGUF',
-                file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf',
-                chatTemplate: 'llama' // Uses [INST] format
-            }
+        // Single model configuration
+        const model = {
+            repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
+            file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
         function speak(text, btn) {
@@ -370,9 +355,7 @@
             sendBtn.className = 'send-btn';
             sendBtn.onclick = handleChat;
             document.getElementById('user-input').disabled = false;
-            document.getElementById('model-toggle').disabled = false;
             document.getElementById('thinking-mode-btn').disabled = false;
-            document.getElementById('model-toggle').style.opacity = '1';
             document.getElementById('thinking-mode-btn').style.opacity = '1';
         }
         
@@ -395,39 +378,9 @@
             }
         }
 
-        async function toggleModel() {
-            const btn = document.getElementById('model-toggle');
-            document.getElementById('user-input').disabled = true;
-            btn.disabled = true;
-            
-            try {
-                if (currentModel === 'smollm2') {
-                    addMessage("Switching to MobiLlama-0.5B...", "ai");
-                    await wllama.loadModelFromHF(models.mobilama.repo, models.mobilama.file);
-                    currentModel = 'mobilama';
-                    btn.classList.add('active');
-                    // Clear history on model switch for clean slate
-                    conversationHistory = [];
-                } else {
-                    addMessage("Switching to SmolLM2-360M...", "ai");
-                    await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
-                    currentModel = 'smollm2';
-                    btn.classList.remove('active');
-                    conversationHistory = [];
-                }
-                addMessage(`${currentModel.toUpperCase()} is online. Conversation history cleared.`, "ai");
-            } catch (e) {
-                console.error(e);
-                addMessage("Model switch failed. Make sure your browser supports WebAssembly.", "ai");
-            } finally {
-                document.getElementById('user-input').disabled = false;
-                btn.disabled = false;
-            }
-        }
-
         async function init() {
             try {
-                await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
+                await wllama.loadModelFromHF(model.repo, model.file);
                 addMessage("Trapside is online with advanced reasoning enabled.", "ai");
                 // Set thinking mode active by default
                 document.getElementById('thinking-mode-btn').classList.add('active');
@@ -439,8 +392,6 @@
         
         // Build prompt with conversation history
         function buildPromptWithHistory(userMessage) {
-            const modelConfig = models[currentModel];
-            
             // Enhanced system prompt for better reasoning
             const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities. 
 
@@ -459,41 +410,21 @@ When solving problems:
 4. Verify your logic
 5. Provide a clear answer`;
 
-            let prompt = '';
+            // SmolLM2 format: <|im_start|> ... <|im_end|>
+            let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
             
-            // Format depends on model type
-            if (modelConfig.chatTemplate === 'llama') {
-                // MobiLlama format: [INST] ... [/INST]
-                prompt = `<s>[INST] <<SYS>>\n${systemPrompt}\n<</SYS>>\n\n`;
-                
-                // Add conversation history
-                for (const msg of conversationHistory) {
-                    if (msg.role === 'user') {
-                        prompt += `${msg.content} [/INST] `;
-                    } else {
-                        prompt += `${msg.content}</s><s>[INST] `;
-                    }
-                }
-                
-                prompt += `${userMessage} [/INST]`;
-            } else {
-                // SmolLM2 format: <|im_start|> ... <|im_end|>
-                prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
-                
-                // Add conversation history
-                for (const msg of conversationHistory) {
-                    prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-                }
-                
-                prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            // Add conversation history
+            for (const msg of conversationHistory) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
+            
+            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
             
             return prompt;
         }
         
         // Multi-pass reasoning system
         async function multiPassReasoning(userMessage) {
-            const modelConfig = models[currentModel];
             let reasoningText = '';
             let finalAnswer = '';
             
@@ -578,29 +509,19 @@ When solving problems:
         }
         
         function buildThinkingPrompt(userMessage) {
-            const modelConfig = models[currentModel];
             const thinkingSystemPrompt = `Think through this step-by-step. Show your reasoning process clearly:
 1. What is being asked?
 2. What information do I need?
 3. How should I approach this?
 4. What's my reasoning?`;
             
-            if (modelConfig.chatTemplate === 'llama') {
-                return `<s>[INST] <<SYS>>\n${thinkingSystemPrompt}\n<</SYS>>\n\n${userMessage}\n\nLet me think through this: [/INST]`;
-            } else {
-                return `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
-            }
+            return `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
         }
         
         function buildAnswerPrompt(userMessage, reasoning) {
-            const modelConfig = models[currentModel];
             const answerSystemPrompt = `Based on your reasoning, provide a clear, concise, and accurate answer. Be direct and helpful.`;
             
-            if (modelConfig.chatTemplate === 'llama') {
-                return `<s>[INST] <<SYS>>\n${answerSystemPrompt}\n<</SYS>>\n\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nFinal answer: [/INST]`;
-            } else {
-                return `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
-            }
+            return `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
         }
 
         async function handleChat() {
@@ -615,7 +536,6 @@ When solving problems:
             const loader = addMessage("Thinking...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
-            document.getElementById('model-toggle').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
             setupStopButton();
             
@@ -653,7 +573,6 @@ When solving problems:
         });
 
         document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('model-toggle').onclick = toggleModel;
         document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
         document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
         
