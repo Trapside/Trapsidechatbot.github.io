@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside AI</title>
+    <title>Trapside</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -13,178 +13,404 @@
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--liquid-bg); color: #fff; height: 100vh; overflow: hidden; }
-
-        /* Progress Bar Styles */
-        #progress-wrapper {
-            position: fixed; top: 0; left: 0; width: 100%; height: 4px;
-            background: rgba(255, 255, 255, 0.05); z-index: 1000; display: none;
-        }
-        #progress-fill {
-            height: 100%; width: 0%; background: var(--accent);
-            box-shadow: 0 0 15px var(--accent); transition: width 0.2s ease;
-        }
-        #load-status {
-            position: fixed; top: 10px; right: 20px; font-size: 12px;
-            color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
-            display: none; z-index: 1001;
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--liquid-bg);
+            background-attachment: fixed;
+            color: #fff; 
+            height: 100vh; 
+            overflow: hidden; 
         }
 
         .container { height: 100vh; display: flex; flex-direction: column; }
-        .header { padding: 30px; display: flex; justify-content: center; position: relative; }
-        .brand { font-weight: 900; font-size: 26px; letter-spacing: 3px; text-transform: uppercase; }
+        
+        .header { 
+            padding: 24px; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
 
-        .view { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
-        #chat-box { display: flex; flex-direction: column; gap: 15px; max-width: 800px; margin: 0 auto; }
+        .brand { 
+            font-weight: 900; 
+            font-size: 28px; 
+            color: #fff;
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+            position: relative;
+        }
+        
+        .brand::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        .view { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+            padding: 20px; 
+            gap: 20px; 
+            padding-bottom: 120px;
+            padding-top: 100px; 
+        }
+        #chat-box { display: flex; flex-direction: column; gap: 16px; }
+
+        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
+        .user-row { flex-direction: row-reverse; }
 
         .message { 
-            max-width: 85%; padding: 15px 20px; border-radius: 20px; line-height: 1.5;
-            backdrop-filter: blur(10px); border: 1px solid var(--glass-border);
-            background: var(--glass); position: relative;
+            max-width: 80%; 
+            padding: 16px 22px 42px 22px; 
+            border-radius: 24px; 
+            line-height: 1.6; 
+            font-size: 15px; 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
-        .user-message { align-self: flex-end; border-bottom-right-radius: 4px; border-color: rgba(0, 180, 255, 0.3); }
-        .ai-message { align-self: flex-start; border-bottom-left-radius: 4px; }
+
+        .user-message { 
+            background: rgba(0, 180, 255, 0.1); 
+            border-color: rgba(0, 180, 255, 0.3);
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message { 
+            border-bottom-left-radius: 4px; 
+        }
+
+        .thinking { 
+            font-weight: bold;
+            color: var(--accent);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse { 
+            0% { opacity: 0.3; } 
+            50% { opacity: 1; } 
+            100% { opacity: 0.3; } 
+        }
+
+        .speak-btn { 
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            color: #fff; 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s ease;
+            position: absolute;
+            bottom: 10px; 
+            right: 10px; 
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            z-index: 5;
+        }
+        .speak-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.05);
+        }
+        .speak-btn.active { 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
+            border-color: var(--accent);
+        }
 
         .input-area { 
-            position: fixed; bottom: 30px; left: 0; right: 0; padding: 0 20px;
-            display: flex; justify-content: center; gap: 10px; max-width: 800px; margin: 0 auto;
-        }
-        .input-container { 
-            flex: 1; background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 30px;
-            display: flex; align-items: center; padding: 5px 15px;
-        }
-        input { 
-            flex: 1; background: transparent; border: none; padding: 12px;
-            color: #fff; outline: none; font-size: 16px;
+            position: absolute; 
+            bottom: 30px; 
+            left: 0; 
+            right: 0;
+            padding: 0 20px; 
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            gap: 12px; 
+            max-width: 860px; 
+            margin: 0 auto;
         }
 
-        .btn { 
-            width: 45px; height: 45px; border-radius: 50%; border: none;
-            background: var(--accent); color: white; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.3s; flex-shrink: 0;
+        .input-container { 
+            pointer-events: auto;
+            display: flex; 
+            gap: 12px; 
+            flex: 1; 
+            padding: 10px 14px; 
+            border-radius: 40px;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
         }
-        .model-btn { background: var(--glass); border: 1px solid var(--glass-border); }
-        .model-btn.active { background: var(--accent); box-shadow: 0 0 15px var(--accent); }
+        
+        .input-container:focus-within {
+            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
+            border-color: rgba(0, 180, 255, 0.4);
+        }
+
+        .input-field { 
+            flex: 1; 
+            background: transparent; 
+            border: none; 
+            padding: 10px 15px; 
+            color: #fff; 
+            font-size: 16px; 
+            outline: none; 
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.5;
+        }
+        
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 1;
+        }
+
+        .send-btn, .stop-btn { 
+            background: var(--accent); 
+            border: none; 
+            border-radius: 50%; 
+            width: 44px; 
+            height: 44px; 
+            color: #fff; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed;
+        }
+        
+        .stop-btn {
+            background: #ff4d4d;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+        }
+
+        .model-btn {
+            pointer-events: auto;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        .model-btn.active {
+            background: var(--accent);
+            box-shadow: 0 0 20px var(--accent);
+            border-color: var(--accent);
+        }
+
+        .view::-webkit-scrollbar { width: 6px; }
+        .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        @media (max-width: 768px) {
+            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
+            .input-area { padding: 0 10px 20px 10px; }
+            .model-btn { width: 44px; height: 44px; }
+        }
     </style>
 </head>
 <body>
-
-    <div id="progress-wrapper"><div id="progress-fill"></div></div>
-    <div id="load-status">Downloading Model... <span id="percent">0%</span></div>
-
     <div class="container">
-        <div class="header"><div class="brand">Trapside</div></div>
+        <div class="header"><span class="brand">Trapside</span></div>
         <div class="view" id="scroll-area"><div id="chat-box"></div></div>
-        
         <div class="input-area">
-            <button id="model-toggle" class="btn model-btn" title="Switch to MobiLlama-0.5B">
-                <i class="fas fa-microchip"></i>
-            </button>
             <div class="input-container">
-                <input type="text" id="user-input" placeholder="Type a message..." autocomplete="off">
-                <button id="send-btn" class="btn"><i class="fas fa-paper-plane"></i></button>
+                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
+                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
+            <button id="model-toggle" class="model-btn" title="Toggle Smart Model"><i class="fas fa-glasses"></i></button>
         </div>
     </div>
 
     <script type="module">
         import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
 
-        const chatBox = document.getElementById('chat-box');
-        const scrollArea = document.getElementById('scroll-area');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-        const modelBtn = document.getElementById('model-toggle');
-        const progWrap = document.getElementById('progress-wrapper');
-        const progFill = document.getElementById('progress-fill');
-        const statusText = document.getElementById('load-status');
-        const percentText = document.getElementById('percent');
+        const synth = window.speechSynthesis;
+        let activeBtn = null;
+        let abortController = null;
 
-        let wllama = null;
         let currentModel = 'smollm2';
         const models = {
-            smollm2: { repo: 'bartowski/SmolLM2-360M-Instruct-GGUF', file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf' },
-            mobilama: { repo: 'bartowski/MobiLlama-0.5B-Chat-GGUF', file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf' }
+            smollm2: {
+                repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
+                file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
+            },
+            mobilama: {
+                repo: 'bartowski/MobiLlama-0.5B-Chat-GGUF',
+                file: 'MobiLlama-0.5B-Chat-Q4_K_M.gguf'
+            }
         };
 
-        function addMessage(text, role) {
+        function speak(text, btn) {
+            if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
+            if (synth.speaking) { synth.cancel(); if (activeBtn) activeBtn.classList.remove('active'); }
+            const utter = new SpeechSynthesisUtterance(text);
+            const voices = synth.getVoices();
+            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
+            utter.pitch = 1.5; utter.rate = 1.0;
+            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
+            synth.speak(utter);
+        }
+
+        const wllama = new Wllama({
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+        });
+
+        function addMessage(text, role, isThinking = false) {
+            const row = document.createElement('div');
+            row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
-            msg.className = `message ${role}-message`;
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             msg.innerText = text;
-            chatBox.appendChild(msg);
-            scrollArea.scrollTop = scrollArea.scrollHeight;
+            row.appendChild(msg);
+            if (role === 'ai' && !isThinking) {
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(text, btn);
+                msg.appendChild(btn);
+            }
+            document.getElementById('chat-box').appendChild(row);
+            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
             return msg;
         }
-
-        function setLoadUI(show) {
-            progWrap.style.display = show ? 'block' : 'none';
-            statusText.style.display = show ? 'block' : 'none';
-            userInput.disabled = show;
-            sendBtn.disabled = show;
-            modelBtn.disabled = show;
+        
+        function resetSendButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            sendBtn.className = 'send-btn';
+            sendBtn.onclick = handleChat;
+            document.getElementById('user-input').disabled = false;
+            document.getElementById('model-toggle').disabled = false;
+            document.getElementById('model-toggle').style.opacity = '1';
+        }
+        
+        function setupStopButton() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            sendBtn.className = 'stop-btn';
+            sendBtn.onclick = () => { if (abortController) abortController.abort(); };
         }
 
-        async function loadModel(modelKey) {
-            setLoadUI(true);
+        async function toggleModel() {
+            const btn = document.getElementById('model-toggle');
+            document.getElementById('user-input').disabled = true;
+            btn.disabled = true;
+            
             try {
-                await wllama.loadModelFromHF(models[modelKey].repo, models[modelKey].file, {
-                    progressCallback: ({ loaded, total }) => {
-                        const p = Math.round((loaded / total) * 100);
-                        progFill.style.width = p + '%';
-                        percentText.innerText = p + '%';
-                    }
-                });
-                currentModel = modelKey;
-                modelBtn.classList.toggle('active', modelKey === 'mobilama');
-                addMessage(`System: Using ${modelKey === 'mobilama' ? 'MobiLlama-0.5B' : 'SmolLM2-360M'}`, 'ai');
+                if (currentModel === 'smollm2') {
+                    addMessage("Switching to MobiLlama-0.5B...", "ai");
+                    await wllama.loadModelFromHF(models.mobilama.repo, models.mobilama.file);
+                    currentModel = 'mobilama';
+                    btn.classList.add('active');
+                } else {
+                    addMessage("Switching to SmolLM2-360M...", "ai");
+                    await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
+                    currentModel = 'smollm2';
+                    btn.classList.remove('active');
+                }
+                addMessage(`${currentModel.toUpperCase()} is online.`, "ai");
             } catch (e) {
-                addMessage("Error loading model. Refresh and try again.", "ai");
+                console.error(e);
+                addMessage("Model switch failed. Make sure your browser supports WebAssembly.", "ai");
             } finally {
-                setLoadUI(false);
-                progFill.style.width = '0%';
+                document.getElementById('user-input').disabled = false;
+                btn.disabled = false;
             }
         }
 
         async function init() {
-            wllama = new Wllama({
-                'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-                'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-            });
-            await loadModel('smollm2');
+            try {
+                await wllama.loadModelFromHF(models.smollm2.repo, models.smollm2.file);
+                addMessage("Trapside is online.", "ai");
+            } catch (e) { addMessage("System Offline.", "ai"); }
         }
 
         async function handleChat() {
-            const text = userInput.value.trim();
-            if (!text || userInput.disabled) return;
-
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
             addMessage(text, 'user');
-            userInput.value = '';
-            const aiMsg = addMessage("...", 'ai');
-
+            input.value = ''; input.style.height = 'auto';
+            const loader = addMessage("Thinking...", 'ai', true);
+            
+            document.getElementById('user-input').disabled = true;
+            document.getElementById('model-toggle').disabled = true;
+            setupStopButton();
+            
+            abortController = new AbortController();
             try {
-                const prompt = `<|im_start|>system\nYou are Trapside, a helpful assistant.<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
-                let fullText = "";
-                await wllama.createCompletion(prompt, {
-                    nPredict: 500,
-                    sampling: { temp: 0.7 },
-                    onNewToken: (token, piece, currentText) => {
-                        fullText = currentText;
-                        aiMsg.innerText = fullText;
-                        scrollArea.scrollTop = scrollArea.scrollHeight;
-                    }
+                const sys = "You are Trapside, a helpful and expert assistant.";
+                // Prompt format for MobiLlama/SmolLM chat style
+                const prompt = `<|system|>\n${sys}</s>\n<|user|>\n${text}</s>\n<|assistant|>\n`;
+                const result = await wllama.createCompletion(prompt, { 
+                    nPredict: 400, sampling: { temp: 0.7 }, signal: abortController.signal 
                 });
+                loader.classList.remove('thinking');
+                loader.innerText = result.trim();
+                const btn = document.createElement('button');
+                btn.className = 'speak-btn'; btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.onclick = () => speak(result.trim(), btn);
+                loader.appendChild(btn);
             } catch (e) {
-                aiMsg.innerText = "Connection lost or stopped.";
-            }
+                loader.classList.remove('thinking');
+                loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
+            } finally { resetSendButton(); }
         }
 
-        modelBtn.onclick = () => loadModel(currentModel === 'smollm2' ? 'mobilama' : 'smollm2');
-        sendBtn.onclick = handleChat;
-        userInput.onkeydown = (e) => { if(e.key === 'Enter') handleChat(); };
+        document.getElementById('user-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
 
+        document.getElementById('send-btn').onclick = handleChat;
+        document.getElementById('model-toggle').onclick = toggleModel;
+        document.getElementById('user-input').onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); } };
+        
         init();
     </script>
 </body>
