@@ -120,6 +120,23 @@
             margin-bottom: 6px;
         }
         
+        .knowledge-box {
+            background: rgba(0, 255, 150, 0.1);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #5fffb8;
+            font-style: italic;
+        }
+        
+        .knowledge-box strong {
+            color: #00ff96;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
         @keyframes pulse { 
             0% { opacity: 0.3; } 
             50% { opacity: 1; } 
@@ -233,7 +250,7 @@
             box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
 
-        .thinking-mode-btn {
+        .thinking-mode-btn, .knowledge-btn {
             pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
@@ -257,14 +274,122 @@
             box-shadow: 0 0 20px #ffa500;
             border-color: #ffa500;
         }
+        
+        .knowledge-btn.active {
+            background: #00ff96;
+            box-shadow: 0 0 20px #00ff96;
+            border-color: #00ff96;
+        }
+        
+        .knowledge-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .knowledge-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #00ff96;
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(0, 180, 255, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: #00ff96;
+            background: rgba(0, 255, 150, 0.1);
+        }
+        
+        .knowledge-list {
+            margin-top: 20px;
+        }
+        
+        .knowledge-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .delete-btn {
+            background: #ff4d4d;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .close-modal {
+            background: var(--accent);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        #file-input {
+            display: none;
+        }
 
         .view::-webkit-scrollbar { width: 6px; }
         .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
             .input-area { padding: 0 10px 20px 10px; }
-            .thinking-mode-btn { width: 44px; height: 44px; }
+            .thinking-mode-btn, .knowledge-btn { width: 44px; height: 44px; }
+            .modal-content { padding: 20px; }
         }
     </style>
 </head>
@@ -278,6 +403,22 @@
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
             <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
+            <button id="knowledge-btn" class="knowledge-btn" title="Knowledge Base"><i class="fas fa-book"></i></button>
+        </div>
+    </div>
+    
+    <!-- Knowledge Base Modal -->
+    <div id="knowledge-modal" class="knowledge-modal">
+        <div class="modal-content">
+            <div class="modal-header">📚 Knowledge Base</div>
+            <div class="upload-area" id="upload-area">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
+                <p>Drag & drop files here or click to upload</p>
+                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json</p>
+            </div>
+            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json">
+            <div class="knowledge-list" id="knowledge-list"></div>
+            <button class="close-modal" id="close-modal">Close</button>
         </div>
     </div>
 
@@ -290,16 +431,228 @@
         
         // Conversation history tracking
         let conversationHistory = [];
-        const MAX_HISTORY_LENGTH = 10; // Keep last 10 exchanges
+        const MAX_HISTORY_LENGTH = 10;
         
         // Thinking mode toggle
         let thinkingModeEnabled = true;
+        
+        // Knowledge base
+        let knowledgeBase = [];
+        const DB_NAME = 'TrapsideKnowledge';
+        const DB_VERSION = 1;
+        let db;
 
         // Single model configuration
         const model = {
             repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
+
+        // Initialize IndexedDB for knowledge storage
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    loadKnowledgeBase();
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('knowledge')) {
+                        db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            });
+        }
+        
+        // Load knowledge from IndexedDB
+        async function loadKnowledgeBase() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readonly');
+                const store = transaction.objectStore('knowledge');
+                const request = store.getAll();
+                
+                request.onsuccess = () => {
+                    knowledgeBase = request.result;
+                    updateKnowledgeList();
+                    if (knowledgeBase.length > 0) {
+                        document.getElementById('knowledge-btn').classList.add('active');
+                    }
+                    resolve(knowledgeBase);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Save knowledge to IndexedDB
+        async function saveKnowledge(knowledge) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readwrite');
+                const store = transaction.objectStore('knowledge');
+                const request = store.add(knowledge);
+                
+                request.onsuccess = () => {
+                    loadKnowledgeBase();
+                    resolve(request.result);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Delete knowledge from IndexedDB
+        async function deleteKnowledge(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['knowledge'], 'readwrite');
+                const store = transaction.objectStore('knowledge');
+                const request = store.delete(id);
+                
+                request.onsuccess = () => {
+                    loadKnowledgeBase();
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Simple keyword-based retrieval (can be enhanced with embeddings)
+        function retrieveRelevantKnowledge(query) {
+            const queryLower = query.toLowerCase();
+            const keywords = queryLower.split(' ').filter(w => w.length > 3);
+            
+            const scored = knowledgeBase.map(kb => {
+                const contentLower = kb.content.toLowerCase();
+                let score = 0;
+                
+                keywords.forEach(keyword => {
+                    const count = (contentLower.match(new RegExp(keyword, 'g')) || []).length;
+                    score += count;
+                });
+                
+                return { ...kb, score };
+            });
+            
+            // Return top 3 most relevant chunks
+            return scored
+                .filter(kb => kb.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3)
+                .map(kb => kb.content);
+        }
+        
+        // Process uploaded file
+        async function processFile(file) {
+            const text = await file.text();
+            
+            // Split into chunks (500 char chunks with 100 char overlap)
+            const chunkSize = 500;
+            const overlap = 100;
+            const chunks = [];
+            
+            for (let i = 0; i < text.length; i += (chunkSize - overlap)) {
+                const chunk = text.slice(i, i + chunkSize);
+                if (chunk.trim().length > 50) { // Only save substantial chunks
+                    chunks.push({
+                        filename: file.name,
+                        content: chunk.trim(),
+                        timestamp: Date.now()
+                    });
+                }
+            }
+            
+            // Save chunks to DB
+            for (const chunk of chunks) {
+                await saveKnowledge(chunk);
+            }
+            
+            addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks added to knowledge base.`, "ai");
+        }
+        
+        // Update knowledge list UI
+        function updateKnowledgeList() {
+            const list = document.getElementById('knowledge-list');
+            
+            // Group by filename
+            const grouped = {};
+            knowledgeBase.forEach(kb => {
+                if (!grouped[kb.filename]) {
+                    grouped[kb.filename] = [];
+                }
+                grouped[kb.filename].push(kb);
+            });
+            
+            list.innerHTML = '';
+            Object.keys(grouped).forEach(filename => {
+                const item = document.createElement('div');
+                item.className = 'knowledge-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${filename}</strong>
+                        <div style="font-size: 12px; opacity: 0.6;">${grouped[filename].length} chunks</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteKnowledgeFile('${filename}')">Delete</button>
+                `;
+                list.appendChild(item);
+            });
+            
+            if (Object.keys(grouped).length === 0) {
+                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
+            }
+        }
+        
+        // Delete all chunks from a file
+        window.deleteKnowledgeFile = async function(filename) {
+            const toDelete = knowledgeBase.filter(kb => kb.filename === filename);
+            for (const kb of toDelete) {
+                await deleteKnowledge(kb.id);
+            }
+            addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
+        };
+        
+        // File upload handlers
+        document.getElementById('upload-area').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+        
+        document.getElementById('file-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                await processFile(file);
+            }
+            e.target.value = '';
+        });
+        
+        // Drag and drop
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            for (const file of files) {
+                await processFile(file);
+            }
+        });
+        
+        // Modal controls
+        document.getElementById('knowledge-btn').addEventListener('click', () => {
+            document.getElementById('knowledge-modal').classList.add('active');
+        });
+        
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('knowledge-modal').classList.remove('active');
+        });
 
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) { synth.cancel(); btn.classList.remove('active'); activeBtn = null; return; }
@@ -318,11 +671,19 @@
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         });
 
-        function addMessage(text, role, isThinking = false, reasoningText = null) {
+        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeText = null) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
             msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+            
+            // Add knowledge box if provided
+            if (knowledgeText && knowledgeText.length > 0) {
+                const knowledgeBox = document.createElement('div');
+                knowledgeBox.className = 'knowledge-box';
+                knowledgeBox.innerHTML = `<strong>📚 Retrieved Knowledge:</strong>${knowledgeText.join('<br><br>')}`;
+                msg.appendChild(knowledgeBox);
+            }
             
             // Add reasoning box if provided
             if (reasoningText && thinkingModeEnabled) {
@@ -380,9 +741,9 @@
 
         async function init() {
             try {
+                await initDB();
                 await wllama.loadModelFromHF(model.repo, model.file);
-                addMessage("Trapside is online with advanced reasoning enabled.", "ai");
-                // Set thinking mode active by default
+                addMessage("Trapside is online with advanced reasoning and knowledge base enabled.", "ai");
                 document.getElementById('thinking-mode-btn').classList.add('active');
             } catch (e) { 
                 console.error(e);
@@ -390,43 +751,34 @@
             }
         }
         
-        // Build conversation context string from history
-        function buildConversationContext() {
-            if (conversationHistory.length === 0) return '';
-            
-            let context = '\n\nPrevious conversation:\n';
-            for (const msg of conversationHistory) {
-                if (msg.role === 'user') {
-                    context += `User: ${msg.content}\n`;
-                } else {
-                    context += `Assistant: ${msg.content}\n`;
-                }
-            }
-            return context;
-        }
-        
-        // Build prompt with conversation history
-        function buildPromptWithHistory(userMessage) {
-            // Enhanced system prompt for better reasoning
-            const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities. 
+        function buildPromptWithHistory(userMessage, retrievedKnowledge = []) {
+            const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities and access to a knowledge base.
 
 Core Principles:
 - Think step-by-step through problems
+- Use the provided knowledge base context when relevant
 - Break complex questions into smaller parts
 - Verify your reasoning before answering
 - Admit when you're uncertain
 - Provide clear, concise, accurate responses
-- Remember the conversation context and refer back to previous messages when relevant
+- Remember the conversation context
 
 When solving problems:
-1. Understand what is being asked
-2. Break down the problem
-3. Reason through each step
-4. Verify your logic
-5. Provide a clear answer`;
+1. Check if knowledge base has relevant information
+2. Understand what is being asked
+3. Break down the problem
+4. Reason through each step
+5. Verify your logic
+6. Provide a clear answer`;
 
-            // SmolLM2 format: <|im_start|> ... <|im_end|>
-            let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
+            let prompt = `<|im_start|>system\n${systemPrompt}`;
+            
+            // Add retrieved knowledge if available
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+            }
+            
+            prompt += `<|im_end|>\n`;
             
             // Add conversation history
             for (const msg of conversationHistory) {
@@ -438,14 +790,15 @@ When solving problems:
             return prompt;
         }
         
-        // Multi-pass reasoning system with conversation context
         async function multiPassReasoning(userMessage) {
             let reasoningText = '';
             let finalAnswer = '';
             
+            // Retrieve relevant knowledge
+            const retrievedKnowledge = retrieveRelevantKnowledge(userMessage);
+            
             if (thinkingModeEnabled) {
-                // PASS 1: Chain-of-Thought Reasoning WITH conversation context
-                const thinkingPrompt = buildThinkingPrompt(userMessage);
+                const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge);
                 
                 try {
                     abortController = new AbortController();
@@ -469,8 +822,7 @@ When solving problems:
                     }
                 }
                 
-                // PASS 2: Final Answer based on reasoning WITH conversation context
-                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText);
+                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText, retrievedKnowledge);
                 
                 try {
                     abortController = new AbortController();
@@ -494,8 +846,7 @@ When solving problems:
                     }
                 }
             } else {
-                // Single pass WITH conversation history
-                const prompt = buildPromptWithHistory(userMessage);
+                const prompt = buildPromptWithHistory(userMessage, retrievedKnowledge);
                 
                 try {
                     abortController = new AbortController();
@@ -520,19 +871,24 @@ When solving problems:
                 }
             }
             
-            return { reasoning: reasoningText, answer: finalAnswer };
+            return { reasoning: reasoningText, answer: finalAnswer, knowledge: retrievedKnowledge };
         }
         
-        function buildThinkingPrompt(userMessage) {
-            const thinkingSystemPrompt = `Think through this step-by-step. Show your reasoning process clearly:
+        function buildThinkingPrompt(userMessage, retrievedKnowledge = []) {
+            const thinkingSystemPrompt = `Think through this step-by-step. Use the knowledge base if relevant:
 1. What is being asked?
-2. What information do I need from the conversation history?
+2. What knowledge from the knowledge base is relevant?
 3. How should I approach this?
 4. What's my reasoning?`;
             
-            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}<|im_end|>\n`;
+            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
             
-            // ADD CONVERSATION HISTORY to thinking prompt
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+            }
+            
+            prompt += `<|im_end|>\n`;
+            
             for (const msg of conversationHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
@@ -542,12 +898,17 @@ When solving problems:
             return prompt;
         }
         
-        function buildAnswerPrompt(userMessage, reasoning) {
-            const answerSystemPrompt = `Based on your reasoning and the conversation history, provide a clear, concise, and accurate answer. Be direct and helpful.`;
+        function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = []) {
+            const answerSystemPrompt = `Based on your reasoning, the conversation history, and knowledge base, provide a clear, concise, and accurate answer.`;
             
-            let prompt = `<|im_start|>system\n${answerSystemPrompt}<|im_end|>\n`;
+            let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
             
-            // ADD CONVERSATION HISTORY to answer prompt
+            if (retrievedKnowledge.length > 0) {
+                prompt += `\n\nKnowledge Base Context:\n${retrievedKnowledge.join('\n\n')}`;
+            }
+            
+            prompt += `<|im_end|>\n`;
+            
             for (const msg of conversationHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
@@ -573,23 +934,18 @@ When solving problems:
             setupStopButton();
             
             try {
-                // Multi-pass reasoning with conversation context
                 const result = await multiPassReasoning(text);
                 
-                // Update conversation history (limit to last N exchanges)
                 conversationHistory.push({ role: 'user', content: text });
                 conversationHistory.push({ role: 'assistant', content: result.answer });
                 
-                // Keep only recent history
                 if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
                     conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
                 }
                 
-                // Remove loading message
                 loader.remove();
                 
-                // Add final response with reasoning
-                const finalMsg = addMessage(result.answer, 'ai', false, result.reasoning);
+                addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge);
                 
             } catch (e) {
                 console.error(e);
