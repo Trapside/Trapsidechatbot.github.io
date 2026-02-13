@@ -327,7 +327,7 @@
         .input-container { 
             pointer-events: auto;
             display: flex; 
-            gap: 12px; 
+            gap: 8px; 
             flex: 1; 
             padding: 10px 14px; 
             border-radius: 40px;
@@ -361,6 +361,32 @@
         .input-field::placeholder {
             color: rgba(255, 255, 255, 0.4);
             opacity: 1;
+        }
+
+        .web-search-btn {
+            background: transparent;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .web-search-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .web-search-btn.active {
+            background: rgba(0, 180, 255, 0.2);
+            color: #00b4ff;
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.3);
         }
 
         .send-btn, .stop-btn { 
@@ -411,31 +437,6 @@
             background: #ffa500;
             box-shadow: 0 0 20px #ffa500;
             border-color: #ffa500;
-        }
-        
-        .web-search-btn {
-            pointer-events: auto;
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            width: 50px; 
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            flex-shrink: 0;
-        }
-
-        .web-search-btn.active {
-            background: #00b4ff;
-            box-shadow: 0 0 20px #00b4ff;
-            border-color: #00b4ff;
         }
         
         .knowledge-modal {
@@ -565,7 +566,7 @@
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
             .input-area { padding: 0 10px 20px 10px; gap: 8px; }
-            .thinking-mode-btn, .web-search-btn { width: 44px; height: 44px; }
+            .thinking-mode-btn { width: 44px; height: 44px; }
             .modal-content { padding: 20px; }
             .header-knowledge-btn { width: 44px; height: 44px; right: 16px; }
         }
@@ -581,14 +582,13 @@
         <div class="input-area">
             <div class="input-container">
                 <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
+                <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
-            <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
             <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
         </div>
     </div>
     
-    <!-- Knowledge Base Modal -->
     <div id="knowledge-modal" class="knowledge-modal">
         <div class="modal-content">
             <div class="modal-header">📚 Knowledge Base</div>
@@ -636,8 +636,6 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
-        // =============== WEB SEARCH FUNCTIONS ===============
-        
         async function searchDuckDuckGo(query) {
             try {
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -737,8 +735,6 @@
             }
         }
 
-        // =============== OPTIMIZED CHUNKING ===============
-        
         function smartChunk(text, maxChunkSize = 600, overlap = 100) {
             const chunks = [];
             const sections = text.split(/\n\n+/);
@@ -1217,6 +1213,15 @@
             return msg;
         }
         
+        function updateThinkingMessage(loaderElement, message) {
+            if (loaderElement && loaderElement.parentNode) {
+                const textElement = loaderElement.querySelector('.thinking-steps');
+                if (textElement) {
+                    textElement.textContent = message;
+                }
+            }
+        }
+        
         function resetSendButton() {
             const sendBtn = document.getElementById('send-btn');
             sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
@@ -1268,45 +1273,18 @@
             }
         }
         
-        function buildPromptWithHistory(userMessage, retrievedKnowledge = [], webContents = []) {
-            const systemPrompt = `You are Trapside, an advanced AI assistant with exceptional reasoning capabilities and access to a knowledge base and web search.
-
-Core Principles:
-- Think step-by-step through problems
-- Use the provided knowledge base context when relevant
-- Use web search results when available
-- Break complex questions into smaller parts
-- Verify your reasoning before answering
-- Admit when you're uncertain
-- Provide clear, concise, accurate responses
-- Remember the conversation context
-
-When solving problems:
-1. Check if knowledge base has relevant information
-2. Check if web search results are available
-3. Understand what is being asked
-4. Break down the problem
-5. Reason through each step
-6. Verify your logic
-7. Provide a clear answer`;
-
-            let prompt = `<|im_start|>system\n${systemPrompt}`;
+        function buildPrompt(userMessage, retrievedKnowledge = []) {
+            let systemPrompt = `You are Trapside, an advanced AI assistant. You provide clear, helpful, and accurate responses.`;
+            
+            let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n`;
+                prompt += `<|im_start|>system\nKnowledge Base:\n`;
                 retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
+                    prompt += `[${kb.filename}]: ${kb.content}\n`;
                 });
+                prompt += `<|im_end|>\n`;
             }
-            
-            if (webContents.length > 0) {
-                prompt += `\n\nWeb Search Results:\n`;
-                webContents.forEach((web, i) => {
-                    prompt += `\n[Web Source ${i+1}: ${web.title}]\nURL: ${web.url}\n${web.content}\n`;
-                });
-            }
-            
-            prompt += `<|im_end|>\n`;
             
             for (const msg of conversationHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
@@ -1317,189 +1295,69 @@ When solving problems:
             return prompt;
         }
         
-        async function multiPassReasoning(userMessage, loaderElement) {
-            let reasoningText = '';
-            let finalAnswer = '';
+        async function generateResponse(userMessage, loaderElement) {
             let webSearchData = { results: [], contents: [] };
+            let retrievedKnowledge = [];
             
-            const thinkingSteps = [
-                "Thinking...",
-                "Searching knowledge base...",
-                "Refining answer...",
-            ];
-            
+            // STEP 1: Web Search (if enabled)
             if (webSearchEnabled) {
-                thinkingSteps.splice(1, 0, "Searching the web...");
-            }
-            
-            if (thinkingModeEnabled) {
-                thinkingSteps.splice(1, 0, "Deep reasoning...");
-            }
-            
-            let stepIndex = 0;
-            const thinkingInterval = setInterval(() => {
-                if (loaderElement && loaderElement.parentNode) {
-                    const textElement = loaderElement.querySelector('.thinking-steps');
-                    if (textElement) {
-                        textElement.textContent = thinkingSteps[stepIndex];
-                        stepIndex = (stepIndex + 1) % thinkingSteps.length;
-                    }
-                }
-            }, 1500);
-            
-            if (webSearchEnabled) {
+                updateThinkingMessage(loaderElement, "🌐 Searching the web...");
                 webSearchData = await performWebSearch(userMessage);
+                
+                // Wait for knowledge to be saved
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            const retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
+            // STEP 2: Retrieve from Knowledge Base
+            updateThinkingMessage(loaderElement, "📚 Searching knowledge base...");
+            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
             
+            // STEP 3: Thinking (if enabled)
+            let reasoningText = '';
             if (thinkingModeEnabled) {
-                const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge, webSearchData.contents);
+                updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
+                
+                const thinkingPrompt = `<|im_start|>system\nThink step-by-step about this question.<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think:\n`;
                 
                 try {
                     abortController = new AbortController();
-                    const thinkingResult = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 300,
-                        sampling: {
-                            temp: 0.8,
-                            top_k: 40,
-                            top_p: 0.95,
-                            repeat_penalty: 1.2,
-                            presence_penalty: 0.1,
-                            frequency_penalty: 0.1
-                        },
+                    reasoningText = await wllama.createCompletion(thinkingPrompt, {
+                        nPredict: 200,
+                        sampling: { temp: 0.7, top_k: 40, top_p: 0.9 },
                         signal: abortController.signal
                     });
-                    
-                    reasoningText = thinkingResult.trim();
+                    reasoningText = reasoningText.trim();
                 } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        reasoningText = "Reasoning process interrupted.";
-                    }
-                }
-                
-                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText, retrievedKnowledge, webSearchData.contents);
-                
-                try {
-                    abortController = new AbortController();
-                    const answerResult = await wllama.createCompletion(answerPrompt, {
-                        nPredict: 400,
-                        sampling: {
-                            temp: 0.7,
-                            top_k: 40,
-                            top_p: 0.9,
-                            repeat_penalty: 1.15,
-                            presence_penalty: 0.1,
-                            frequency_penalty: 0.1
-                        },
-                        signal: abortController.signal
-                    });
-                    
-                    finalAnswer = answerResult.trim();
-                } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        finalAnswer = "Error generating final answer.";
-                    }
-                }
-            } else {
-                const prompt = buildPromptWithHistory(userMessage, retrievedKnowledge, webSearchData.contents);
-                
-                try {
-                    abortController = new AbortController();
-                    const result = await wllama.createCompletion(prompt, {
-                        nPredict: 400,
-                        sampling: {
-                            temp: 0.7,
-                            top_k: 40,
-                            top_p: 0.9,
-                            repeat_penalty: 1.15,
-                            presence_penalty: 0.1,
-                            frequency_penalty: 0.1
-                        },
-                        signal: abortController.signal
-                    });
-                    
-                    finalAnswer = result.trim();
-                } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        finalAnswer = "Error generating response.";
-                    }
+                    console.error('Reasoning error:', e);
+                    reasoningText = '';
                 }
             }
             
-            clearInterval(thinkingInterval);
+            // STEP 4: Generate Final Answer
+            updateThinkingMessage(loaderElement, "✨ Generating answer...");
             
-            return { 
-                reasoning: reasoningText, 
-                answer: finalAnswer, 
+            const prompt = buildPrompt(userMessage, retrievedKnowledge);
+            
+            let finalAnswer = '';
+            try {
+                abortController = new AbortController();
+                finalAnswer = await wllama.createCompletion(prompt, {
+                    nPredict: 300,
+                    sampling: { temp: 0.7, top_k: 40, top_p: 0.9 },
+                    signal: abortController.signal
+                });
+                finalAnswer = finalAnswer.trim();
+            } catch (e) {
+                console.error('Generation error:', e);
+                finalAnswer = "I apologize, but I encountered an error generating a response. Please try again.";
+            }
+            
+            return {
+                reasoning: reasoningText,
+                answer: finalAnswer,
                 knowledge: retrievedKnowledge,
                 webResults: webSearchData.results
             };
-        }
-        
-        function buildThinkingPrompt(userMessage, retrievedKnowledge = [], webContents = []) {
-            const thinkingSystemPrompt = `Think through this step-by-step. Use the knowledge base and web results if relevant:
-1. What is being asked?
-2. What knowledge from the knowledge base is relevant?
-3. What information from web search is relevant?
-4. How should I approach this?
-5. What's my reasoning?`;
-            
-            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
-                });
-            }
-            
-            if (webContents.length > 0) {
-                prompt += `\n\nWeb Search Results:\n`;
-                webContents.forEach((web, i) => {
-                    prompt += `\n[Web Source ${i+1}: ${web.title}]\n${web.content.substring(0, 1000)}\n`;
-                });
-            }
-            
-            prompt += `<|im_end|>\n`;
-            
-            for (const msg of conversationHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
-            
-            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think through this step-by-step:\n`;
-            
-            return prompt;
-        }
-        
-        function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = [], webContents = []) {
-            const answerSystemPrompt = `Based on your reasoning, the conversation history, knowledge base, and web search results, provide a clear, concise, and accurate answer.`;
-            
-            let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nKnowledge Base Context:\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `\n[Source ${i+1}: ${kb.filename}]\n${kb.content}\n`;
-                });
-            }
-            
-            if (webContents.length > 0) {
-                prompt += `\n\nWeb Search Results:\n`;
-                webContents.forEach((web, i) => {
-                    prompt += `\n[Web Source ${i+1}: ${web.title}]\n${web.content.substring(0, 1000)}\n`;
-                });
-            }
-            
-            prompt += `<|im_end|>\n`;
-            
-            for (const msg of conversationHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
-            
-            prompt += `<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nProvide your final answer:<|im_end|>\n<|im_start|>assistant\n`;
-            
-            return prompt;
         }
 
         async function handleChat() {
@@ -1526,7 +1384,7 @@ When solving problems:
             setupStopButton();
             
             try {
-                const result = await multiPassReasoning(text, loaderMsg);
+                const result = await generateResponse(text, loaderMsg);
                 
                 conversationHistory.push({ role: 'user', content: text });
                 conversationHistory.push({ role: 'assistant', content: result.answer });
@@ -1541,8 +1399,8 @@ When solving problems:
                 
             } catch (e) {
                 console.error(e);
-                loaderMsg.classList.remove('thinking');
-                loaderMsg.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred during generation.";
+                loader.remove();
+                addMessage("I apologize, but I encountered an error. Please try again.", 'ai');
             } finally { 
                 resetSendButton(); 
             }
