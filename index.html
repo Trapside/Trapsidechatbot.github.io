@@ -250,6 +250,74 @@
             text-decoration: underline;
         }
 
+        .code-block {
+            position: relative;
+            background: #000;
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            border-radius: 8px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background: rgba(0, 180, 255, 0.1);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.3);
+        }
+
+        .code-language {
+            font-size: 11px;
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .copy-code-btn {
+            background: rgba(0, 180, 255, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-code-btn:hover {
+            background: rgba(0, 180, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .copy-code-btn.copied {
+            background: rgba(0, 255, 150, 0.2);
+            border-color: rgba(0, 255, 150, 0.4);
+            color: #00ff96;
+        }
+
+        .code-content {
+            padding: 12px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+
+        .code-content::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .code-content::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
         .speak-btn { 
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--glass-border);
@@ -615,7 +683,7 @@
                 <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
-            <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
+            <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Deep Reasoning"><i class="fas fa-brain"></i></button>
         </div>
     </div>
     
@@ -672,6 +740,92 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
+        // =============== CODE BLOCK DETECTION & RENDERING ===============
+        
+        function detectCodeBlocks(text) {
+            const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+            const parts = [];
+            let lastIndex = 0;
+            let match;
+
+            while ((match = codeBlockRegex.exec(text)) !== null) {
+                if (match.index > lastIndex) {
+                    parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+                }
+                parts.push({ 
+                    type: 'code', 
+                    language: match[1] || 'code', 
+                    content: match[2].trim() 
+                });
+                lastIndex = match.index + match[0].length;
+            }
+
+            if (lastIndex < text.length) {
+                parts.push({ type: 'text', content: text.substring(lastIndex) });
+            }
+
+            return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+        }
+
+        function createCodeBlock(language, code) {
+            const codeBlock = document.createElement('div');
+            codeBlock.className = 'code-block';
+            
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            
+            const langLabel = document.createElement('span');
+            langLabel.className = 'code-language';
+            langLabel.textContent = language;
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-code-btn';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(code).then(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                });
+            };
+            
+            header.appendChild(langLabel);
+            header.appendChild(copyBtn);
+            
+            const codeContent = document.createElement('pre');
+            codeContent.className = 'code-content';
+            codeContent.textContent = code;
+            
+            codeBlock.appendChild(header);
+            codeBlock.appendChild(codeContent);
+            
+            return codeBlock;
+        }
+
+        // =============== RELEVANCE CHECKING ===============
+        
+        function isQueryRelevantToKnowledge(query, knowledgeResults) {
+            if (knowledgeResults.length === 0) return false;
+            
+            const queryWords = query.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 2);
+            
+            let totalScore = 0;
+            knowledgeResults.forEach(kb => {
+                const contentWords = kb.content.toLowerCase().split(/\s+/);
+                const matchCount = queryWords.filter(qw => contentWords.some(cw => cw.includes(qw))).length;
+                totalScore += matchCount;
+            });
+            
+            const relevanceThreshold = Math.max(2, queryWords.length * 0.3);
+            return totalScore >= relevanceThreshold;
+        }
+
         // =============== DEDUPLICATION FUNCTIONS ===============
         
         function calculateSimilarity(text1, text2) {
@@ -719,7 +873,17 @@
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
                 const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
                 
-                const response = await fetch(proxyUrl, { timeout: 10000 });
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 15000);
+                
+                const response = await fetch(proxyUrl, { 
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    }
+                });
+                clearTimeout(timeout);
+                
                 if (!response.ok) throw new Error('Search failed');
                 
                 const html = await response.text();
@@ -748,6 +912,7 @@
                     }
                 });
                 
+                console.log(`Found ${results.length} search results`);
                 return results;
             } catch (error) {
                 console.error('DuckDuckGo search error:', error);
@@ -758,9 +923,16 @@
         async function fetchWebContent(url) {
             try {
                 const jinaUrl = `https://r.jina.ai/${url}`;
-                const response = await fetch(jinaUrl, { timeout: 15000 });
+                
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 20000);
+                
+                const response = await fetch(jinaUrl, { signal: controller.signal });
+                clearTimeout(timeout);
+                
                 if (!response.ok) throw new Error('Fetch failed');
                 const markdown = await response.text();
+                console.log(`Fetched ${markdown.length} chars from ${url}`);
                 return markdown;
             } catch (error) {
                 console.error('Jina AI fetch error:', error);
@@ -769,9 +941,11 @@
         }
         
         async function performWebSearch(query) {
+            console.log('Performing web search for:', query);
             const searchResults = await searchDuckDuckGo(query);
             
             if (searchResults.length === 0) {
+                console.log('No search results found');
                 return { results: [], contents: [] };
             }
             
@@ -795,6 +969,7 @@
                 }
             }
             
+            console.log(`Successfully fetched ${contents.length} web contents`);
             return { results: searchResults, contents };
         }
         
@@ -1205,7 +1380,10 @@
                 synth.cancel(); 
                 if (activeBtn) activeBtn.classList.remove('active'); 
             }
-            const utter = new SpeechSynthesisUtterance(text);
+            
+            const cleanText = text.replace(/```[\s\S]*?```/g, '[code block]');
+            
+            const utter = new SpeechSynthesisUtterance(cleanText);
             const voices = synth.getVoices();
             utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
             utter.pitch = 1.0;
@@ -1233,7 +1411,7 @@
                     
                     const reasoningBox = document.createElement('div');
                     reasoningBox.className = 'reasoning-box';
-                    reasoningBox.innerHTML = `<strong>🧠 Chain of Thought:</strong>${reasoningText}`;
+                    reasoningBox.innerHTML = `<strong>🧠 Deep Chain of Thought:</strong>${reasoningText}`;
                     
                     reasoningPill.onclick = () => {
                         const knowledgeBox = msg.querySelector('.knowledge-box');
@@ -1321,9 +1499,24 @@
                 }
             }
             
-            const textNode = document.createElement('div');
-            textNode.innerText = text;
-            msg.appendChild(textNode);
+            const contentContainer = document.createElement('div');
+            
+            if (role === 'ai' && !isThinking) {
+                const parts = detectCodeBlocks(text);
+                parts.forEach(part => {
+                    if (part.type === 'code') {
+                        contentContainer.appendChild(createCodeBlock(part.language, part.content));
+                    } else {
+                        const textNode = document.createElement('div');
+                        textNode.innerText = part.content;
+                        contentContainer.appendChild(textNode);
+                    }
+                });
+            } else {
+                contentContainer.innerText = text;
+            }
+            
+            msg.appendChild(contentContainer);
             
             row.appendChild(msg);
             if (role === 'ai' && !isThinking) {
@@ -1403,7 +1596,7 @@
                 
                 modelLoaded = true;
                 document.getElementById('loading-overlay').style.display = 'none';
-                addMessage("Trapside is online. Knowledge retrieval and web search ready.", "ai");
+                addMessage("Trapside is online. Deep reasoning mode active. Knowledge retrieval and web search ready.", "ai");
                 document.getElementById('thinking-mode-btn').classList.add('active');
             } catch (e) { 
                 console.error(e);
@@ -1412,18 +1605,24 @@
             }
         }
         
-        function buildPrompt(userMessage, retrievedKnowledge = []) {
-            let prompt = `<|im_start|>system
-You are Trapside, a helpful AI assistant. Provide clear, accurate, and helpful responses.`;
+        function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
+            let prompt = `<|im_start|>system\nYou are Trapside, a helpful AI assistant. `;
             
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nContext from knowledge base:\n`;
-                retrievedKnowledge.forEach((kb) => {
-                    prompt += `${kb.content}\n\n`;
-                });
+            if (useDeepReasoning) {
+                prompt += `Use step-by-step logical reasoning to provide thorough, well-analyzed responses. Break down complex problems systematically.`;
+            } else {
+                prompt += `Provide clear, concise, and helpful responses.`;
             }
             
             prompt += `<|im_end|>\n`;
+            
+            if (retrievedKnowledge.length > 0) {
+                prompt += `<|im_start|>system\nRelevant context from knowledge base:\n`;
+                retrievedKnowledge.forEach((kb) => {
+                    prompt += `${kb.content}\n\n`;
+                });
+                prompt += `<|im_end|>\n`;
+            }
             
             conversationHistory.slice(-6).forEach(msg => {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
@@ -1438,40 +1637,59 @@ You are Trapside, a helpful AI assistant. Provide clear, accurate, and helpful r
             let webSearchData = { results: [], contents: [] };
             let retrievedKnowledge = [];
             
-            if (webSearchEnabled) {
-                updateThinkingMessage(loaderElement, "🌐 Searching web...");
-                webSearchData = await performWebSearch(userMessage);
-                await new Promise(resolve => setTimeout(resolve, 800));
-            }
-            
             updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
             retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
             
+            const isRelevant = isQueryRelevantToKnowledge(userMessage, retrievedKnowledge);
+            
+            if (!isRelevant) {
+                console.log("Knowledge not relevant, clearing results");
+                retrievedKnowledge = [];
+            } else {
+                console.log(`Using ${retrievedKnowledge.length} relevant knowledge chunks`);
+            }
+            
+            if (webSearchEnabled) {
+                updateThinkingMessage(loaderElement, "🌐 Searching web...");
+                webSearchData = await performWebSearch(userMessage);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
             let reasoningText = '';
-            if (thinkingModeEnabled && (retrievedKnowledge.length > 0 || webSearchData.contents.length > 0)) {
-                updateThinkingMessage(loaderElement, "🧠 Analyzing...");
+            if (thinkingModeEnabled) {
+                updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
                 
-                let thinkingContext = '';
+                let contextSummary = '';
                 if (retrievedKnowledge.length > 0) {
-                    thinkingContext += 'Knowledge: ' + retrievedKnowledge.map(k => k.content.substring(0, 100)).join(' ');
+                    contextSummary += '\nKnowledge available: ' + retrievedKnowledge.map(k => k.content.substring(0, 80)).join('; ');
+                }
+                if (webSearchData.contents.length > 0) {
+                    contextSummary += '\nWeb data available: ' + webSearchData.contents.map(w => w.title).join(', ');
                 }
                 
                 const thinkingPrompt = `<|im_start|>system
-Think step by step about this question.<|im_end|>
+You are an analytical reasoning engine. Think step-by-step about complex problems, break them down systematically, and consider multiple perspectives.<|im_end|>
 <|im_start|>user
-${userMessage}
-${thinkingContext}<|im_end|>
+Question: ${userMessage}${contextSummary}
+
+Think through this carefully step by step:<|im_end|>
 <|im_start|>assistant
-Let me think:`;
+Analysis:\n1.`;
                 
                 try {
                     abortController = new AbortController();
                     reasoningText = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 120,
-                        sampling: { temp: 0.5, top_k: 30, top_p: 0.8, repeat_penalty: 1.1 },
+                        nPredict: 200,
+                        sampling: { 
+                            temp: 0.4, 
+                            top_k: 30, 
+                            top_p: 0.75, 
+                            repeat_penalty: 1.2,
+                            min_p: 0.05
+                        },
                         signal: abortController.signal
                     });
-                    reasoningText = reasoningText.trim();
+                    reasoningText = '\n1.' + reasoningText.trim();
                 } catch (e) {
                     if (e.name !== 'AbortError') {
                         console.error('Reasoning error:', e);
@@ -1486,20 +1704,21 @@ Let me think:`;
             
             updateThinkingMessage(loaderElement, "✨ Generating answer...");
             
-            const prompt = buildPrompt(userMessage, retrievedKnowledge);
+            const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
             
             let finalAnswer = '';
             try {
                 abortController = new AbortController();
                 finalAnswer = await wllama.createCompletion(prompt, {
-                    nPredict: 400,
+                    nPredict: thinkingModeEnabled ? 500 : 350,
                     sampling: { 
-                        temp: 0.7, 
-                        top_k: 40, 
-                        top_p: 0.9, 
-                        repeat_penalty: 1.15,
-                        presence_penalty: 0.2,
-                        frequency_penalty: 0.2
+                        temp: thinkingModeEnabled ? 0.6 : 0.75, 
+                        top_k: thinkingModeEnabled ? 35 : 40, 
+                        top_p: thinkingModeEnabled ? 0.85 : 0.9, 
+                        repeat_penalty: 1.2,
+                        presence_penalty: 0.3,
+                        frequency_penalty: 0.3,
+                        min_p: 0.05
                     },
                     signal: abortController.signal
                 });
@@ -1519,7 +1738,7 @@ Let me think:`;
             return {
                 reasoning: reasoningText,
                 answer: finalAnswer,
-                knowledge: retrievedKnowledge,
+                knowledge: isRelevant ? retrievedKnowledge : [],
                 webResults: webSearchData.results
             };
         }
