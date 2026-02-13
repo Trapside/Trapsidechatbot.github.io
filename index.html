@@ -27,7 +27,7 @@
         .container { height: 100vh; display: flex; flex-direction: column; }
         
         .header { 
-            padding: 24px; 
+            padding: 20px 24px; 
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -36,11 +36,12 @@
             top: 0;
             left: 0;
             right: 0;
+            background: linear-gradient(180deg, rgba(2,1,10,0.95) 0%, rgba(2,1,10,0) 100%);
         }
 
         .brand { 
             font-weight: 900; 
-            font-size: 28px; 
+            font-size: 26px; 
             color: #fff;
             letter-spacing: 2px; 
             text-transform: uppercase; 
@@ -51,11 +52,11 @@
         .brand::after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            bottom: -6px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
+            width: 50px;
+            height: 2px;
             background: var(--accent);
             border-radius: 3px;
         }
@@ -67,8 +68,8 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
-            width: 50px; 
-            height: 50px;
+            width: 44px; 
+            height: 44px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -76,7 +77,7 @@
             color: #fff;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
         }
         
         .header-knowledge-btn:hover {
@@ -95,32 +96,32 @@
             flex-direction: column; 
             overflow-y: auto; 
             padding: 20px; 
-            gap: 20px; 
-            padding-bottom: 120px;
-            padding-top: 100px; 
+            gap: 16px; 
+            padding-bottom: 140px;
+            padding-top: 90px; 
         }
-        #chat-box { display: flex; flex-direction: column; gap: 16px; }
+        #chat-box { display: flex; flex-direction: column; gap: 14px; }
 
-        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
+        .message-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
 
         .message { 
-            max-width: 80%; 
-            padding: 16px 22px 42px 22px; 
-            border-radius: 24px; 
-            line-height: 1.6; 
-            font-size: 15px; 
+            max-width: 75%; 
+            padding: 14px 18px 38px 18px; 
+            border-radius: 20px; 
+            line-height: 1.5; 
+            font-size: 14.5px; 
             backdrop-filter: blur(15px); 
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
             background: var(--glass);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
             position: relative;
         }
 
         .user-message { 
-            background: rgba(0, 180, 255, 0.1); 
-            border-color: rgba(0, 180, 255, 0.3);
+            background: rgba(0, 180, 255, 0.12); 
+            border-color: rgba(0, 180, 255, 0.35);
             border-bottom-right-radius: 4px;
         }
 
@@ -129,7 +130,7 @@
         }
 
         .thinking { 
-            font-weight: bold;
+            font-weight: 600;
             color: var(--accent);
         }
         
@@ -138,28 +139,28 @@
         }
         
         @keyframes fadeInOut {
-            0%, 100% { opacity: 0.3; }
+            0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
         }
         
         .pill-container {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 6px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
         
         .pill-btn {
-            padding: 6px 14px;
-            border-radius: 20px;
+            padding: 5px 12px;
+            border-radius: 16px;
             border: none;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
         
         .reasoning-pill {
@@ -195,81 +196,48 @@
             transform: scale(1.05);
         }
         
-        .reasoning-box {
-            background: rgba(255, 165, 0, 0.1);
-            border: 1px solid rgba(255, 165, 0, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            color: #ffb84d;
+        .reasoning-box, .knowledge-box, .web-box {
+            border-radius: 14px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            font-size: 12px;
             font-style: italic;
+            max-height: 180px;
+            overflow-y: auto;
             display: none;
         }
         
-        .reasoning-box.expanded {
-            display: block;
-        }
-        
-        .reasoning-box strong {
-            color: #ffa500;
-            display: block;
-            margin-bottom: 6px;
+        .reasoning-box {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            color: #ffb84d;
         }
         
         .knowledge-box {
             background: rgba(0, 255, 150, 0.1);
             border: 1px solid rgba(0, 255, 150, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
             color: #5fffb8;
-            font-style: italic;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-        }
-        
-        .knowledge-box.expanded {
-            display: block;
-        }
-        
-        .knowledge-box strong {
-            color: #00ff96;
-            display: block;
-            margin-bottom: 6px;
         }
         
         .web-box {
             background: rgba(0, 180, 255, 0.1);
             border: 1px solid rgba(0, 180, 255, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
             color: #5dc8ff;
-            font-style: italic;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
         }
         
-        .web-box.expanded {
+        .reasoning-box.expanded, .knowledge-box.expanded, .web-box.expanded {
             display: block;
         }
         
-        .web-box strong {
-            color: #00b4ff;
-            display: block;
-            margin-bottom: 6px;
-        }
+        .reasoning-box strong { color: #ffa500; display: block; margin-bottom: 5px; }
+        .knowledge-box strong { color: #00ff96; display: block; margin-bottom: 5px; }
+        .web-box strong { color: #00b4ff; display: block; margin-bottom: 5px; }
         
         .web-source {
-            margin-top: 8px;
-            padding: 8px;
+            margin-top: 6px;
+            padding: 6px;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
+            border-radius: 6px;
         }
         
         .web-source a {
@@ -285,8 +253,8 @@
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--glass-border);
             color: #fff; 
-            width: 34px; 
-            height: 34px; 
+            width: 32px; 
+            height: 32px; 
             border-radius: 50%; 
             cursor: pointer; 
             display: flex; 
@@ -294,9 +262,9 @@
             justify-content: center; 
             transition: all 0.3s ease;
             position: absolute;
-            bottom: 10px; 
-            right: 10px; 
-            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
+            bottom: 8px; 
+            right: 8px; 
+            box-shadow: 0 0 8px rgba(0, 180, 255, 0.2);
             z-index: 5;
         }
         .speak-btn:hover {
@@ -305,69 +273,67 @@
         }
         .speak-btn.active { 
             background: var(--accent); 
-            box-shadow: 0 0 15px var(--accent);
+            box-shadow: 0 0 12px var(--accent);
             border-color: var(--accent);
         }
 
         .input-area { 
-            position: absolute; 
-            bottom: 30px; 
-            left: 0; 
-            right: 0;
-            padding: 0 20px; 
-            pointer-events: none;
+            position: fixed; 
+            bottom: 20px; 
+            left: 20px; 
+            right: 20px;
             display: flex;
             justify-content: center;
             align-items: flex-end; 
-            gap: 12px; 
-            max-width: 860px; 
+            gap: 10px; 
+            max-width: 800px; 
             margin: 0 auto;
         }
 
         .input-container { 
-            pointer-events: auto;
             display: flex; 
-            gap: 8px; 
+            gap: 6px; 
             flex: 1; 
-            padding: 10px 14px; 
-            border-radius: 40px;
+            padding: 8px 12px; 
+            border-radius: 28px;
             background: var(--glass);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
+            max-width: 600px;
         }
         
         .input-container:focus-within {
-            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
-            border-color: rgba(0, 180, 255, 0.4);
+            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.4);
+            border-color: rgba(0, 180, 255, 0.5);
         }
 
         .input-field { 
             flex: 1; 
             background: transparent; 
             border: none; 
-            padding: 10px 15px; 
+            padding: 8px 12px; 
             color: #fff; 
-            font-size: 16px; 
+            font-size: 14.5px; 
             outline: none; 
             resize: none;
-            max-height: 120px;
-            min-height: 24px;
-            line-height: 1.5;
+            max-height: 100px;
+            min-height: 20px;
+            line-height: 1.4;
         }
         
         .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.45);
             opacity: 1;
         }
 
         .web-search-btn {
             background: transparent;
             border: none;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -384,17 +350,17 @@
         }
 
         .web-search-btn.active {
-            background: rgba(0, 180, 255, 0.2);
+            background: rgba(0, 180, 255, 0.25);
             color: #00b4ff;
-            box-shadow: 0 0 10px rgba(0, 180, 255, 0.3);
+            box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);
         }
 
         .send-btn, .stop-btn { 
             background: var(--accent); 
             border: none; 
             border-radius: 50%; 
-            width: 44px; 
-            height: 44px; 
+            width: 40px; 
+            height: 40px; 
             color: #fff; 
             cursor: pointer; 
             transition: all 0.3s ease;
@@ -415,7 +381,6 @@
         }
 
         .thinking-mode-btn {
-            pointer-events: auto;
             background: var(--glass);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
@@ -429,7 +394,7 @@
             color: #fff;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             flex-shrink: 0;
         }
 
@@ -445,8 +410,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -459,32 +424,36 @@
         }
         
         .modal-content {
-            background: var(--glass);
+            background: rgba(13, 17, 39, 0.95);
             backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 30px;
-            max-width: 600px;
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 650px;
             width: 100%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
         }
         
         .modal-header {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             color: #00ff96;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .upload-area {
             border: 2px dashed var(--glass-border);
-            border-radius: 16px;
-            padding: 40px;
+            border-radius: 14px;
+            padding: 35px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         
         .upload-area:hover {
@@ -498,65 +467,83 @@
         }
         
         .knowledge-list {
-            margin-top: 20px;
+            margin-top: 18px;
         }
         
         .knowledge-item {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s ease;
+        }
+        
+        .knowledge-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.25);
         }
         
         .knowledge-category {
-            font-size: 11px;
+            font-size: 10px;
             color: #00b4ff;
             opacity: 0.8;
-            margin-top: 2px;
+            margin-top: 3px;
         }
         
         .delete-btn {
             background: #ff4d4d;
             border: none;
-            border-radius: 8px;
-            padding: 6px 12px;
+            border-radius: 6px;
+            padding: 5px 10px;
             color: white;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #ff3333;
+            transform: scale(1.05);
         }
         
         .close-modal {
             background: var(--accent);
             border: none;
-            border-radius: 12px;
-            padding: 12px 24px;
+            border-radius: 10px;
+            padding: 11px 22px;
             color: white;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 18px;
+            transition: all 0.2s ease;
+        }
+        
+        .close-modal:hover {
+            background: #0099dd;
+            transform: translateY(-1px);
         }
         
         .stats-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            background: rgba(0, 180, 255, 0.08);
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            border-radius: 10px;
             padding: 12px;
-            margin-bottom: 20px;
-            font-size: 13px;
+            margin-bottom: 18px;
+            font-size: 12.5px;
         }
         
         #file-input {
             display: none;
         }
 
-        .view::-webkit-scrollbar { width: 6px; }
+        .view::-webkit-scrollbar { width: 5px; }
         .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar { width: 5px; }
         .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
         .knowledge-box::-webkit-scrollbar { width: 4px; }
         .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
@@ -564,11 +551,12 @@
         .web-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
         @media (max-width: 768px) {
-            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-            .input-area { padding: 0 10px 20px 10px; gap: 8px; }
-            .thinking-mode-btn { width: 44px; height: 44px; }
-            .modal-content { padding: 20px; }
-            .header-knowledge-btn { width: 44px; height: 44px; right: 16px; }
+            .message { max-width: 88%; padding: 12px 16px 36px 16px; font-size: 14px; }
+            .input-area { left: 12px; right: 12px; bottom: 16px; gap: 8px; }
+            .input-container { max-width: none; }
+            .thinking-mode-btn { width: 46px; height: 46px; }
+            .modal-content { padding: 22px; }
+            .header-knowledge-btn { width: 40px; height: 40px; right: 16px; }
         }
     </style>
 </head>
@@ -581,7 +569,7 @@
         <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Deep reasoning..." rows="1"></textarea>
+                <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
                 <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
             </div>
@@ -591,17 +579,20 @@
     
     <div id="knowledge-modal" class="knowledge-modal">
         <div class="modal-content">
-            <div class="modal-header">📚 Knowledge Base</div>
+            <div class="modal-header">
+                <i class="fas fa-database"></i>
+                Knowledge Base
+            </div>
             <div class="stats-box" id="stats-box">
-                <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
-                <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
-                <strong>Files:</strong> <span id="total-files">0</span><br>
-                <strong>Online Info:</strong> <span id="online-info-count">0</span> sources
+                <strong>💾 Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
+                <strong>📦 Chunks:</strong> <span id="total-chunks">0</span><br>
+                <strong>📁 Files:</strong> <span id="total-files">0</span><br>
+                <strong>🌐 Online Sources:</strong> <span id="online-info-count">0</span>
             </div>
             <div class="upload-area" id="upload-area">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
-                <p>Drag & drop files here or click to upload</p>
-                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
+                <i class="fas fa-cloud-upload-alt" style="font-size: 42px; color: var(--accent); margin-bottom: 8px;"></i>
+                <p style="font-size: 14px;">Drag & drop files here or click to upload</p>
+                <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
             </div>
             <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
             <div class="knowledge-list" id="knowledge-list"></div>
@@ -636,6 +627,41 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
+        // =============== DEDUPLICATION FUNCTIONS ===============
+        
+        function calculateSimilarity(text1, text2) {
+            const words1 = new Set(text1.toLowerCase().split(/\s+/));
+            const words2 = new Set(text2.toLowerCase().split(/\s+/));
+            
+            const intersection = new Set([...words1].filter(x => words2.has(x)));
+            const union = new Set([...words1, ...words2]);
+            
+            return intersection.size / union.size; // Jaccard similarity
+        }
+        
+        async function isDuplicate(newContent, filename) {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            const sameSourceChunks = allChunks.filter(chunk => chunk.filename === filename);
+            
+            for (const chunk of sameSourceChunks) {
+                const similarity = calculateSimilarity(newContent, chunk.content);
+                if (similarity > 0.85) { // 85% similar = duplicate
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // =============== WEB SEARCH FUNCTIONS ===============
+        
         async function searchDuckDuckGo(query) {
             try {
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -698,11 +724,11 @@
             
             for (const result of searchResults) {
                 const content = await fetchWebContent(result.url);
-                if (content) {
+                if (content && content.length > 100) {
                     contents.push({
                         title: result.title,
                         url: result.url,
-                        content: content.substring(0, 2000),
+                        content: content.substring(0, 3000),
                         snippet: result.snippet
                     });
                     
@@ -714,9 +740,16 @@
         }
         
         async function saveWebContentToKnowledge(title, url, content) {
-            const chunks = smartChunk(content, 600, 100);
+            const chunks = smartChunk(content, 700, 100);
+            let savedCount = 0;
             
             for (const chunkText of chunks) {
+                // Check for duplicates
+                const duplicate = await isDuplicate(chunkText, `[WEB] ${title}`);
+                if (duplicate) {
+                    continue; // Skip duplicate chunks
+                }
+                
                 const { freq, total } = calculateWordFreq(chunkText);
                 const keywords = Object.keys(freq)
                     .sort((a, b) => freq[b] - freq[a])
@@ -732,10 +765,13 @@
                     category: 'online info',
                     sourceUrl: url
                 });
+                savedCount++;
             }
+            
+            console.log(`Saved ${savedCount} unique chunks from "${title}"`);
         }
 
-        function smartChunk(text, maxChunkSize = 600, overlap = 100) {
+        function smartChunk(text, maxChunkSize = 700, overlap = 100) {
             const chunks = [];
             const sections = text.split(/\n\n+/);
             let currentChunk = '';
@@ -744,7 +780,7 @@
                 if ((currentChunk + section).length < maxChunkSize) {
                     currentChunk += section + '\n\n';
                 } else {
-                    if (currentChunk.trim().length > 50) {
+                    if (currentChunk.trim().length > 100) {
                         chunks.push(currentChunk.trim());
                     }
                     
@@ -754,7 +790,7 @@
                 }
             }
             
-            if (currentChunk.trim().length > 50) {
+            if (currentChunk.trim().length > 100) {
                 chunks.push(currentChunk.trim());
             }
             
@@ -790,7 +826,7 @@
             return score;
         }
         
-        async function retrieveRelevantKnowledge(query, topK = 3) {
+        async function retrieveRelevantKnowledge(query, topK = 5) {
             if (totalDocuments === 0) return [];
             
             const queryLower = query.toLowerCase();
@@ -955,7 +991,7 @@
         
         async function processFile(file) {
             const text = await file.text();
-            const chunks = smartChunk(text);
+            const chunks = smartChunk(text, 700, 100);
             
             for (const chunkText of chunks) {
                 const { freq, total } = calculateWordFreq(chunkText);
@@ -979,7 +1015,7 @@
             const totalChunks = totalDocuments;
             const totalFiles = Object.keys(knowledgeIndex).length;
             
-            const avgChunkSize = 400;
+            const avgChunkSize = 450;
             const storageBytes = totalChunks * avgChunkSize;
             const storageKB = (storageBytes / 1024).toFixed(1);
             
@@ -1004,9 +1040,9 @@
                 
                 item.innerHTML = `
                     <div>
-                        <strong>${filename}</strong>
+                        <strong style="font-size: 13px;">${filename}</strong>
                         ${categoryBadge}
-                        <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
+                        <div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
                     </div>
                     <button class="delete-btn" onclick="deleteKnowledgeFile('${filename.replace(/'/g, "\\'")}')">Delete</button>
                 `;
@@ -1014,7 +1050,7 @@
             });
             
             if (Object.keys(knowledgeIndex).length === 0) {
-                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
+                list.innerHTML = '<p style="opacity: 0.6; text-align: center; font-size: 13px;">No knowledge uploaded yet</p>';
             }
         }
         
@@ -1137,9 +1173,9 @@
                     
                     const knowledgeBox = document.createElement('div');
                     knowledgeBox.className = 'knowledge-box';
-                    let knowledgeHTML = '<strong>📚 Retrieved Knowledge (TF-IDF Scored):</strong><br>';
+                    let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong><br>';
                     knowledgeResults.forEach((kb, i) => {
-                        knowledgeHTML += `<div style="margin-top: 8px;"><strong style="color: #00ff96;">${kb.filename} (score: ${kb.score})</strong><br>${kb.content.substring(0, 200)}...</div>`;
+                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">${kb.filename}</strong><br>${kb.content.substring(0, 180)}...</div>`;
                     });
                     knowledgeBox.innerHTML = knowledgeHTML;
                     
@@ -1161,7 +1197,7 @@
                 if (webResults && webResults.length > 0) {
                     const webPill = document.createElement('button');
                     webPill.className = 'pill-btn web-pill';
-                    webPill.innerHTML = '<i class="fas fa-globe"></i> Web Sources';
+                    webPill.innerHTML = '<i class="fas fa-globe"></i> Sources';
                     
                     if (!pillContainer.parentNode) {
                         msg.appendChild(pillContainer);
@@ -1170,12 +1206,11 @@
                     
                     const webBox = document.createElement('div');
                     webBox.className = 'web-box';
-                    let webHTML = '<strong>🌐 Web Sources (Saved to Knowledge Base):</strong><br>';
+                    let webHTML = '<strong>🌐 Web Sources:</strong><br>';
                     webResults.forEach((source, i) => {
                         webHTML += `<div class="web-source">
-                            <strong>${source.title}</strong><br>
-                            <a href="${source.url}" target="_blank">${source.url}</a><br>
-                            <div style="margin-top: 4px; font-size: 12px;">${source.snippet}</div>
+                            <strong style="font-size: 11.5px;">${source.title}</strong><br>
+                            <a href="${source.url}" target="_blank" style="font-size: 10.5px;">${source.url}</a>
                         </div>`;
                     });
                     webBox.innerHTML = webHTML;
@@ -1229,9 +1264,7 @@
             sendBtn.onclick = handleChat;
             document.getElementById('user-input').disabled = false;
             document.getElementById('thinking-mode-btn').disabled = false;
-            document.getElementById('thinking-mode-btn').style.opacity = '1';
             document.getElementById('web-search-btn').disabled = false;
-            document.getElementById('web-search-btn').style.opacity = '1';
         }
         
         function setupStopButton() {
@@ -1265,32 +1298,41 @@
             try {
                 await initDB();
                 await wllama.loadModelFromHF(model.repo, model.file);
-                addMessage("Trapside is online with TF-IDF knowledge retrieval and web search capability.", "ai");
+                addMessage("Trapside is online. Knowledge retrieval and web search ready.", "ai");
                 document.getElementById('thinking-mode-btn').classList.add('active');
             } catch (e) { 
                 console.error(e);
-                addMessage("System Offline. Error: " + e.message, "ai"); 
+                addMessage("System error: " + e.message, "ai"); 
             }
         }
         
         function buildPrompt(userMessage, retrievedKnowledge = []) {
-            let systemPrompt = `You are Trapside, an advanced AI assistant. You provide clear, helpful, and accurate responses.`;
-            
-            let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
+            let prompt = `<|im_start|>system
+You are Trapside, a helpful AI assistant. Use the knowledge provided to give accurate answers.
+<|im_end|>
+`;
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `<|im_start|>system\nKnowledge Base:\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `[${kb.filename}]: ${kb.content}\n`;
+                prompt += `<|im_start|>system
+Context from knowledge base:
+`;
+                retrievedKnowledge.forEach((kb) => {
+                    prompt += `${kb.content}\n\n`;
                 });
-                prompt += `<|im_end|>\n`;
+                prompt += `<|im_end|>
+`;
             }
             
-            for (const msg of conversationHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
+            conversationHistory.slice(-6).forEach(msg => {
+                prompt += `<|im_start|>${msg.role}
+${msg.content}<|im_end|>
+`;
+            });
             
-            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            prompt += `<|im_start|>user
+${userMessage}<|im_end|>
+<|im_start|>assistant
+`;
             
             return prompt;
         }
@@ -1299,41 +1341,39 @@
             let webSearchData = { results: [], contents: [] };
             let retrievedKnowledge = [];
             
-            // STEP 1: Web Search (if enabled)
             if (webSearchEnabled) {
-                updateThinkingMessage(loaderElement, "🌐 Searching the web...");
+                updateThinkingMessage(loaderElement, "🌐 Searching web...");
                 webSearchData = await performWebSearch(userMessage);
-                
-                // Wait for knowledge to be saved
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 800));
             }
             
-            // STEP 2: Retrieve from Knowledge Base
-            updateThinkingMessage(loaderElement, "📚 Searching knowledge base...");
-            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
+            updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
+            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
             
-            // STEP 3: Thinking (if enabled)
             let reasoningText = '';
-            if (thinkingModeEnabled) {
-                updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
+            if (thinkingModeEnabled && retrievedKnowledge.length > 0) {
+                updateThinkingMessage(loaderElement, "🧠 Analyzing...");
                 
-                const thinkingPrompt = `<|im_start|>system\nThink step-by-step about this question.<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think:\n`;
+                const thinkingPrompt = `<|im_start|>system
+Analyze this question step by step.<|im_end|>
+<|im_start|>user
+${userMessage}<|im_end|>
+<|im_start|>assistant
+Analysis:`;
                 
                 try {
                     abortController = new AbortController();
                     reasoningText = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 200,
-                        sampling: { temp: 0.7, top_k: 40, top_p: 0.9 },
+                        nPredict: 150,
+                        sampling: { temp: 0.6, top_k: 40, top_p: 0.85, repeat_penalty: 1.1 },
                         signal: abortController.signal
                     });
                     reasoningText = reasoningText.trim();
                 } catch (e) {
                     console.error('Reasoning error:', e);
-                    reasoningText = '';
                 }
             }
             
-            // STEP 4: Generate Final Answer
             updateThinkingMessage(loaderElement, "✨ Generating answer...");
             
             const prompt = buildPrompt(userMessage, retrievedKnowledge);
@@ -1342,14 +1382,25 @@
             try {
                 abortController = new AbortController();
                 finalAnswer = await wllama.createCompletion(prompt, {
-                    nPredict: 300,
-                    sampling: { temp: 0.7, top_k: 40, top_p: 0.9 },
+                    nPredict: 400,
+                    sampling: { 
+                        temp: 0.7, 
+                        top_k: 40, 
+                        top_p: 0.9, 
+                        repeat_penalty: 1.15,
+                        presence_penalty: 0.2,
+                        frequency_penalty: 0.2
+                    },
                     signal: abortController.signal
                 });
                 finalAnswer = finalAnswer.trim();
+                
+                if (!finalAnswer || finalAnswer.length < 10) {
+                    finalAnswer = "I understand your question, but I need more information to provide a complete answer. Could you please rephrase or provide more details?";
+                }
             } catch (e) {
                 console.error('Generation error:', e);
-                finalAnswer = "I apologize, but I encountered an error generating a response. Please try again.";
+                finalAnswer = "I encountered an issue generating a response. Please try rephrasing your question.";
             }
             
             return {
@@ -1373,7 +1424,7 @@
             loader.className = 'message-row ai-row';
             const loaderMsg = document.createElement('div');
             loaderMsg.className = 'message ai-message thinking';
-            loaderMsg.innerHTML = '<span class="thinking-steps">Thinking...</span>';
+            loaderMsg.innerHTML = '<span class="thinking-steps">Processing...</span>';
             loader.appendChild(loaderMsg);
             document.getElementById('chat-box').appendChild(loader);
             document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
@@ -1394,13 +1445,12 @@
                 }
                 
                 loader.remove();
-                
                 addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
                 
             } catch (e) {
                 console.error(e);
                 loader.remove();
-                addMessage("I apologize, but I encountered an error. Please try again.", 'ai');
+                addMessage("An error occurred. Please try again.", 'ai');
             } finally { 
                 resetSendButton(); 
             }
