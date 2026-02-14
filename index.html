@@ -838,11 +838,10 @@
                 contentWords.forEach((cWord, idx) => {
                     if (cWord.includes(qWord) || qWord.includes(cWord)) {
                         positions.push(idx);
-                        score += 10; // Word match
+                        score += 10;
                     }
                 });
                 
-                // Bonus for words appearing close together
                 if (positions.length > 1) {
                     for (let i = 1; i < positions.length; i++) {
                         const distance = positions[i] - positions[i-1];
@@ -1119,9 +1118,7 @@
                 
                 console.log(`Searching through ${allChunks.length} total chunks`);
                 
-                // Score all chunks using combined TF-IDF and semantic scoring
                 const scored = allChunks.map(chunk => {
-                    // TF-IDF score
                     const tfidfScore = calculateTFIDF(
                         queryKeyPhrases,
                         chunk.wordFreq || {},
@@ -1130,24 +1127,20 @@
                         totalDocuments
                     );
                     
-                    // Semantic score (phrase matching, proximity)
                     const semanticScore = calculateSemanticScore(query, chunk.content);
-                    
-                    // Combined score (semantic weighted higher)
                     const combinedScore = (semanticScore * 3) + tfidfScore;
                     
                     return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
                 });
                 
-                // Filter and sort by combined score
                 const topResults = scored
-                    .filter(chunk => chunk.score > 1) // Lower threshold for better recall
+                    .filter(chunk => chunk.score > 0.5)
                     .sort((a, b) => b.score - a.score)
                     .slice(0, topK);
                 
                 console.log(`Retrieved ${topResults.length} relevant chunks:`);
                 topResults.forEach((chunk, i) => {
-                    console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} (TF-IDF: ${chunk.tfidfScore.toFixed(2)}, Semantic: ${chunk.semanticScore.toFixed(2)}) - ${chunk.filename}`);
+                    console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} - ${chunk.filename} - "${chunk.content.substring(0, 50)}..."`);
                 });
                 
                 return topResults.map(chunk => ({
@@ -1651,25 +1644,25 @@
         }
         
         function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
-            let prompt = `<|im_start|>system\nYou are Trapside, a helpful AI assistant. `;
+            let prompt = `<|im_start|>system\nYou are Trapside, a helpful and knowledgeable AI assistant. `;
             
             if (useDeepReasoning) {
-                prompt += `Use step-by-step logical reasoning to provide thorough, well-analyzed responses. Break down complex problems systematically.`;
-            } else {
-                prompt += `Provide clear, concise, and helpful responses.`;
+                prompt += `Use careful step-by-step reasoning. `;
             }
             
+            prompt += `Be direct and helpful.`;
+            
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nIMPORTANT: Use the following context from the knowledge base to answer the question accurately. Base your answer on this information:\n\n`;
+                prompt += `\n\nContext:\n`;
                 retrievedKnowledge.forEach((kb, idx) => {
-                    prompt += `[Source ${idx+1}: ${kb.filename}]\n${kb.content}\n\n`;
+                    prompt += `[${idx+1}] ${kb.content}\n\n`;
                 });
-                prompt += `Answer based on the context above.`;
+                prompt += `Use this context to answer accurately.`;
             }
             
             prompt += `<|im_end|>\n`;
             
-            conversationHistory.slice(-6).forEach(msg => {
+            conversationHistory.slice(-4).forEach(msg => {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             });
             
@@ -1692,37 +1685,21 @@
             }
             
             let reasoningText = '';
-            if (thinkingModeEnabled) {
+            if (thinkingModeEnabled && retrievedKnowledge.length > 0) {
                 updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
                 
-                let contextSummary = '';
-                if (retrievedKnowledge.length > 0) {
-                    contextSummary += '\n\nAvailable knowledge:\n';
-                    retrievedKnowledge.forEach((kb, i) => {
-                        contextSummary += `${i+1}. ${kb.content.substring(0, 150)}...\n`;
-                    });
-                }
+                let contextSummary = '\n\nContext:\n';
+                retrievedKnowledge.forEach((kb, i) => {
+                    contextSummary += `${i+1}. ${kb.content.substring(0, 100)}...\n`;
+                });
                 
-                const thinkingPrompt = `<|im_start|>system
-You are an analytical reasoning engine. Think step-by-step about complex problems, break them down systematically, and consider multiple perspectives.<|im_end|>
-<|im_start|>user
-Question: ${userMessage}${contextSummary}
-
-Think through this carefully step by step:<|im_end|>
-<|im_start|>assistant
-Analysis:\n1.`;
+                const thinkingPrompt = `<|im_start|>system\nAnalyze step-by-step.<|im_end|>\n<|im_start|>user\n${userMessage}${contextSummary}\n\nThink carefully:<|im_end|>\n<|im_start|>assistant\n1.`;
                 
                 try {
                     abortController = new AbortController();
                     reasoningText = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 200,
-                        sampling: { 
-                            temp: 0.4, 
-                            top_k: 30, 
-                            top_p: 0.75, 
-                            repeat_penalty: 1.2,
-                            min_p: 0.05
-                        },
+                        nPredict: 180,
+                        sampling: { temp: 0.5, top_k: 30, top_p: 0.8, repeat_penalty: 1.15 },
                         signal: abortController.signal
                     });
                     reasoningText = '\n1.' + reasoningText.trim();
@@ -1742,7 +1719,7 @@ Analysis:\n1.`;
             
             const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
             
-            console.log('=== PROMPT SENT TO MODEL ===');
+            console.log('=== FULL PROMPT ===');
             console.log(prompt);
             console.log('=== END PROMPT ===');
             
@@ -1750,29 +1727,44 @@ Analysis:\n1.`;
             try {
                 abortController = new AbortController();
                 finalAnswer = await wllama.createCompletion(prompt, {
-                    nPredict: thinkingModeEnabled ? 500 : 350,
+                    nPredict: 400,
                     sampling: { 
-                        temp: thinkingModeEnabled ? 0.6 : 0.75, 
-                        top_k: thinkingModeEnabled ? 35 : 40, 
-                        top_p: thinkingModeEnabled ? 0.85 : 0.9, 
-                        repeat_penalty: 1.2,
-                        presence_penalty: 0.3,
-                        frequency_penalty: 0.3,
+                        temp: 0.75, 
+                        top_k: 40, 
+                        top_p: 0.9, 
+                        repeat_penalty: 1.18,
                         min_p: 0.05
                     },
                     signal: abortController.signal
                 });
+                
                 finalAnswer = finalAnswer.trim();
                 
-                if (!finalAnswer || finalAnswer.length < 10) {
-                    finalAnswer = "I understand your question, but I need more information to provide a complete answer. Could you please rephrase or provide more details?";
+                console.log('=== RAW MODEL OUTPUT ===');
+                console.log(finalAnswer);
+                console.log('=== END OUTPUT ===');
+                
+                // Check for empty or very short responses
+                if (!finalAnswer || finalAnswer.length < 5) {
+                    console.error('Model returned empty/short response');
+                    finalAnswer = "I can help with that. Could you provide more details or rephrase your question?";
                 }
+                
+                // Remove any incomplete sentences at the end
+                if (finalAnswer.length > 20 && !finalAnswer.match(/[.!?]$/)) {
+                    const lastComplete = finalAnswer.lastIndexOf('.');
+                    if (lastComplete > finalAnswer.length / 2) {
+                        finalAnswer = finalAnswer.substring(0, lastComplete + 1);
+                    }
+                }
+                
             } catch (e) {
                 if (e.name === 'AbortError') {
                     throw new Error('Generation cancelled');
                 }
                 console.error('Generation error:', e);
-                finalAnswer = "I encountered an issue generating a response. Please try rephrasing your question.";
+                console.error('Error stack:', e.stack);
+                finalAnswer = "I'm having trouble generating a response. This might be due to the model processing. Please try asking in a different way.";
             }
             
             return {
@@ -1832,12 +1824,12 @@ Analysis:\n1.`;
                 addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
                 
             } catch (e) {
-                console.error(e);
+                console.error('Chat error:', e);
                 loader.remove();
                 if (e.message === 'Generation cancelled') {
                     addMessage("Response generation was cancelled.", 'ai');
                 } else {
-                    addMessage("An error occurred. Please try again.", 'ai');
+                    addMessage("Something went wrong. Please try again with a simpler question.", 'ai');
                 }
             } finally { 
                 resetSendButton(); 
