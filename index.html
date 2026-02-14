@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,657 +14,661 @@
             --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--liquid-bg);
-            background-attachment: fixed;
-            color: #fff; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
+```
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body { 
+        font-family: 'Inter', -apple-system, sans-serif; 
+        background: var(--liquid-bg);
+        background-attachment: fixed;
+        color: #fff; 
+        height: 100vh; 
+        overflow: hidden; 
+    }
 
-        .container { height: 100vh; display: flex; flex-direction: column; }
-        
-        .header { 
-            padding: 20px 24px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            z-index: 10;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(180deg, rgba(2,1,10,0.95) 0%, rgba(2,1,10,0) 100%);
-        }
+    .container { height: 100vh; display: flex; flex-direction: column; }
+    
+    .header { 
+        padding: 20px 24px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center;
+        z-index: 10;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, rgba(2,1,10,0.95) 0%, rgba(2,1,10,0) 100%);
+    }
 
-        .brand { 
-            font-weight: 900; 
-            font-size: 26px; 
-            color: #fff;
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
-            position: relative;
-        }
-        
-        .brand::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 2px;
-            background: var(--accent);
-            border-radius: 3px;
-        }
-        
-        .header-knowledge-btn {
-            position: absolute;
-            right: 24px;
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            width: 44px; 
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-        }
-        
-        .header-knowledge-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .header-knowledge-btn.active {
-            background: #00ff96;
-            box-shadow: 0 0 20px #00ff96;
-            border-color: #00ff96;
-            color: #000;
-        }
+    .brand { 
+        font-weight: 900; 
+        font-size: 26px; 
+        color: #fff;
+        letter-spacing: 2px; 
+        text-transform: uppercase; 
+        filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+        position: relative;
+    }
+    
+    .brand::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 2px;
+        background: var(--accent);
+        border-radius: 3px;
+    }
+    
+    .header-knowledge-btn {
+        position: absolute;
+        right: 24px;
+        background: var(--glass);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border);
+        width: 44px; 
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .header-knowledge-btn:hover {
+        transform: scale(1.05);
+    }
+    
+    .header-knowledge-btn.active {
+        background: #00ff96;
+        box-shadow: 0 0 20px #00ff96;
+        border-color: #00ff96;
+        color: #000;
+    }
 
-        .view { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            overflow-y: auto; 
-            padding: 20px; 
-            gap: 16px; 
-            padding-bottom: 140px;
-            padding-top: 90px; 
-        }
-        #chat-box { display: flex; flex-direction: column; gap: 14px; }
+    .view { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        overflow-y: auto; 
+        padding: 20px; 
+        gap: 16px; 
+        padding-bottom: 140px;
+        padding-top: 90px; 
+    }
+    #chat-box { display: flex; flex-direction: column; gap: 14px; }
 
-        .message-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; }
-        .user-row { flex-direction: row-reverse; }
+    .message-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; }
+    .user-row { flex-direction: row-reverse; }
 
-        .message { 
-            max-width: 75%; 
-            padding: 14px 18px 38px 18px; 
-            border-radius: 20px; 
-            line-height: 1.5; 
-            font-size: 14.5px; 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            background: var(--glass);
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
+    .message { 
+        max-width: 75%; 
+        padding: 14px 18px 38px 18px; 
+        border-radius: 20px; 
+        line-height: 1.5; 
+        font-size: 14.5px; 
+        backdrop-filter: blur(15px); 
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border);
+        background: var(--glass);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        position: relative;
+        word-wrap: break-word;
+    }
 
-        .user-message { 
-            background: rgba(0, 180, 255, 0.12); 
-            border-color: rgba(0, 180, 255, 0.35);
-            border-bottom-right-radius: 4px;
-        }
+    .user-message { 
+        background: rgba(0, 180, 255, 0.12); 
+        border-color: rgba(0, 180, 255, 0.35);
+        border-bottom-right-radius: 4px;
+    }
 
-        .ai-message { 
-            border-bottom-left-radius: 4px; 
-        }
+    .ai-message { 
+        border-bottom-left-radius: 4px; 
+    }
 
-        .thinking { 
-            font-weight: 600;
-            color: var(--accent);
-        }
-        
-        .thinking-steps {
-            animation: fadeInOut 2s infinite ease-in-out;
-        }
-        
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
-        }
-        
-        .pill-container {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .pill-btn {
-            padding: 5px 12px;
-            border-radius: 16px;
-            border: none;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .reasoning-pill {
-            background: rgba(255, 165, 0, 0.2);
-            border: 1px solid rgba(255, 165, 0, 0.4);
-            color: #ffa500;
-        }
-        
-        .reasoning-pill:hover {
-            background: rgba(255, 165, 0, 0.3);
-            transform: scale(1.05);
-        }
-        
-        .knowledge-pill {
-            background: rgba(0, 255, 150, 0.2);
-            border: 1px solid rgba(0, 255, 150, 0.4);
-            color: #00ff96;
-        }
-        
-        .knowledge-pill:hover {
-            background: rgba(0, 255, 150, 0.3);
-            transform: scale(1.05);
-        }
-        
-        .web-pill {
-            background: rgba(0, 180, 255, 0.2);
-            border: 1px solid rgba(0, 180, 255, 0.4);
-            color: #00b4ff;
-        }
-        
-        .web-pill:hover {
-            background: rgba(0, 180, 255, 0.3);
-            transform: scale(1.05);
-        }
-        
-        .reasoning-box, .knowledge-box, .web-box {
-            border-radius: 14px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            font-style: italic;
-            max-height: 180px;
-            overflow-y: auto;
-            display: none;
-        }
-        
-        .reasoning-box {
-            background: rgba(255, 165, 0, 0.1);
-            border: 1px solid rgba(255, 165, 0, 0.3);
-            color: #ffb84d;
-        }
-        
-        .knowledge-box {
-            background: rgba(0, 255, 150, 0.1);
-            border: 1px solid rgba(0, 255, 150, 0.3);
-            color: #5fffb8;
-        }
-        
-        .web-box {
-            background: rgba(0, 180, 255, 0.1);
-            border: 1px solid rgba(0, 180, 255, 0.3);
-            color: #5dc8ff;
-        }
-        
-        .reasoning-box.expanded, .knowledge-box.expanded, .web-box.expanded {
-            display: block;
-        }
-        
-        .reasoning-box strong { color: #ffa500; display: block; margin-bottom: 5px; }
-        .knowledge-box strong { color: #00ff96; display: block; margin-bottom: 5px; }
-        .web-box strong { color: #00b4ff; display: block; margin-bottom: 5px; }
-        
-        .web-source {
-            margin-top: 6px;
-            padding: 6px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 6px;
-        }
-        
-        .web-source a {
-            color: #00b4ff;
-            text-decoration: none;
-        }
-        
-        .web-source a:hover {
-            text-decoration: underline;
-        }
+    .thinking { 
+        font-weight: 600;
+        color: var(--accent);
+    }
+    
+    .thinking-steps {
+        animation: fadeInOut 2s infinite ease-in-out;
+    }
+    
+    @keyframes fadeInOut {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; }
+    }
+    
+    .pill-container {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .pill-btn {
+        padding: 5px 12px;
+        border-radius: 16px;
+        border: none;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .reasoning-pill {
+        background: rgba(255, 165, 0, 0.2);
+        border: 1px solid rgba(255, 165, 0, 0.4);
+        color: #ffa500;
+    }
+    
+    .reasoning-pill:hover {
+        background: rgba(255, 165, 0, 0.3);
+        transform: scale(1.05);
+    }
+    
+    .knowledge-pill {
+        background: rgba(0, 255, 150, 0.2);
+        border: 1px solid rgba(0, 255, 150, 0.4);
+        color: #00ff96;
+    }
+    
+    .knowledge-pill:hover {
+        background: rgba(0, 255, 150, 0.3);
+        transform: scale(1.05);
+    }
+    
+    .web-pill {
+        background: rgba(0, 180, 255, 0.2);
+        border: 1px solid rgba(0, 180, 255, 0.4);
+        color: #00b4ff;
+    }
+    
+    .web-pill:hover {
+        background: rgba(0, 180, 255, 0.3);
+        transform: scale(1.05);
+    }
+    
+    .reasoning-box, .knowledge-box, .web-box {
+        border-radius: 14px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        font-style: italic;
+        max-height: 180px;
+        overflow-y: auto;
+        display: none;
+    }
+    
+    .reasoning-box {
+        background: rgba(255, 165, 0, 0.1);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        color: #ffb84d;
+    }
+    
+    .knowledge-box {
+        background: rgba(0, 255, 150, 0.1);
+        border: 1px solid rgba(0, 255, 150, 0.3);
+        color: #5fffb8;
+    }
+    
+    .web-box {
+        background: rgba(0, 180, 255, 0.1);
+        border: 1px solid rgba(0, 180, 255, 0.3);
+        color: #5dc8ff;
+    }
+    
+    .reasoning-box.expanded, .knowledge-box.expanded, .web-box.expanded {
+        display: block;
+    }
+    
+    .reasoning-box strong { color: #ffa500; display: block; margin-bottom: 5px; }
+    .knowledge-box strong { color: #00ff96; display: block; margin-bottom: 5px; }
+    .web-box strong { color: #00b4ff; display: block; margin-bottom: 5px; }
+    
+    .web-source {
+        margin-top: 6px;
+        padding: 6px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+    }
+    
+    .web-source a {
+        color: #00b4ff;
+        text-decoration: none;
+    }
+    
+    .web-source a:hover {
+        text-decoration: underline;
+    }
 
-        .code-block {
-            position: relative;
-            background: #000;
-            border: 1px solid rgba(0, 180, 255, 0.3);
-            border-radius: 8px;
-            margin: 10px 0;
-            overflow: hidden;
-        }
+    .code-block {
+        position: relative;
+        background: #000;
+        border: 1px solid rgba(0, 180, 255, 0.3);
+        border-radius: 8px;
+        margin: 10px 0;
+        overflow: hidden;
+    }
 
-        .code-header {
-            background: rgba(0, 180, 255, 0.1);
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(0, 180, 255, 0.3);
-        }
+    .code-header {
+        background: rgba(0, 180, 255, 0.1);
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 180, 255, 0.3);
+    }
 
-        .code-language {
-            font-size: 11px;
-            color: var(--accent);
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+    .code-language {
+        font-size: 11px;
+        color: var(--accent);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
 
-        .copy-code-btn {
-            background: rgba(0, 180, 255, 0.2);
-            border: 1px solid rgba(0, 180, 255, 0.4);
-            color: var(--accent);
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+    .copy-code-btn {
+        background: rgba(0, 180, 255, 0.2);
+        border: 1px solid rgba(0, 180, 255, 0.4);
+        color: var(--accent);
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
 
-        .copy-code-btn:hover {
-            background: rgba(0, 180, 255, 0.3);
-            transform: scale(1.05);
-        }
+    .copy-code-btn:hover {
+        background: rgba(0, 180, 255, 0.3);
+        transform: scale(1.05);
+    }
 
-        .copy-code-btn.copied {
-            background: rgba(0, 255, 150, 0.2);
-            border-color: rgba(0, 255, 150, 0.4);
-            color: #00ff96;
-        }
+    .copy-code-btn.copied {
+        background: rgba(0, 255, 150, 0.2);
+        border-color: rgba(0, 255, 150, 0.4);
+        color: #00ff96;
+    }
 
-        .code-content {
-            padding: 12px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #e0e0e0;
-        }
+    .code-content {
+        padding: 12px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #e0e0e0;
+    }
 
-        .code-content::-webkit-scrollbar {
-            height: 6px;
-        }
+    .code-content::-webkit-scrollbar {
+        height: 6px;
+    }
 
-        .code-content::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 3px;
-        }
+    .code-content::-webkit-scrollbar-thumb {
+        background: var(--accent);
+        border-radius: 3px;
+    }
 
-        .speak-btn { 
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--glass-border);
-            color: #fff; 
-            width: 32px; 
-            height: 32px; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.3s ease;
-            position: absolute;
-            bottom: 8px; 
-            right: 8px; 
-            box-shadow: 0 0 8px rgba(0, 180, 255, 0.2);
-            z-index: 5;
-        }
-        .speak-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: scale(1.05);
-        }
-        .speak-btn.active { 
-            background: var(--accent); 
-            box-shadow: 0 0 12px var(--accent);
-            border-color: var(--accent);
-        }
+    .speak-btn { 
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--glass-border);
+        color: #fff; 
+        width: 32px; 
+        height: 32px; 
+        border-radius: 50%; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        transition: all 0.3s ease;
+        position: absolute;
+        bottom: 8px; 
+        right: 8px; 
+        box-shadow: 0 0 8px rgba(0, 180, 255, 0.2);
+        z-index: 5;
+    }
+    .speak-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        transform: scale(1.05);
+    }
+    .speak-btn.active { 
+        background: var(--accent); 
+        box-shadow: 0 0 12px var(--accent);
+        border-color: var(--accent);
+    }
 
-        .input-area { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 20px; 
-            right: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end; 
-            gap: 10px; 
-            max-width: 800px; 
-            margin: 0 auto;
-        }
+    .input-area { 
+        position: fixed; 
+        bottom: 20px; 
+        left: 20px; 
+        right: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end; 
+        gap: 10px; 
+        max-width: 800px; 
+        margin: 0 auto;
+    }
 
-        .input-container { 
-            display: flex; 
-            gap: 6px; 
-            flex: 1; 
-            padding: 8px 12px; 
-            border-radius: 28px;
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
-            max-width: 600px;
-        }
-        
-        .input-container:focus-within {
-            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.4);
-            border-color: rgba(0, 180, 255, 0.5);
-        }
+    .input-container { 
+        display: flex; 
+        gap: 6px; 
+        flex: 1; 
+        padding: 8px 12px; 
+        border-radius: 28px;
+        background: var(--glass);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        transition: all 0.3s ease;
+        max-width: 600px;
+    }
+    
+    .input-container:focus-within {
+        box-shadow: 0 10px 50px rgba(0, 180, 255, 0.4);
+        border-color: rgba(0, 180, 255, 0.5);
+    }
 
-        .input-field { 
-            flex: 1; 
-            background: transparent; 
-            border: none; 
-            padding: 8px 12px; 
-            color: #fff; 
-            font-size: 14.5px; 
-            outline: none; 
-            resize: none;
-            max-height: 100px;
-            min-height: 20px;
-            line-height: 1.4;
-        }
-        
-        .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.45);
-            opacity: 1;
-        }
+    .input-field { 
+        flex: 1; 
+        background: transparent; 
+        border: none; 
+        padding: 8px 12px; 
+        color: #fff; 
+        font-size: 14.5px; 
+        outline: none; 
+        resize: none;
+        max-height: 100px;
+        min-height: 20px;
+        line-height: 1.4;
+    }
+    
+    .input-field::placeholder {
+        color: rgba(255, 255, 255, 0.45);
+        opacity: 1;
+    }
 
-        .web-search-btn {
-            background: transparent;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
+    .web-search-btn {
+        background: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
 
-        .web-search-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
+    .web-search-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
 
-        .web-search-btn.active {
-            background: rgba(0, 180, 255, 0.25);
-            color: #00b4ff;
-            box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);
-        }
+    .web-search-btn.active {
+        background: rgba(0, 180, 255, 0.25);
+        color: #00b4ff;
+        box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);
+    }
 
-        .send-btn, .stop-btn { 
-            background: var(--accent); 
-            border: none; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            color: #fff; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        
-        .send-btn:disabled { 
-            opacity: 0.3; 
-            cursor: not-allowed;
-        }
-        
-        .stop-btn {
-            background: #ff4d4d;
-            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
-        }
+    .send-btn, .stop-btn { 
+        background: var(--accent); 
+        border: none; 
+        border-radius: 50%; 
+        width: 40px; 
+        height: 40px; 
+        color: #fff; 
+        cursor: pointer; 
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .send-btn:disabled { 
+        opacity: 0.3; 
+        cursor: not-allowed;
+    }
+    
+    .stop-btn {
+        background: #ff4d4d;
+        box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+    }
 
-        .thinking-mode-btn {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            width: 50px; 
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            flex-shrink: 0;
-        }
+    .thinking-mode-btn {
+        background: var(--glass);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border);
+        width: 50px; 
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        flex-shrink: 0;
+    }
 
-        .thinking-mode-btn.active {
-            background: #ffa500;
-            box-shadow: 0 0 20px #ffa500;
-            border-color: #ffa500;
-        }
-        
-        .knowledge-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(12px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        
-        .knowledge-modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: rgba(13, 17, 39, 0.95);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 28px;
-            max-width: 650px;
-            width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-        }
-        
-        .modal-header {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 18px;
-            color: #00ff96;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .upload-area {
-            border: 2px dashed var(--glass-border);
-            border-radius: 14px;
-            padding: 35px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 18px;
-        }
-        
-        .upload-area:hover {
-            border-color: var(--accent);
-            background: rgba(0, 180, 255, 0.05);
-        }
-        
-        .upload-area.dragover {
-            border-color: #00ff96;
-            background: rgba(0, 255, 150, 0.1);
-        }
-        
-        .knowledge-list {
-            margin-top: 18px;
-        }
-        
-        .knowledge-item {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-        }
-        
-        .knowledge-item:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-        
-        .knowledge-category {
-            font-size: 10px;
-            color: #00b4ff;
-            opacity: 0.8;
-            margin-top: 3px;
-        }
-        
-        .delete-btn {
-            background: #ff4d4d;
-            border: none;
-            border-radius: 6px;
-            padding: 5px 10px;
-            color: white;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s ease;
-        }
-        
-        .delete-btn:hover {
-            background: #ff3333;
-            transform: scale(1.05);
-        }
-        
-        .close-modal {
-            background: var(--accent);
-            border: none;
-            border-radius: 10px;
-            padding: 11px 22px;
-            color: white;
-            cursor: pointer;
-            font-size: 15px;
-            width: 100%;
-            margin-top: 18px;
-            transition: all 0.2s ease;
-        }
-        
-        .close-modal:hover {
-            background: #0099dd;
-            transform: translateY(-1px);
-        }
-        
-        .stats-box {
-            background: rgba(0, 180, 255, 0.08);
-            border: 1px solid rgba(0, 180, 255, 0.25);
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 18px;
-            font-size: 12.5px;
-        }
-        
-        #file-input {
-            display: none;
-        }
+    .thinking-mode-btn.active {
+        background: #ffa500;
+        box-shadow: 0 0 20px #ffa500;
+        border-color: #ffa500;
+    }
+    
+    .knowledge-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    
+    .knowledge-modal.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: rgba(13, 17, 39, 0.95);
+        backdrop-filter: blur(30px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 28px;
+        max-width: 650px;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+    
+    .modal-header {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 18px;
+        color: #00ff96;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .upload-area {
+        border: 2px dashed var(--glass-border);
+        border-radius: 14px;
+        padding: 35px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 18px;
+    }
+    
+    .upload-area:hover {
+        border-color: var(--accent);
+        background: rgba(0, 180, 255, 0.05);
+    }
+    
+    .upload-area.dragover {
+        border-color: #00ff96;
+        background: rgba(0, 255, 150, 0.1);
+    }
+    
+    .knowledge-list {
+        margin-top: 18px;
+    }
+    
+    .knowledge-item {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+    
+    .knowledge-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .knowledge-category {
+        font-size: 10px;
+        color: #00b4ff;
+        opacity: 0.8;
+        margin-top: 3px;
+    }
+    
+    .delete-btn {
+        background: #ff4d4d;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 10px;
+        color: white;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s ease;
+    }
+    
+    .delete-btn:hover {
+        background: #ff3333;
+        transform: scale(1.05);
+    }
+    
+    .close-modal {
+        background: var(--accent);
+        border: none;
+        border-radius: 10px;
+        padding: 11px 22px;
+        color: white;
+        cursor: pointer;
+        font-size: 15px;
+        width: 100%;
+        margin-top: 18px;
+        transition: all 0.2s ease;
+    }
+    
+    .close-modal:hover {
+        background: #0099dd;
+        transform: translateY(-1px);
+    }
+    
+    .stats-box {
+        background: rgba(0, 180, 255, 0.08);
+        border: 1px solid rgba(0, 180, 255, 0.25);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 18px;
+        font-size: 12.5px;
+    }
+    
+    #file-input {
+        display: none;
+    }
 
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(2, 1, 10, 0.98);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            gap: 20px;
-        }
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(2, 1, 10, 0.98);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        gap: 20px;
+    }
 
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(0, 180, 255, 0.1);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(0, 180, 255, 0.1);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 
-        .loading-text {
-            color: var(--accent);
-            font-size: 16px;
-            font-weight: 600;
-        }
+    .loading-text {
+        color: var(--accent);
+        font-size: 16px;
+        font-weight: 600;
+    }
 
-        .view::-webkit-scrollbar { width: 5px; }
-        .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .modal-content::-webkit-scrollbar { width: 5px; }
-        .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .knowledge-box::-webkit-scrollbar { width: 4px; }
-        .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .web-box::-webkit-scrollbar { width: 4px; }
-        .web-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .reasoning-box::-webkit-scrollbar { width: 4px; }
-        .reasoning-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+    .view::-webkit-scrollbar { width: 5px; }
+    .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+    .modal-content::-webkit-scrollbar { width: 5px; }
+    .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+    .knowledge-box::-webkit-scrollbar { width: 4px; }
+    .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+    .web-box::-webkit-scrollbar { width: 4px; }
+    .web-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+    .reasoning-box::-webkit-scrollbar { width: 4px; }
+    .reasoning-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
-        @media (max-width: 768px) {
-            .message { max-width: 88%; padding: 12px 16px 36px 16px; font-size: 14px; }
-            .input-area { left: 12px; right: 12px; bottom: 16px; gap: 8px; }
-            .input-container { max-width: none; }
-            .thinking-mode-btn { width: 46px; height: 46px; }
-            .modal-content { padding: 22px; }
-            .header-knowledge-btn { width: 40px; height: 40px; right: 16px; }
-        }
-    </style>
+    @media (max-width: 768px) {
+        .message { max-width: 88%; padding: 12px 16px 36px 16px; font-size: 14px; }
+        .input-area { left: 12px; right: 12px; bottom: 16px; gap: 8px; }
+        .input-container { max-width: none; }
+        .thinking-mode-btn { width: 46px; height: 46px; }
+        .modal-content { padding: 22px; }
+        .header-knowledge-btn { width: 40px; height: 40px; right: 16px; }
+    }
+</style>
+```
+
 </head>
 <body>
     <div id="loading-overlay" class="loading-overlay">
@@ -671,1191 +676,1188 @@
         <div class="loading-text">Loading Trapside AI...</div>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <span class="brand">Trapside</span>
-            <button id="knowledge-btn" class="header-knowledge-btn" title="Knowledge Base"><i class="fas fa-book"></i></button>
-        </div>
-        <div class="view" id="scroll-area"><div id="chat-box"></div></div>
-        <div class="input-area">
-            <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
-                <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
-                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
-            </div>
-            <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Deep Reasoning"><i class="fas fa-brain"></i></button>
-        </div>
+```
+<div class="container">
+    <div class="header">
+        <span class="brand">Trapside</span>
+        <button id="knowledge-btn" class="header-knowledge-btn" title="Knowledge Base"><i class="fas fa-book"></i></button>
     </div>
+    <div class="view" id="scroll-area"><div id="chat-box"></div></div>
+    <div class="input-area">
+        <div class="input-container">
+            <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
+            <button id="web-search-btn" class="web-search-btn" title="Toggle Web Search"><i class="fas fa-globe"></i></button>
+            <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+        </div>
+        <button id="thinking-mode-btn" class="thinking-mode-btn" title="Toggle Deep Reasoning"><i class="fas fa-brain"></i></button>
+    </div>
+</div>
+
+<div id="knowledge-modal" class="knowledge-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <i class="fas fa-database"></i>
+            Knowledge Base
+        </div>
+        <div class="stats-box" id="stats-box">
+            <strong>💾 Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
+            <strong>📦 Chunks:</strong> <span id="total-chunks">0</span><br>
+            <strong>📁 Files:</strong> <span id="total-files">0</span><br>
+            <strong>🌐 Online Sources:</strong> <span id="online-info-count">0</span>
+        </div>
+        <div class="upload-area" id="upload-area">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 42px; color: var(--accent); margin-bottom: 8px;"></i>
+            <p style="font-size: 14px;">Drag & drop files here or click to upload</p>
+            <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
+        </div>
+        <input type="file" id="file-input" multiple accept=".txt,.md,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
+        <div class="knowledge-list" id="knowledge-list"></div>
+        <button class="close-modal" id="close-modal">Close</button>
+    </div>
+</div>
+
+<script type="module">
+    import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+
+    const synth = window.speechSynthesis;
+    let activeBtn = null;
+    let abortController = null;
+    let isGenerating = false;
     
-    <div id="knowledge-modal" class="knowledge-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <i class="fas fa-database"></i>
-                Knowledge Base
-            </div>
-            <div class="stats-box" id="stats-box">
-                <strong>💾 Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
-                <strong>📦 Chunks:</strong> <span id="total-chunks">0</span><br>
-                <strong>📁 Files:</strong> <span id="total-files">0</span><br>
-                <strong>🌐 Online Sources:</strong> <span id="online-info-count">0</span>
-            </div>
-            <div class="upload-area" id="upload-area">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 42px; color: var(--accent); margin-bottom: 8px;"></i>
-                <p style="font-size: 14px;">Drag & drop files here or click to upload</p>
-                <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
-            </div>
-            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
-            <div class="knowledge-list" id="knowledge-list"></div>
-            <button class="close-modal" id="close-modal">Close</button>
-        </div>
-    </div>
+    let conversationHistory = [];
+    const MAX_HISTORY_LENGTH = 10;
+    
+    let thinkingModeEnabled = true;
+    let webSearchEnabled = false;
+    
+    let knowledgeIndex = {};
+    let globalWordFreq = {};
+    let totalDocuments = 0;
+    let onlineInfoCount = 0;
+    
+    const DB_NAME = 'TrapsideKnowledge';
+    const DB_VERSION = 1;
+    let db;
+    let wllama;
+    let modelLoaded = false;
 
-    <script type="module">
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+    const model = {
+        repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
+        file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
+    };
 
-        const synth = window.speechSynthesis;
-        let activeBtn = null;
-        let abortController = null;
-        let isGenerating = false;
-        
-        let conversationHistory = [];
-        const MAX_HISTORY_LENGTH = 10;
-        
-        let thinkingModeEnabled = true;
-        let webSearchEnabled = false;
-        
-        let knowledgeIndex = {};
-        let globalWordFreq = {};
-        let totalDocuments = 0;
-        let onlineInfoCount = 0;
-        
-        const DB_NAME = 'TrapsideKnowledge';
-        const DB_VERSION = 1;
-        let db;
-        let wllama;
-        let modelLoaded = false;
+    // =============== CODE BLOCK DETECTION & RENDERING ===============
+    
+    function detectCodeBlocks(text) {
+        const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
 
-        const model = {
-            repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-            file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
-        };
-
-        // =============== CODE BLOCK DETECTION & RENDERING ===============
-        
-        function detectCodeBlocks(text) {
-            const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-            const parts = [];
-            let lastIndex = 0;
-            let match;
-
-            while ((match = codeBlockRegex.exec(text)) !== null) {
-                if (match.index > lastIndex) {
-                    parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
-                }
-                parts.push({ 
-                    type: 'code', 
-                    language: match[1] || 'code', 
-                    content: match[2].trim() 
-                });
-                lastIndex = match.index + match[0].length;
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
             }
-
-            if (lastIndex < text.length) {
-                parts.push({ type: 'text', content: text.substring(lastIndex) });
-            }
-
-            return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+            parts.push({ 
+                type: 'code', 
+                language: match[1] || 'code', 
+                content: match[2].trim() 
+            });
+            lastIndex = match.index + match[0].length;
         }
 
-        function createCodeBlock(language, code) {
-            const codeBlock = document.createElement('div');
-            codeBlock.className = 'code-block';
+        if (lastIndex < text.length) {
+            parts.push({ type: 'text', content: text.substring(lastIndex) });
+        }
+
+        return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+    }
+
+    function createCodeBlock(language, code) {
+        const codeBlock = document.createElement('div');
+        codeBlock.className = 'code-block';
+        
+        const header = document.createElement('div');
+        header.className = 'code-header';
+        
+        const langLabel = document.createElement('span');
+        langLabel.className = 'code-language';
+        langLabel.textContent = language;
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-code-btn';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(code).then(() => {
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            });
+        };
+        
+        header.appendChild(langLabel);
+        header.appendChild(copyBtn);
+        
+        const codeContent = document.createElement('pre');
+        codeContent.className = 'code-content';
+        codeContent.textContent = code;
+        
+        codeBlock.appendChild(header);
+        codeBlock.appendChild(codeContent);
+        
+        return codeBlock;
+    }
+
+    // =============== IMPROVED KNOWLEDGE RETRIEVAL ===============
+    
+    function extractKeyPhrases(query) {
+        const words = query.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 2);
+        
+        const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'what', 'when', 'where', 'who', 'will', 'with', 'this', 'that', 'from', 'they', 'been', 'have', 'has', 'had', 'were', 'said', 'each', 'which', 'how', 'their', 'if', 'or', 'an', 'my', 'so', 'up', 'about', 'than', 'into', 'could', 'other', 'your']);
+        
+        return words.filter(w => !stopWords.has(w));
+    }
+
+    function calculateSemanticScore(query, content) {
+        const queryLower = query.toLowerCase();
+        const contentLower = content.toLowerCase();
+        
+        let score = 0;
+        
+        if (contentLower.includes(queryLower)) {
+            score += 100;
+        }
+        
+        const queryWords = extractKeyPhrases(query);
+        const contentWords = contentLower.split(/\s+/);
+        
+        queryWords.forEach(qWord => {
+            const positions = [];
+            contentWords.forEach((cWord, idx) => {
+                if (cWord.includes(qWord) || qWord.includes(cWord)) {
+                    positions.push(idx);
+                    score += 10;
+                }
+            });
             
-            const header = document.createElement('div');
-            header.className = 'code-header';
+            if (positions.length > 1) {
+                for (let i = 1; i < positions.length; i++) {
+                    const distance = positions[i] - positions[i-1];
+                    if (distance < 10) {
+                        score += (10 - distance) * 2;
+                    }
+                }
+            }
+        });
+        
+        return score;
+    }
+
+    // =============== DEDUPLICATION FUNCTIONS ===============
+    
+    function calculateSimilarity(text1, text2) {
+        const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+        const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+        
+        if (words1.size === 0 || words2.size === 0) return 0;
+        
+        const intersection = new Set([...words1].filter(x => words2.has(x)));
+        const union = new Set([...words1, ...words2]);
+        
+        return intersection.size / union.size;
+    }
+    
+    async function isDuplicate(newContent, filename) {
+        try {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
             
-            const langLabel = document.createElement('span');
-            langLabel.className = 'code-language';
-            langLabel.textContent = language;
+            const sameSourceChunks = allChunks.filter(chunk => chunk.filename === filename);
             
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'copy-code-btn';
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-            copyBtn.onclick = () => {
-                navigator.clipboard.writeText(code).then(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                        copyBtn.classList.remove('copied');
-                    }, 2000);
+            for (const chunk of sameSourceChunks) {
+                const similarity = calculateSimilarity(newContent, chunk.content);
+                if (similarity > 0.85) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Duplicate check error:', error);
+            return false;
+        }
+    }
+
+    // =============== WEB SEARCH FUNCTIONS ===============
+    
+    async function searchDuckDuckGo(query) {
+        try {
+            const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
+            
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(proxyUrl, { 
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+            });
+            clearTimeout(timeout);
+            
+            if (!response.ok) throw new Error('Search failed');
+            
+            const html = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const results = [];
+            
+            doc.querySelectorAll('.result').forEach((result, index) => {
+                if (index < 3) {
+                    const titleElement = result.querySelector('.result__a');
+                    const snippetElement = result.querySelector('.result__snippet');
+                    const urlElement = result.querySelector('.result__url');
+                    
+                    if (titleElement && urlElement) {
+                        const title = titleElement.textContent.trim();
+                        const snippet = snippetElement ? snippetElement.textContent.trim() : '';
+                        let url = urlElement.textContent.trim();
+                        
+                        if (!url.startsWith('http')) {
+                            url = 'https://' + url;
+                        }
+                        
+                        results.push({ title, snippet, url });
+                    }
+                }
+            });
+            
+            console.log(`Found ${results.length} search results`);
+            return results;
+        } catch (error) {
+            console.error('DuckDuckGo search error:', error);
+            return [];
+        }
+    }
+    
+    async function fetchWebContent(url) {
+        try {
+            const jinaUrl = `https://r.jina.ai/${url}`;
+            
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            
+            const response = await fetch(jinaUrl, { signal: controller.signal });
+            clearTimeout(timeout);
+            
+            if (!response.ok) throw new Error('Fetch failed');
+            const markdown = await response.text();
+            console.log(`Fetched ${markdown.length} chars from ${url}`);
+            return markdown;
+        } catch (error) {
+            console.error('Jina AI fetch error:', error);
+            return null;
+        }
+    }
+    
+    async function performWebSearch(query) {
+        console.log('Performing web search for:', query);
+        const searchResults = await searchDuckDuckGo(query);
+        
+        if (searchResults.length === 0) {
+            console.log('No search results found');
+            return { results: [], contents: [] };
+        }
+        
+        const contents = [];
+        
+        for (const result of searchResults) {
+            try {
+                const content = await fetchWebContent(result.url);
+                if (content && content.length > 100) {
+                    contents.push({
+                        title: result.title,
+                        url: result.url,
+                        content: content.substring(0, 3000),
+                        snippet: result.snippet
+                    });
+                    
+                    await saveWebContentToKnowledge(result.title, result.url, content);
+                }
+            } catch (error) {
+                console.error(`Failed to fetch ${result.url}:`, error);
+            }
+        }
+        
+        console.log(`Successfully fetched ${contents.length} web contents`);
+        return { results: searchResults, contents };
+    }
+    
+    async function saveWebContentToKnowledge(title, url, content) {
+        try {
+            const chunks = smartChunk(content, 700, 100);
+            let savedCount = 0;
+            
+            for (const chunkText of chunks) {
+                const duplicate = await isDuplicate(chunkText, `[WEB] ${title}`);
+                if (duplicate) {
+                    continue;
+                }
+                
+                const { freq, total } = calculateWordFreq(chunkText);
+                const keywords = Object.keys(freq)
+                    .sort((a, b) => freq[b] - freq[a])
+                    .slice(0, 20);
+                
+                await saveKnowledge({
+                    filename: `[WEB] ${title}`,
+                    content: chunkText,
+                    wordFreq: freq,
+                    wordCount: total,
+                    keywords: keywords,
+                    timestamp: Date.now(),
+                    category: 'online info',
+                    sourceUrl: url
                 });
+                savedCount++;
+            }
+            
+            console.log(`Saved ${savedCount} unique chunks from "${title}"`);
+        } catch (error) {
+            console.error('Error saving web content:', error);
+        }
+    }
+
+    function smartChunk(text, maxChunkSize = 700, overlap = 100) {
+        const chunks = [];
+        const sections = text.split(/\n\n+/);
+        let currentChunk = '';
+        
+        for (const section of sections) {
+            if ((currentChunk + section).length < maxChunkSize) {
+                currentChunk += section + '\n\n';
+            } else {
+                if (currentChunk.trim().length > 100) {
+                    chunks.push(currentChunk.trim());
+                }
+                
+                const words = currentChunk.split(/\s+/);
+                const overlapWords = words.slice(-Math.floor(overlap / 5));
+                currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
+            }
+        }
+        
+        if (currentChunk.trim().length > 100) {
+            chunks.push(currentChunk.trim());
+        }
+        
+        return chunks.length > 0 ? chunks : [text.substring(0, maxChunkSize)];
+    }
+    
+    function calculateWordFreq(text) {
+        const words = text.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 2);
+        
+        const freq = {};
+        words.forEach(word => {
+            freq[word] = (freq[word] || 0) + 1;
+        });
+        
+        return { freq, total: words.length };
+    }
+    
+    function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
+        let score = 0;
+        
+        queryWords.forEach(word => {
+            if (chunkFreq[word]) {
+                const tf = chunkFreq[word] / chunkTotal;
+                const docsWithWord = docFreq[word] || 1;
+                const idf = Math.log((totalDocs + 1) / (docsWithWord + 1));
+                score += tf * idf;
+            }
+        });
+        
+        return score;
+    }
+    
+    async function retrieveRelevantKnowledge(query, topK = 5) {
+        if (totalDocuments === 0) {
+            console.log('No knowledge in database');
+            return [];
+        }
+        
+        try {
+            const queryKeyPhrases = extractKeyPhrases(query);
+            
+            if (queryKeyPhrases.length === 0) {
+                console.log('No valid query phrases extracted');
+                return [];
+            }
+            
+            console.log('Query key phrases:', queryKeyPhrases);
+            
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            console.log(`Searching through ${allChunks.length} total chunks`);
+            
+            const scored = allChunks.map(chunk => {
+                const tfidfScore = calculateTFIDF(
+                    queryKeyPhrases,
+                    chunk.wordFreq || {},
+                    chunk.wordCount || 1,
+                    globalWordFreq,
+                    totalDocuments
+                );
+                
+                const semanticScore = calculateSemanticScore(query, chunk.content);
+                const combinedScore = (semanticScore * 3) + tfidfScore;
+                
+                return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
+            });
+            
+            const topResults = scored
+                .filter(chunk => chunk.score > 0.5)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, topK);
+            
+            console.log(`Retrieved ${topResults.length} relevant chunks:`);
+            topResults.forEach((chunk, i) => {
+                console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} - ${chunk.filename} - "${chunk.content.substring(0, 50)}..."`);
+            });
+            
+            return topResults.map(chunk => ({
+                content: chunk.content,
+                filename: chunk.filename,
+                score: chunk.score.toFixed(2),
+                category: chunk.category || 'local',
+                sourceUrl: chunk.sourceUrl
+            }));
+        } catch (error) {
+            console.error('Knowledge retrieval error:', error);
+            return [];
+        }
+    }
+    
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                db = request.result;
+                loadKnowledgeIndex();
+                resolve(db);
             };
             
-            header.appendChild(langLabel);
-            header.appendChild(copyBtn);
-            
-            const codeContent = document.createElement('pre');
-            codeContent.className = 'code-content';
-            codeContent.textContent = code;
-            
-            codeBlock.appendChild(header);
-            codeBlock.appendChild(codeContent);
-            
-            return codeBlock;
-        }
-
-        // =============== IMPROVED KNOWLEDGE RETRIEVAL ===============
-        
-        function extractKeyPhrases(query) {
-            const words = query.toLowerCase()
-                .replace(/[^a-z0-9\s]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length > 2);
-            
-            const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'what', 'when', 'where', 'who', 'will', 'with', 'this', 'that', 'from', 'they', 'been', 'have', 'has', 'had', 'were', 'said', 'each', 'which', 'how', 'their', 'if', 'or', 'an', 'my', 'so', 'up', 'about', 'than', 'into', 'could', 'other', 'your']);
-            
-            return words.filter(w => !stopWords.has(w));
-        }
-
-        function calculateSemanticScore(query, content) {
-            const queryLower = query.toLowerCase();
-            const contentLower = content.toLowerCase();
-            
-            let score = 0;
-            
-            // Exact phrase match (highest priority)
-            if (contentLower.includes(queryLower)) {
-                score += 100;
-            }
-            
-            // Word proximity scoring
-            const queryWords = extractKeyPhrases(query);
-            const contentWords = contentLower.split(/\s+/);
-            
-            queryWords.forEach(qWord => {
-                const positions = [];
-                contentWords.forEach((cWord, idx) => {
-                    if (cWord.includes(qWord) || qWord.includes(cWord)) {
-                        positions.push(idx);
-                        score += 10;
-                    }
-                });
-                
-                if (positions.length > 1) {
-                    for (let i = 1; i < positions.length; i++) {
-                        const distance = positions[i] - positions[i-1];
-                        if (distance < 10) {
-                            score += (10 - distance) * 2;
-                        }
-                    }
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('knowledge')) {
+                    db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
                 }
-            });
+            };
+        });
+    }
+    
+    async function loadKnowledgeIndex() {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const request = store.getAll();
             
-            return score;
-        }
-
-        // =============== DEDUPLICATION FUNCTIONS ===============
-        
-        function calculateSimilarity(text1, text2) {
-            const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-            const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-            
-            if (words1.size === 0 || words2.size === 0) return 0;
-            
-            const intersection = new Set([...words1].filter(x => words2.has(x)));
-            const union = new Set([...words1, ...words2]);
-            
-            return intersection.size / union.size;
-        }
-        
-        async function isDuplicate(newContent, filename) {
-            try {
-                const transaction = db.transaction(['knowledge'], 'readonly');
-                const store = transaction.objectStore('knowledge');
-                const allChunks = await new Promise((resolve, reject) => {
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
+            request.onsuccess = () => {
+                const allChunks = request.result;
                 
-                const sameSourceChunks = allChunks.filter(chunk => chunk.filename === filename);
+                knowledgeIndex = {};
+                globalWordFreq = {};
+                totalDocuments = 0;
+                onlineInfoCount = 0;
                 
-                for (const chunk of sameSourceChunks) {
-                    const similarity = calculateSimilarity(newContent, chunk.content);
-                    if (similarity > 0.85) {
-                        return true;
+                allChunks.forEach(chunk => {
+                    if (!knowledgeIndex[chunk.filename]) {
+                        knowledgeIndex[chunk.filename] = {
+                            chunks: 0,
+                            totalWords: 0,
+                            category: chunk.category || 'local'
+                        };
                     }
-                }
-                
-                return false;
-            } catch (error) {
-                console.error('Duplicate check error:', error);
-                return false;
-            }
-        }
-
-        // =============== WEB SEARCH FUNCTIONS ===============
-        
-        async function searchDuckDuckGo(query) {
-            try {
-                const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
-                
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 15000);
-                
-                const response = await fetch(proxyUrl, { 
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    
+                    knowledgeIndex[chunk.filename].chunks++;
+                    knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
+                    totalDocuments++;
+                    
+                    if (chunk.category === 'online info') {
+                        onlineInfoCount++;
                     }
-                });
-                clearTimeout(timeout);
-                
-                if (!response.ok) throw new Error('Search failed');
-                
-                const html = await response.text();
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const results = [];
-                
-                doc.querySelectorAll('.result').forEach((result, index) => {
-                    if (index < 3) {
-                        const titleElement = result.querySelector('.result__a');
-                        const snippetElement = result.querySelector('.result__snippet');
-                        const urlElement = result.querySelector('.result__url');
-                        
-                        if (titleElement && urlElement) {
-                            const title = titleElement.textContent.trim();
-                            const snippet = snippetElement ? snippetElement.textContent.trim() : '';
-                            let url = urlElement.textContent.trim();
-                            
-                            if (!url.startsWith('http')) {
-                                url = 'https://' + url;
-                            }
-                            
-                            results.push({ title, snippet, url });
-                        }
-                    }
-                });
-                
-                console.log(`Found ${results.length} search results`);
-                return results;
-            } catch (error) {
-                console.error('DuckDuckGo search error:', error);
-                return [];
-            }
-        }
-        
-        async function fetchWebContent(url) {
-            try {
-                const jinaUrl = `https://r.jina.ai/${url}`;
-                
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 20000);
-                
-                const response = await fetch(jinaUrl, { signal: controller.signal });
-                clearTimeout(timeout);
-                
-                if (!response.ok) throw new Error('Fetch failed');
-                const markdown = await response.text();
-                console.log(`Fetched ${markdown.length} chars from ${url}`);
-                return markdown;
-            } catch (error) {
-                console.error('Jina AI fetch error:', error);
-                return null;
-            }
-        }
-        
-        async function performWebSearch(query) {
-            console.log('Performing web search for:', query);
-            const searchResults = await searchDuckDuckGo(query);
-            
-            if (searchResults.length === 0) {
-                console.log('No search results found');
-                return { results: [], contents: [] };
-            }
-            
-            const contents = [];
-            
-            for (const result of searchResults) {
-                try {
-                    const content = await fetchWebContent(result.url);
-                    if (content && content.length > 100) {
-                        contents.push({
-                            title: result.title,
-                            url: result.url,
-                            content: content.substring(0, 3000),
-                            snippet: result.snippet
+                    
+                    if (chunk.wordFreq) {
+                        Object.keys(chunk.wordFreq).forEach(word => {
+                            globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
                         });
-                        
-                        await saveWebContentToKnowledge(result.title, result.url, content);
                     }
-                } catch (error) {
-                    console.error(`Failed to fetch ${result.url}:`, error);
-                }
-            }
-            
-            console.log(`Successfully fetched ${contents.length} web contents`);
-            return { results: searchResults, contents };
-        }
-        
-        async function saveWebContentToKnowledge(title, url, content) {
-            try {
-                const chunks = smartChunk(content, 700, 100);
-                let savedCount = 0;
+                });
                 
-                for (const chunkText of chunks) {
-                    const duplicate = await isDuplicate(chunkText, `[WEB] ${title}`);
-                    if (duplicate) {
-                        continue;
-                    }
-                    
-                    const { freq, total } = calculateWordFreq(chunkText);
-                    const keywords = Object.keys(freq)
-                        .sort((a, b) => freq[b] - freq[a])
-                        .slice(0, 20);
-                    
-                    await saveKnowledge({
-                        filename: `[WEB] ${title}`,
-                        content: chunkText,
-                        wordFreq: freq,
-                        wordCount: total,
-                        keywords: keywords,
-                        timestamp: Date.now(),
-                        category: 'online info',
-                        sourceUrl: url
-                    });
-                    savedCount++;
-                }
+                updateKnowledgeList();
+                updateStats();
                 
-                console.log(`Saved ${savedCount} unique chunks from "${title}"`);
-            } catch (error) {
-                console.error('Error saving web content:', error);
-            }
-        }
-
-        function smartChunk(text, maxChunkSize = 700, overlap = 100) {
-            const chunks = [];
-            const sections = text.split(/\n\n+/);
-            let currentChunk = '';
-            
-            for (const section of sections) {
-                if ((currentChunk + section).length < maxChunkSize) {
-                    currentChunk += section + '\n\n';
+                if (totalDocuments > 0) {
+                    document.getElementById('knowledge-btn').classList.add('active');
                 } else {
-                    if (currentChunk.trim().length > 100) {
-                        chunks.push(currentChunk.trim());
-                    }
-                    
-                    const words = currentChunk.split(/\s+/);
-                    const overlapWords = words.slice(-Math.floor(overlap / 5));
-                    currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
-                }
-            }
-            
-            if (currentChunk.trim().length > 100) {
-                chunks.push(currentChunk.trim());
-            }
-            
-            return chunks.length > 0 ? chunks : [text.substring(0, maxChunkSize)];
-        }
-        
-        function calculateWordFreq(text) {
-            const words = text.toLowerCase()
-                .replace(/[^a-z0-9\s]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length > 2);
-            
-            const freq = {};
-            words.forEach(word => {
-                freq[word] = (freq[word] || 0) + 1;
-            });
-            
-            return { freq, total: words.length };
-        }
-        
-        function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
-            let score = 0;
-            
-            queryWords.forEach(word => {
-                if (chunkFreq[word]) {
-                    const tf = chunkFreq[word] / chunkTotal;
-                    const docsWithWord = docFreq[word] || 1;
-                    const idf = Math.log((totalDocs + 1) / (docsWithWord + 1));
-                    score += tf * idf;
-                }
-            });
-            
-            return score;
-        }
-        
-        async function retrieveRelevantKnowledge(query, topK = 5) {
-            if (totalDocuments === 0) {
-                console.log('No knowledge in database');
-                return [];
-            }
-            
-            try {
-                const queryKeyPhrases = extractKeyPhrases(query);
-                
-                if (queryKeyPhrases.length === 0) {
-                    console.log('No valid query phrases extracted');
-                    return [];
+                    document.getElementById('knowledge-btn').classList.remove('active');
                 }
                 
-                console.log('Query key phrases:', queryKeyPhrases);
+                console.log(`Loaded ${totalDocuments} chunks from ${Object.keys(knowledgeIndex).length} files`);
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+    
+    async function saveKnowledge(knowledge) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['knowledge'], 'readwrite');
+            const store = transaction.objectStore('knowledge');
+            const request = store.add(knowledge);
+            
+            request.onsuccess = () => {
+                loadKnowledgeIndex();
+                resolve(request.result);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+    
+    async function deleteKnowledge(id) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['knowledge'], 'readwrite');
+            const store = transaction.objectStore('knowledge');
+            const request = store.delete(id);
+            
+            request.onsuccess = () => {
+                loadKnowledgeIndex();
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+    
+    async function processFile(file) {
+        try {
+            const text = await file.text();
+            const chunks = smartChunk(text, 700, 100);
+            let savedCount = 0;
+            
+            for (const chunkText of chunks) {
+                const duplicate = await isDuplicate(chunkText, file.name);
+                if (duplicate) continue;
                 
-                const transaction = db.transaction(['knowledge'], 'readonly');
-                const store = transaction.objectStore('knowledge');
-                const allChunks = await new Promise((resolve, reject) => {
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
+                const { freq, total } = calculateWordFreq(chunkText);
+                const keywords = Object.keys(freq)
+                    .sort((a, b) => freq[b] - freq[a])
+                    .slice(0, 20);
+                
+                await saveKnowledge({
+                    filename: file.name,
+                    content: chunkText,
+                    wordFreq: freq,
+                    wordCount: total,
+                    keywords: keywords,
+                    timestamp: Date.now(),
+                    category: 'local'
                 });
-                
-                console.log(`Searching through ${allChunks.length} total chunks`);
-                
-                const scored = allChunks.map(chunk => {
-                    const tfidfScore = calculateTFIDF(
-                        queryKeyPhrases,
-                        chunk.wordFreq || {},
-                        chunk.wordCount || 1,
-                        globalWordFreq,
-                        totalDocuments
-                    );
-                    
-                    const semanticScore = calculateSemanticScore(query, chunk.content);
-                    const combinedScore = (semanticScore * 3) + tfidfScore;
-                    
-                    return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
-                });
-                
-                const topResults = scored
-                    .filter(chunk => chunk.score > 0.5)
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, topK);
-                
-                console.log(`Retrieved ${topResults.length} relevant chunks:`);
-                topResults.forEach((chunk, i) => {
-                    console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} - ${chunk.filename} - "${chunk.content.substring(0, 50)}..."`);
-                });
-                
-                return topResults.map(chunk => ({
-                    content: chunk.content,
-                    filename: chunk.filename,
-                    score: chunk.score.toFixed(2),
-                    category: chunk.category || 'local',
-                    sourceUrl: chunk.sourceUrl
-                }));
-            } catch (error) {
-                console.error('Knowledge retrieval error:', error);
-                return [];
+                savedCount++;
             }
+            
+            console.log(`Saved ${savedCount} unique chunks from "${file.name}"`);
+        } catch (error) {
+            console.error('File processing error:', error);
         }
+    }
+    
+    function updateStats() {
+        const totalChunks = totalDocuments;
+        const totalFiles = Object.keys(knowledgeIndex).length;
         
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    loadKnowledgeIndex();
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('knowledge')) {
-                        db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
-                    }
-                };
+        const avgChunkSize = 450;
+        const storageBytes = totalChunks * avgChunkSize;
+        const storageKB = (storageBytes / 1024).toFixed(1);
+        
+        document.getElementById('total-chunks').textContent = totalChunks;
+        document.getElementById('total-files').textContent = totalFiles;
+        document.getElementById('storage-used').textContent = storageKB + ' KB';
+        document.getElementById('online-info-count').textContent = onlineInfoCount;
+    }
+    
+    function updateKnowledgeList() {
+        const list = document.getElementById('knowledge-list');
+        list.innerHTML = '';
+        
+        Object.keys(knowledgeIndex).forEach(filename => {
+            const data = knowledgeIndex[filename];
+            const item = document.createElement('div');
+            item.className = 'knowledge-item';
+            
+            const categoryBadge = data.category === 'online info' 
+                ? '<div class="knowledge-category">🌐 Online Info</div>' 
+                : '<div class="knowledge-category">📁 Local File</div>';
+            
+            const escapedFilename = filename.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            
+            item.innerHTML = `
+                <div>
+                    <strong style="font-size: 13px;">${filename}</strong>
+                    ${categoryBadge}
+                    <div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
+                </div>
+                <button class="delete-btn" data-filename="${escapedFilename}">Delete</button>
+            `;
+            list.appendChild(item);
+        });
+        
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const filename = btn.getAttribute('data-filename');
+                await deleteKnowledgeFile(filename);
             });
-        }
+        });
         
-        async function loadKnowledgeIndex() {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readonly');
-                const store = transaction.objectStore('knowledge');
+        if (Object.keys(knowledgeIndex).length === 0) {
+            list.innerHTML = '<p style="opacity: 0.6; text-align: center; font-size: 13px;">No knowledge uploaded yet</p>';
+        }
+    }
+    
+    async function deleteKnowledgeFile(filename) {
+        try {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
                 const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    const allChunks = request.result;
-                    
-                    knowledgeIndex = {};
-                    globalWordFreq = {};
-                    totalDocuments = 0;
-                    onlineInfoCount = 0;
-                    
-                    allChunks.forEach(chunk => {
-                        if (!knowledgeIndex[chunk.filename]) {
-                            knowledgeIndex[chunk.filename] = {
-                                chunks: 0,
-                                totalWords: 0,
-                                category: chunk.category || 'local'
-                            };
-                        }
-                        
-                        knowledgeIndex[chunk.filename].chunks++;
-                        knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
-                        totalDocuments++;
-                        
-                        if (chunk.category === 'online info') {
-                            onlineInfoCount++;
-                        }
-                        
-                        if (chunk.wordFreq) {
-                            Object.keys(chunk.wordFreq).forEach(word => {
-                                globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
-                            });
-                        }
-                    });
-                    
-                    updateKnowledgeList();
-                    updateStats();
-                    
-                    if (totalDocuments > 0) {
-                        document.getElementById('knowledge-btn').classList.add('active');
-                    } else {
-                        document.getElementById('knowledge-btn').classList.remove('active');
-                    }
-                    
-                    console.log(`Loaded ${totalDocuments} chunks from ${Object.keys(knowledgeIndex).length} files`);
-                    resolve();
-                };
+                request.onsuccess = () => resolve(request.result);
                 request.onerror = () => reject(request.error);
             });
-        }
-        
-        async function saveKnowledge(knowledge) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readwrite');
-                const store = transaction.objectStore('knowledge');
-                const request = store.add(knowledge);
-                
-                request.onsuccess = () => {
-                    loadKnowledgeIndex();
-                    resolve(request.result);
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-        
-        async function deleteKnowledge(id) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readwrite');
-                const store = transaction.objectStore('knowledge');
-                const request = store.delete(id);
-                
-                request.onsuccess = () => {
-                    loadKnowledgeIndex();
-                    resolve();
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-        
-        async function processFile(file) {
-            try {
-                const text = await file.text();
-                const chunks = smartChunk(text, 700, 100);
-                let savedCount = 0;
-                
-                for (const chunkText of chunks) {
-                    const duplicate = await isDuplicate(chunkText, file.name);
-                    if (duplicate) continue;
-                    
-                    const { freq, total } = calculateWordFreq(chunkText);
-                    const keywords = Object.keys(freq)
-                        .sort((a, b) => freq[b] - freq[a])
-                        .slice(0, 20);
-                    
-                    await saveKnowledge({
-                        filename: file.name,
-                        content: chunkText,
-                        wordFreq: freq,
-                        wordCount: total,
-                        keywords: keywords,
-                        timestamp: Date.now(),
-                        category: 'local'
-                    });
-                    savedCount++;
-                }
-                
-                console.log(`Saved ${savedCount} unique chunks from "${file.name}"`);
-            } catch (error) {
-                console.error('File processing error:', error);
-            }
-        }
-        
-        function updateStats() {
-            const totalChunks = totalDocuments;
-            const totalFiles = Object.keys(knowledgeIndex).length;
             
-            const avgChunkSize = 450;
-            const storageBytes = totalChunks * avgChunkSize;
-            const storageKB = (storageBytes / 1024).toFixed(1);
-            
-            document.getElementById('total-chunks').textContent = totalChunks;
-            document.getElementById('total-files').textContent = totalFiles;
-            document.getElementById('storage-used').textContent = storageKB + ' KB';
-            document.getElementById('online-info-count').textContent = onlineInfoCount;
+            const toDelete = allChunks.filter(kb => kb.filename === filename);
+            for (const kb of toDelete) {
+                await deleteKnowledge(kb.id);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
         }
-        
-        function updateKnowledgeList() {
-            const list = document.getElementById('knowledge-list');
-            list.innerHTML = '';
-            
-            Object.keys(knowledgeIndex).forEach(filename => {
-                const data = knowledgeIndex[filename];
-                const item = document.createElement('div');
-                item.className = 'knowledge-item';
-                
-                const categoryBadge = data.category === 'online info' 
-                    ? '<div class="knowledge-category">🌐 Online Info</div>' 
-                    : '<div class="knowledge-category">📁 Local File</div>';
-                
-                const escapedFilename = filename.replace(/'/g, "\\'").replace(/"/g, '\\"');
-                
-                item.innerHTML = `
-                    <div>
-                        <strong style="font-size: 13px;">${filename}</strong>
-                        ${categoryBadge}
-                        <div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
-                    </div>
-                    <button class="delete-btn" data-filename="${escapedFilename}">Delete</button>
-                `;
-                list.appendChild(item);
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const filename = btn.getAttribute('data-filename');
-                    await deleteKnowledgeFile(filename);
-                });
-            });
-            
-            if (Object.keys(knowledgeIndex).length === 0) {
-                list.innerHTML = '<p style="opacity: 0.6; text-align: center; font-size: 13px;">No knowledge uploaded yet</p>';
-            }
+    }
+    
+    document.getElementById('upload-area').addEventListener('click', () => {
+        document.getElementById('file-input').click();
+    });
+    
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        for (const file of files) {
+            await processFile(file);
         }
-        
-        async function deleteKnowledgeFile(filename) {
-            try {
-                const transaction = db.transaction(['knowledge'], 'readonly');
-                const store = transaction.objectStore('knowledge');
-                const allChunks = await new Promise((resolve, reject) => {
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-                
-                const toDelete = allChunks.filter(kb => kb.filename === filename);
-                for (const kb of toDelete) {
-                    await deleteKnowledge(kb.id);
-                }
-            } catch (error) {
-                console.error('Delete error:', error);
-            }
+        e.target.value = '';
+    });
+    
+    const uploadArea = document.getElementById('upload-area');
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files);
+        for (const file of files) {
+            await processFile(file);
         }
-        
-        document.getElementById('upload-area').addEventListener('click', () => {
-            document.getElementById('file-input').click();
-        });
-        
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            for (const file of files) {
-                await processFile(file);
-            }
-            e.target.value = '';
-        });
-        
-        const uploadArea = document.getElementById('upload-area');
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            for (const file of files) {
-                await processFile(file);
-            }
-        });
-        
-        document.getElementById('knowledge-btn').addEventListener('click', () => {
-            document.getElementById('knowledge-modal').classList.add('active');
-        });
-        
-        document.getElementById('close-modal').addEventListener('click', () => {
+    });
+    
+    document.getElementById('knowledge-btn').addEventListener('click', () => {
+        document.getElementById('knowledge-modal').classList.add('active');
+    });
+    
+    document.getElementById('close-modal').addEventListener('click', () => {
+        document.getElementById('knowledge-modal').classList.remove('active');
+    });
+
+    document.getElementById('knowledge-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'knowledge-modal') {
             document.getElementById('knowledge-modal').classList.remove('active');
-        });
-
-        document.getElementById('knowledge-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'knowledge-modal') {
-                document.getElementById('knowledge-modal').classList.remove('active');
-            }
-        });
-
-        function speak(text, btn) {
-            if (synth.speaking && activeBtn === btn) { 
-                synth.cancel(); 
-                btn.classList.remove('active'); 
-                activeBtn = null; 
-                return; 
-            }
-            if (synth.speaking) { 
-                synth.cancel(); 
-                if (activeBtn) activeBtn.classList.remove('active'); 
-            }
-            
-            const cleanText = text.replace(/```[\s\S]*?```/g, '[code block]');
-            
-            const utter = new SpeechSynthesisUtterance(cleanText);
-            const voices = synth.getVoices();
-            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
-            utter.pitch = 1.0;
-            utter.rate = 1.0;
-            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
-            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
-            synth.speak(utter);
         }
+    });
 
-        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null) {
-            const row = document.createElement('div');
-            row.className = `message-row ${role}-row`;
-            const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+    function speak(text, btn) {
+        if (synth.speaking && activeBtn === btn) { 
+            synth.cancel(); 
+            btn.classList.remove('active'); 
+            activeBtn = null; 
+            return; 
+        }
+        if (synth.speaking) { 
+            synth.cancel(); 
+            if (activeBtn) activeBtn.classList.remove('active'); 
+        }
+        
+        const cleanText = text.replace(/```[\s\S]*?```/g, '[code block]');
+        
+        const utter = new SpeechSynthesisUtterance(cleanText);
+        const voices = synth.getVoices();
+        utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
+        utter.pitch = 1.0;
+        utter.rate = 1.0;
+        utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
+        utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
+        synth.speak(utter);
+    }
+
+    function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null) {
+        const row = document.createElement('div');
+        row.className = `message-row ${role}-row`;
+        const msg = document.createElement('div');
+        msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+        
+        if ((reasoningText && thinkingModeEnabled) || (knowledgeResults && knowledgeResults.length > 0) || (webResults && webResults.length > 0)) {
+            const pillContainer = document.createElement('div');
+            pillContainer.className = 'pill-container';
             
-            if ((reasoningText && thinkingModeEnabled) || (knowledgeResults && knowledgeResults.length > 0) || (webResults && webResults.length > 0)) {
-                const pillContainer = document.createElement('div');
-                pillContainer.className = 'pill-container';
+            if (reasoningText && thinkingModeEnabled) {
+                const reasoningPill = document.createElement('button');
+                reasoningPill.className = 'pill-btn reasoning-pill';
+                reasoningPill.innerHTML = '<i class="fas fa-brain"></i> Reasoning';
+                pillContainer.appendChild(reasoningPill);
                 
-                if (reasoningText && thinkingModeEnabled) {
-                    const reasoningPill = document.createElement('button');
-                    reasoningPill.className = 'pill-btn reasoning-pill';
-                    reasoningPill.innerHTML = '<i class="fas fa-brain"></i> Reasoning';
-                    pillContainer.appendChild(reasoningPill);
-                    
-                    const reasoningBox = document.createElement('div');
-                    reasoningBox.className = 'reasoning-box';
-                    reasoningBox.innerHTML = `<strong>🧠 Deep Chain of Thought:</strong>${reasoningText}`;
-                    
-                    reasoningPill.onclick = () => {
-                        const knowledgeBox = msg.querySelector('.knowledge-box');
-                        const webBox = msg.querySelector('.web-box');
-                        if (reasoningBox.classList.contains('expanded')) {
-                            reasoningBox.classList.remove('expanded');
-                        } else {
-                            reasoningBox.classList.add('expanded');
-                            if (knowledgeBox) knowledgeBox.classList.remove('expanded');
-                            if (webBox) webBox.classList.remove('expanded');
-                        }
-                    };
-                    
-                    msg.appendChild(pillContainer);
-                    msg.appendChild(reasoningBox);
-                }
+                const reasoningBox = document.createElement('div');
+                reasoningBox.className = 'reasoning-box';
+                reasoningBox.innerHTML = `<strong>🧠 Deep Chain of Thought:</strong>${reasoningText}`;
                 
-                if (knowledgeResults && knowledgeResults.length > 0) {
-                    const knowledgePill = document.createElement('button');
-                    knowledgePill.className = 'pill-btn knowledge-pill';
-                    knowledgePill.innerHTML = '<i class="fas fa-book"></i> Knowledge';
-                    
-                    if (!pillContainer.parentNode) {
-                        msg.appendChild(pillContainer);
-                    }
-                    pillContainer.appendChild(knowledgePill);
-                    
-                    const knowledgeBox = document.createElement('div');
-                    knowledgeBox.className = 'knowledge-box';
-                    let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong><br>';
-                    knowledgeResults.forEach((kb, i) => {
-                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">[Score: ${kb.score}] ${kb.filename}</strong><br>${kb.content.substring(0, 200)}...</div>`;
-                    });
-                    knowledgeBox.innerHTML = knowledgeHTML;
-                    
-                    knowledgePill.onclick = () => {
-                        const reasoningBox = msg.querySelector('.reasoning-box');
-                        const webBox = msg.querySelector('.web-box');
-                        if (knowledgeBox.classList.contains('expanded')) {
-                            knowledgeBox.classList.remove('expanded');
-                        } else {
-                            knowledgeBox.classList.add('expanded');
-                            if (reasoningBox) reasoningBox.classList.remove('expanded');
-                            if (webBox) webBox.classList.remove('expanded');
-                        }
-                    };
-                    
-                    msg.appendChild(knowledgeBox);
-                }
-                
-                if (webResults && webResults.length > 0) {
-                    const webPill = document.createElement('button');
-                    webPill.className = 'pill-btn web-pill';
-                    webPill.innerHTML = '<i class="fas fa-globe"></i> Sources';
-                    
-                    if (!pillContainer.parentNode) {
-                        msg.appendChild(pillContainer);
-                    }
-                    pillContainer.appendChild(webPill);
-                    
-                    const webBox = document.createElement('div');
-                    webBox.className = 'web-box';
-                    let webHTML = '<strong>🌐 Web Sources:</strong><br>';
-                    webResults.forEach((source, i) => {
-                        webHTML += `<div class="web-source">
-                            <strong style="font-size: 11.5px;">${source.title}</strong><br>
-                            <a href="${source.url}" target="_blank" style="font-size: 10.5px;">${source.url}</a>
-                        </div>`;
-                    });
-                    webBox.innerHTML = webHTML;
-                    
-                    webPill.onclick = () => {
-                        const reasoningBox = msg.querySelector('.reasoning-box');
-                        const knowledgeBox = msg.querySelector('.knowledge-box');
-                        if (webBox.classList.contains('expanded')) {
-                            webBox.classList.remove('expanded');
-                        } else {
-                            webBox.classList.add('expanded');
-                            if (reasoningBox) reasoningBox.classList.remove('expanded');
-                            if (knowledgeBox) knowledgeBox.classList.remove('expanded');
-                        }
-                    };
-                    
-                    msg.appendChild(webBox);
-                }
-            }
-            
-            const contentContainer = document.createElement('div');
-            
-            if (role === 'ai' && !isThinking) {
-                const parts = detectCodeBlocks(text);
-                parts.forEach(part => {
-                    if (part.type === 'code') {
-                        contentContainer.appendChild(createCodeBlock(part.language, part.content));
+                reasoningPill.onclick = () => {
+                    const knowledgeBox = msg.querySelector('.knowledge-box');
+                    const webBox = msg.querySelector('.web-box');
+                    if (reasoningBox.classList.contains('expanded')) {
+                        reasoningBox.classList.remove('expanded');
                     } else {
-                        const textNode = document.createElement('div');
-                        textNode.innerText = part.content;
-                        contentContainer.appendChild(textNode);
+                        reasoningBox.classList.add('expanded');
+                        if (knowledgeBox) knowledgeBox.classList.remove('expanded');
+                        if (webBox) webBox.classList.remove('expanded');
                     }
-                });
-            } else {
-                contentContainer.innerText = text;
+                };
+                
+                msg.appendChild(pillContainer);
+                msg.appendChild(reasoningBox);
             }
             
-            msg.appendChild(contentContainer);
-            
-            row.appendChild(msg);
-            if (role === 'ai' && !isThinking) {
-                const btn = document.createElement('button');
-                btn.className = 'speak-btn';
-                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(text, btn);
-                msg.appendChild(btn);
-            }
-            document.getElementById('chat-box').appendChild(row);
-            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-            return msg;
-        }
-        
-        function updateThinkingMessage(loaderElement, message) {
-            if (loaderElement && loaderElement.parentNode) {
-                const textElement = loaderElement.querySelector('.thinking-steps');
-                if (textElement) {
-                    textElement.textContent = message;
+            if (knowledgeResults && knowledgeResults.length > 0) {
+                const knowledgePill = document.createElement('button');
+                knowledgePill.className = 'pill-btn knowledge-pill';
+                knowledgePill.innerHTML = '<i class="fas fa-book"></i> Knowledge';
+                
+                if (!pillContainer.parentNode) {
+                    msg.appendChild(pillContainer);
                 }
-            }
-        }
-        
-        function resetSendButton() {
-            isGenerating = false;
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            sendBtn.className = 'send-btn';
-            sendBtn.disabled = false;
-            document.getElementById('user-input').disabled = false;
-            document.getElementById('thinking-mode-btn').disabled = false;
-            document.getElementById('web-search-btn').disabled = false;
-        }
-        
-        function setupStopButton() {
-            isGenerating = true;
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
-            sendBtn.className = 'stop-btn';
-        }
-        
-        function toggleThinkingMode() {
-            thinkingModeEnabled = !thinkingModeEnabled;
-            const btn = document.getElementById('thinking-mode-btn');
-            if (thinkingModeEnabled) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        }
-        
-        function toggleWebSearch() {
-            webSearchEnabled = !webSearchEnabled;
-            const btn = document.getElementById('web-search-btn');
-            if (webSearchEnabled) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        }
-
-        async function init() {
-            try {
-                await initDB();
+                pillContainer.appendChild(knowledgePill);
                 
-                wllama = new Wllama({
-                    'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-                    'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
+                const knowledgeBox = document.createElement('div');
+                knowledgeBox.className = 'knowledge-box';
+                let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong><br>';
+                knowledgeResults.forEach((kb, i) => {
+                    knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">[Score: ${kb.score}] ${kb.filename}</strong><br>${kb.content.substring(0, 200)}...</div>`;
                 });
+                knowledgeBox.innerHTML = knowledgeHTML;
                 
-                await wllama.loadModelFromHF(model.repo, model.file, {
-                    progressCallback: ({ loaded, total }) => {
-                        const percent = Math.round((loaded / total) * 100);
-                        document.querySelector('.loading-text').textContent = `Loading model: ${percent}%`;
+                knowledgePill.onclick = () => {
+                    const reasoningBox = msg.querySelector('.reasoning-box');
+                    const webBox = msg.querySelector('.web-box');
+                    if (knowledgeBox.classList.contains('expanded')) {
+                        knowledgeBox.classList.remove('expanded');
+                    } else {
+                        knowledgeBox.classList.add('expanded');
+                        if (reasoningBox) reasoningBox.classList.remove('expanded');
+                        if (webBox) webBox.classList.remove('expanded');
                     }
-                });
+                };
                 
-                modelLoaded = true;
-                document.getElementById('loading-overlay').style.display = 'none';
-                addMessage("Trapside is online. Deep reasoning mode active. Knowledge retrieval and web search ready.", "ai");
-                document.getElementById('thinking-mode-btn').classList.add('active');
-            } catch (e) { 
-                console.error(e);
-                document.getElementById('loading-overlay').style.display = 'none';
-                addMessage("System error: " + e.message + ". Please refresh the page.", "ai"); 
+                msg.appendChild(knowledgeBox);
+            }
+            
+            if (webResults && webResults.length > 0) {
+                const webPill = document.createElement('button');
+                webPill.className = 'pill-btn web-pill';
+                webPill.innerHTML = '<i class="fas fa-globe"></i> Sources';
+                
+                if (!pillContainer.parentNode) {
+                    msg.appendChild(pillContainer);
+                }
+                pillContainer.appendChild(webPill);
+                
+                const webBox = document.createElement('div');
+                webBox.className = 'web-box';
+                let webHTML = '<strong>🌐 Web Sources:</strong><br>';
+                webResults.forEach((source, i) => {
+                    webHTML += `<div class="web-source">
+                        <strong style="font-size: 11.5px;">${source.title}</strong><br>
+                        <a href="${source.url}" target="_blank" style="font-size: 10.5px;">${source.url}</a>
+                    </div>`;
+                });
+                webBox.innerHTML = webHTML;
+                
+                webPill.onclick = () => {
+                    const reasoningBox = msg.querySelector('.reasoning-box');
+                    const knowledgeBox = msg.querySelector('.knowledge-box');
+                    if (webBox.classList.contains('expanded')) {
+                        webBox.classList.remove('expanded');
+                    } else {
+                        webBox.classList.add('expanded');
+                        if (reasoningBox) reasoningBox.classList.remove('expanded');
+                        if (knowledgeBox) knowledgeBox.classList.remove('expanded');
+                    }
+                };
+                
+                msg.appendChild(webBox);
             }
         }
         
-        function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
-            let prompt = `<|im_start|>system\nYou are Trapside, a helpful and knowledgeable AI assistant. `;
-            
-            if (useDeepReasoning) {
-                prompt += `Use careful step-by-step reasoning. `;
+        const contentContainer = document.createElement('div');
+        
+        if (role === 'ai' && !isThinking) {
+            const parts = detectCodeBlocks(text);
+            parts.forEach(part => {
+                if (part.type === 'code') {
+                    contentContainer.appendChild(createCodeBlock(part.language, part.content));
+                } else {
+                    const textNode = document.createElement('div');
+                    textNode.innerText = part.content;
+                    contentContainer.appendChild(textNode);
+                }
+            });
+        } else {
+            contentContainer.innerText = text;
+        }
+        
+        msg.appendChild(contentContainer);
+        
+        row.appendChild(msg);
+        if (role === 'ai' && !isThinking) {
+            const btn = document.createElement('button');
+            btn.className = 'speak-btn';
+            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            btn.onclick = () => speak(text, btn);
+            msg.appendChild(btn);
+        }
+        document.getElementById('chat-box').appendChild(row);
+        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+        return msg;
+    }
+    
+    function updateThinkingMessage(loaderElement, message) {
+        if (loaderElement && loaderElement.parentNode) {
+            const textElement = loaderElement.querySelector('.thinking-steps');
+            if (textElement) {
+                textElement.textContent = message;
             }
+        }
+    }
+    
+    function resetSendButton() {
+        isGenerating = false;
+        const sendBtn = document.getElementById('send-btn');
+        sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        sendBtn.className = 'send-btn';
+        sendBtn.disabled = false;
+        document.getElementById('user-input').disabled = false;
+        document.getElementById('thinking-mode-btn').disabled = false;
+        document.getElementById('web-search-btn').disabled = false;
+    }
+    
+    function setupStopButton() {
+        isGenerating = true;
+        const sendBtn = document.getElementById('send-btn');
+        sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        sendBtn.className = 'stop-btn';
+    }
+    
+    function toggleThinkingMode() {
+        thinkingModeEnabled = !thinkingModeEnabled;
+        const btn = document.getElementById('thinking-mode-btn');
+        if (thinkingModeEnabled) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+    
+    function toggleWebSearch() {
+        webSearchEnabled = !webSearchEnabled;
+        const btn = document.getElementById('web-search-btn');
+        if (webSearchEnabled) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+
+    async function init() {
+        try {
+            await initDB();
             
-            prompt += `Be direct and helpful.`;
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nContext:\n`;
-                retrievedKnowledge.forEach((kb, idx) => {
-                    prompt += `[${idx+1}] ${kb.content}\n\n`;
-                });
-                prompt += `Use this context to answer accurately.`;
-            }
-            
-            prompt += `<|im_end|>\n`;
-            
-            conversationHistory.slice(-4).forEach(msg => {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            wllama = new Wllama({
+                'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
+                'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
             });
             
-            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            await wllama.loadModelFromHF(model.repo, model.file, {
+                progressCallback: ({ loaded, total }) => {
+                    const percent = Math.round((loaded / total) * 100);
+                    document.querySelector('.loading-text').textContent = `Loading model: ${percent}%`;
+                }
+            });
             
-            return prompt;
+            modelLoaded = true;
+            document.getElementById('loading-overlay').style.display = 'none';
+            addMessage("Trapside is online. Deep reasoning mode active. Knowledge retrieval and web search ready.", "ai");
+            document.getElementById('thinking-mode-btn').classList.add('active');
+        } catch (e) { 
+            console.error('Init error:', e);
+            document.getElementById('loading-overlay').style.display = 'none';
+            addMessage("System error: " + e.message + ". Please refresh the page.", "ai"); 
+        }
+    }
+    
+    function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
+        let systemPrompt = `You are Trapside, a helpful and knowledgeable AI assistant. Be concise, accurate, and friendly.`;
+        
+        if (useDeepReasoning) {
+            systemPrompt += ` Think step-by-step when needed.`;
         }
         
-        async function generateResponse(userMessage, loaderElement) {
-            let webSearchData = { results: [], contents: [] };
-            let retrievedKnowledge = [];
+        if (retrievedKnowledge.length > 0) {
+            systemPrompt += `\n\nRelevant Context:\n`;
+            retrievedKnowledge.forEach((kb, idx) => {
+                systemPrompt += `[${idx+1}] ${kb.content}\n\n`;
+            });
+            systemPrompt += `Use this context to provide accurate answers.`;
+        }
+        
+        let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
+        
+        conversationHistory.slice(-6).forEach(msg => {
+            prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+        });
+        
+        prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+        
+        return prompt;
+    }
+    
+    async function generateResponse(userMessage, loaderElement) {
+        let webSearchData = { results: [], contents: [] };
+        let retrievedKnowledge = [];
+        
+        updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
+        retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
+        
+        if (webSearchEnabled) {
+            updateThinkingMessage(loaderElement, "🌐 Searching web...");
+            webSearchData = await performWebSearch(userMessage);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        let reasoningText = '';
+        if (thinkingModeEnabled && retrievedKnowledge.length > 0) {
+            updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
             
-            updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
-            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
+            let contextSummary = '\n\nContext:\n';
+            retrievedKnowledge.forEach((kb, i) => {
+                contextSummary += `${i+1}. ${kb.content.substring(0, 100)}...\n`;
+            });
             
-            if (webSearchEnabled) {
-                updateThinkingMessage(loaderElement, "🌐 Searching web...");
-                webSearchData = await performWebSearch(userMessage);
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
+            const thinkingPrompt = `<|im_start|>system\nAnalyze step-by-step.<|im_end|>\n<|im_start|>user\n${userMessage}${contextSummary}\n\nThink carefully:<|im_end|>\n<|im_start|>assistant\n1.`;
             
-            let reasoningText = '';
-            if (thinkingModeEnabled && retrievedKnowledge.length > 0) {
-                updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
-                
-                let contextSummary = '\n\nContext:\n';
-                retrievedKnowledge.forEach((kb, i) => {
-                    contextSummary += `${i+1}. ${kb.content.substring(0, 100)}...\n`;
-                });
-                
-                const thinkingPrompt = `<|im_start|>system\nAnalyze step-by-step.<|im_end|>\n<|im_start|>user\n${userMessage}${contextSummary}\n\nThink carefully:<|im_end|>\n<|im_start|>assistant\n1.`;
-                
-                try {
-                    abortController = new AbortController();
-                    reasoningText = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 180,
-                        sampling: { temp: 0.5, top_k: 30, top_p: 0.8, repeat_penalty: 1.15 },
-                        signal: abortController.signal
-                    });
-                    reasoningText = '\n1.' + reasoningText.trim();
-                } catch (e) {
-                    if (e.name !== 'AbortError') {
-                        console.error('Reasoning error:', e);
-                    }
-                    reasoningText = '';
-                }
-            }
-            
-            if (abortController && abortController.signal.aborted) {
-                throw new Error('Generation cancelled');
-            }
-            
-            updateThinkingMessage(loaderElement, "✨ Generating answer...");
-            
-            const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
-            
-            console.log('=== FULL PROMPT ===');
-            console.log(prompt);
-            console.log('=== END PROMPT ===');
-            
-            let finalAnswer = '';
             try {
                 abortController = new AbortController();
-                finalAnswer = await wllama.createCompletion(prompt, {
-                    nPredict: 400,
-                    sampling: { 
-                        temp: 0.75, 
-                        top_k: 40, 
-                        top_p: 0.9, 
-                        repeat_penalty: 1.18,
-                        min_p: 0.05
-                    },
+                reasoningText = await wllama.createCompletion(thinkingPrompt, {
+                    nPredict: 180,
+                    sampling: { temp: 0.5, top_k: 30, top_p: 0.8, repeat_penalty: 1.15 },
                     signal: abortController.signal
                 });
-                
-                finalAnswer = finalAnswer.trim();
-                
-                console.log('=== RAW MODEL OUTPUT ===');
-                console.log(finalAnswer);
-                console.log('=== END OUTPUT ===');
-                
-                // Check for empty or very short responses
-                if (!finalAnswer || finalAnswer.length < 5) {
-                    console.error('Model returned empty/short response');
-                    finalAnswer = "I can help with that. Could you provide more details or rephrase your question?";
-                }
-                
-                // Remove any incomplete sentences at the end
-                if (finalAnswer.length > 20 && !finalAnswer.match(/[.!?]$/)) {
-                    const lastComplete = finalAnswer.lastIndexOf('.');
-                    if (lastComplete > finalAnswer.length / 2) {
-                        finalAnswer = finalAnswer.substring(0, lastComplete + 1);
-                    }
-                }
-                
+                reasoningText = '\n1.' + reasoningText.trim();
             } catch (e) {
-                if (e.name === 'AbortError') {
-                    throw new Error('Generation cancelled');
+                if (e.name !== 'AbortError') {
+                    console.error('Reasoning error:', e);
                 }
-                console.error('Generation error:', e);
-                console.error('Error stack:', e.stack);
-                finalAnswer = "I'm having trouble generating a response. This might be due to the model processing. Please try asking in a different way.";
-            }
-            
-            return {
-                reasoning: reasoningText,
-                answer: finalAnswer,
-                knowledge: retrievedKnowledge,
-                webResults: webSearchData.results
-            };
-        }
-
-        async function handleChat() {
-            if (!modelLoaded) {
-                addMessage("Model is still loading. Please wait...", "ai");
-                return;
-            }
-            
-            if (isGenerating) {
-                if (abortController) {
-                    abortController.abort();
-                }
-                return;
-            }
-            
-            const input = document.getElementById('user-input');
-            const text = input.value.trim();
-            if (!text) return;
-            
-            addMessage(text, 'user');
-            input.value = ''; 
-            input.style.height = 'auto';
-            
-            const loader = document.createElement('div');
-            loader.className = 'message-row ai-row';
-            const loaderMsg = document.createElement('div');
-            loaderMsg.className = 'message ai-message thinking';
-            loaderMsg.innerHTML = '<span class="thinking-steps">Processing...</span>';
-            loader.appendChild(loaderMsg);
-            document.getElementById('chat-box').appendChild(loader);
-            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-            
-            document.getElementById('user-input').disabled = true;
-            document.getElementById('thinking-mode-btn').disabled = true;
-            document.getElementById('web-search-btn').disabled = true;
-            setupStopButton();
-            
-            try {
-                const result = await generateResponse(text, loaderMsg);
-                
-                conversationHistory.push({ role: 'user', content: text });
-                conversationHistory.push({ role: 'assistant', content: result.answer });
-                
-                if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
-                    conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
-                }
-                
-                loader.remove();
-                addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
-                
-            } catch (e) {
-                console.error('Chat error:', e);
-                loader.remove();
-                if (e.message === 'Generation cancelled') {
-                    addMessage("Response generation was cancelled.", 'ai');
-                } else {
-                    addMessage("Something went wrong. Please try again with a simpler question.", 'ai');
-                }
-            } finally { 
-                resetSendButton(); 
+                reasoningText = '';
             }
         }
-
-        document.getElementById('user-input').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-        });
-
-        document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
-        document.getElementById('web-search-btn').onclick = toggleWebSearch;
-        document.getElementById('user-input').onkeydown = (e) => { 
-            if(e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                handleChat(); 
-            } 
+        
+        if (abortController && abortController.signal.aborted) {
+            throw new Error('Generation cancelled');
+        }
+        
+        updateThinkingMessage(loaderElement, "✨ Generating answer...");
+        
+        const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
+        
+        console.log('=== FULL PROMPT ===');
+        console.log(prompt);
+        console.log('=== END PROMPT ===');
+        
+        let finalAnswer = '';
+        try {
+            abortController = new AbortController();
+            finalAnswer = await wllama.createCompletion(prompt, {
+                nPredict: 450,
+                sampling: { 
+                    temp: 0.7, 
+                    top_k: 40, 
+                    top_p: 0.9, 
+                    repeat_penalty: 1.15,
+                    min_p: 0.05
+                },
+                signal: abortController.signal
+            });
+            
+            finalAnswer = finalAnswer.trim();
+            
+            console.log('=== RAW MODEL OUTPUT ===');
+            console.log(finalAnswer);
+            console.log('=== END OUTPUT ===');
+            
+            if (!finalAnswer || finalAnswer.length < 5) {
+                console.error('Model returned empty/short response');
+                finalAnswer = "I can help with that. Could you provide more details or rephrase your question?";
+            }
+            
+            if (finalAnswer.length > 20 && !finalAnswer.match(/[.!?]$/)) {
+                const lastComplete = finalAnswer.lastIndexOf('.');
+                if (lastComplete > finalAnswer.length / 2) {
+                    finalAnswer = finalAnswer.substring(0, lastComplete + 1);
+                }
+            }
+            
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                throw new Error('Generation cancelled');
+            }
+            console.error('Generation error:', e);
+            console.error('Error stack:', e.stack);
+            finalAnswer = "I'm having trouble generating a response right now. Please try rephrasing your question.";
+        }
+        
+        return {
+            reasoning: reasoningText,
+            answer: finalAnswer,
+            knowledge: retrievedKnowledge,
+            webResults: webSearchData.results
         };
-        
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+
+    async function handleChat() {
+        if (!modelLoaded) {
+            addMessage("Model is still loading. Please wait...", "ai");
+            return;
         }
         
-        init();
-    </script>
+        if (isGenerating) {
+            if (abortController) {
+                abortController.abort();
+            }
+            return;
+        }
+        
+        const input = document.getElementById('user-input');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        addMessage(text, 'user');
+        input.value = ''; 
+        input.style.height = 'auto';
+        
+        const loader = document.createElement('div');
+        loader.className = 'message-row ai-row';
+        const loaderMsg = document.createElement('div');
+        loaderMsg.className = 'message ai-message thinking';
+        loaderMsg.innerHTML = '<span class="thinking-steps">Processing...</span>';
+        loader.appendChild(loaderMsg);
+        document.getElementById('chat-box').appendChild(loader);
+        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+        
+        document.getElementById('user-input').disabled = true;
+        document.getElementById('thinking-mode-btn').disabled = true;
+        document.getElementById('web-search-btn').disabled = true;
+        setupStopButton();
+        
+        try {
+            const result = await generateResponse(text, loaderMsg);
+            
+            conversationHistory.push({ role: 'user', content: text });
+            conversationHistory.push({ role: 'assistant', content: result.answer });
+            
+            if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
+                conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
+            }
+            
+            loader.remove();
+            addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
+            
+        } catch (e) {
+            console.error('Chat error:', e);
+            loader.remove();
+            if (e.message === 'Generation cancelled') {
+                addMessage("Response generation was cancelled.", 'ai');
+            } else {
+                addMessage("Something went wrong. Please try again.", 'ai');
+            }
+        } finally { 
+            resetSendButton(); 
+        }
+    }
+
+    document.getElementById('user-input').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+
+    document.getElementById('send-btn').onclick = handleChat;
+    document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
+    document.getElementById('web-search-btn').onclick = toggleWebSearch;
+    document.getElementById('user-input').onkeydown = (e) => { 
+        if(e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleChat(); 
+        } 
+    };
+    
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+    
+    init();
+</script>
+```
+
 </body>
 </html>
