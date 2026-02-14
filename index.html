@@ -805,25 +805,55 @@
             return codeBlock;
         }
 
-        // =============== RELEVANCE CHECKING ===============
+        // =============== IMPROVED KNOWLEDGE RETRIEVAL ===============
         
-        function isQueryRelevantToKnowledge(query, knowledgeResults) {
-            if (knowledgeResults.length === 0) return false;
-            
-            const queryWords = query.toLowerCase()
+        function extractKeyPhrases(query) {
+            const words = query.toLowerCase()
                 .replace(/[^a-z0-9\s]/g, ' ')
                 .split(/\s+/)
                 .filter(w => w.length > 2);
             
-            let totalScore = 0;
-            knowledgeResults.forEach(kb => {
-                const contentWords = kb.content.toLowerCase().split(/\s+/);
-                const matchCount = queryWords.filter(qw => contentWords.some(cw => cw.includes(qw))).length;
-                totalScore += matchCount;
+            const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'what', 'when', 'where', 'who', 'will', 'with', 'this', 'that', 'from', 'they', 'been', 'have', 'has', 'had', 'were', 'said', 'each', 'which', 'how', 'their', 'if', 'or', 'an', 'my', 'so', 'up', 'about', 'than', 'into', 'could', 'other', 'your']);
+            
+            return words.filter(w => !stopWords.has(w));
+        }
+
+        function calculateSemanticScore(query, content) {
+            const queryLower = query.toLowerCase();
+            const contentLower = content.toLowerCase();
+            
+            let score = 0;
+            
+            // Exact phrase match (highest priority)
+            if (contentLower.includes(queryLower)) {
+                score += 100;
+            }
+            
+            // Word proximity scoring
+            const queryWords = extractKeyPhrases(query);
+            const contentWords = contentLower.split(/\s+/);
+            
+            queryWords.forEach(qWord => {
+                const positions = [];
+                contentWords.forEach((cWord, idx) => {
+                    if (cWord.includes(qWord) || qWord.includes(cWord)) {
+                        positions.push(idx);
+                        score += 10; // Word match
+                    }
+                });
+                
+                // Bonus for words appearing close together
+                if (positions.length > 1) {
+                    for (let i = 1; i < positions.length; i++) {
+                        const distance = positions[i] - positions[i-1];
+                        if (distance < 10) {
+                            score += (10 - distance) * 2;
+                        }
+                    }
+                }
             });
             
-            const relevanceThreshold = Math.max(2, queryWords.length * 0.3);
-            return totalScore >= relevanceThreshold;
+            return score;
         }
 
         // =============== DEDUPLICATION FUNCTIONS ===============
@@ -1064,16 +1094,20 @@
         }
         
         async function retrieveRelevantKnowledge(query, topK = 5) {
-            if (totalDocuments === 0) return [];
+            if (totalDocuments === 0) {
+                console.log('No knowledge in database');
+                return [];
+            }
             
             try {
-                const queryLower = query.toLowerCase();
-                const queryWords = queryLower
-                    .replace(/[^a-z0-9\s]/g, ' ')
-                    .split(/\s+/)
-                    .filter(w => w.length > 2);
+                const queryKeyPhrases = extractKeyPhrases(query);
                 
-                if (queryWords.length === 0) return [];
+                if (queryKeyPhrases.length === 0) {
+                    console.log('No valid query phrases extracted');
+                    return [];
+                }
+                
+                console.log('Query key phrases:', queryKeyPhrases);
                 
                 const transaction = db.transaction(['knowledge'], 'readonly');
                 const store = transaction.objectStore('knowledge');
@@ -1083,33 +1117,43 @@
                     request.onerror = () => reject(request.error);
                 });
                 
-                const candidates = allChunks.filter(chunk => {
-                    return queryWords.some(word => 
-                        chunk.keywords && chunk.keywords.includes(word)
-                    );
-                });
+                console.log(`Searching through ${allChunks.length} total chunks`);
                 
-                const scored = candidates.map(chunk => {
-                    const score = calculateTFIDF(
-                        queryWords,
+                // Score all chunks using combined TF-IDF and semantic scoring
+                const scored = allChunks.map(chunk => {
+                    // TF-IDF score
+                    const tfidfScore = calculateTFIDF(
+                        queryKeyPhrases,
                         chunk.wordFreq || {},
                         chunk.wordCount || 1,
                         globalWordFreq,
                         totalDocuments
                     );
                     
-                    return { ...chunk, score };
+                    // Semantic score (phrase matching, proximity)
+                    const semanticScore = calculateSemanticScore(query, chunk.content);
+                    
+                    // Combined score (semantic weighted higher)
+                    const combinedScore = (semanticScore * 3) + tfidfScore;
+                    
+                    return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
                 });
                 
+                // Filter and sort by combined score
                 const topResults = scored
-                    .filter(chunk => chunk.score > 0)
+                    .filter(chunk => chunk.score > 1) // Lower threshold for better recall
                     .sort((a, b) => b.score - a.score)
                     .slice(0, topK);
+                
+                console.log(`Retrieved ${topResults.length} relevant chunks:`);
+                topResults.forEach((chunk, i) => {
+                    console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} (TF-IDF: ${chunk.tfidfScore.toFixed(2)}, Semantic: ${chunk.semanticScore.toFixed(2)}) - ${chunk.filename}`);
+                });
                 
                 return topResults.map(chunk => ({
                     content: chunk.content,
                     filename: chunk.filename,
-                    score: chunk.score.toFixed(3),
+                    score: chunk.score.toFixed(2),
                     category: chunk.category || 'local',
                     sourceUrl: chunk.sourceUrl
                 }));
@@ -1186,6 +1230,7 @@
                         document.getElementById('knowledge-btn').classList.remove('active');
                     }
                     
+                    console.log(`Loaded ${totalDocuments} chunks from ${Object.keys(knowledgeIndex).length} files`);
                     resolve();
                 };
                 request.onerror = () => reject(request.error);
@@ -1443,7 +1488,7 @@
                     knowledgeBox.className = 'knowledge-box';
                     let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong><br>';
                     knowledgeResults.forEach((kb, i) => {
-                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">${kb.filename}</strong><br>${kb.content.substring(0, 180)}...</div>`;
+                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">[Score: ${kb.score}] ${kb.filename}</strong><br>${kb.content.substring(0, 200)}...</div>`;
                     });
                     knowledgeBox.innerHTML = knowledgeHTML;
                     
@@ -1614,15 +1659,15 @@
                 prompt += `Provide clear, concise, and helpful responses.`;
             }
             
-            prompt += `<|im_end|>\n`;
-            
             if (retrievedKnowledge.length > 0) {
-                prompt += `<|im_start|>system\nRelevant context from knowledge base:\n`;
-                retrievedKnowledge.forEach((kb) => {
-                    prompt += `${kb.content}\n\n`;
+                prompt += `\n\nIMPORTANT: Use the following context from the knowledge base to answer the question accurately. Base your answer on this information:\n\n`;
+                retrievedKnowledge.forEach((kb, idx) => {
+                    prompt += `[Source ${idx+1}: ${kb.filename}]\n${kb.content}\n\n`;
                 });
-                prompt += `<|im_end|>\n`;
+                prompt += `Answer based on the context above.`;
             }
+            
+            prompt += `<|im_end|>\n`;
             
             conversationHistory.slice(-6).forEach(msg => {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
@@ -1640,15 +1685,6 @@
             updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
             retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
             
-            const isRelevant = isQueryRelevantToKnowledge(userMessage, retrievedKnowledge);
-            
-            if (!isRelevant) {
-                console.log("Knowledge not relevant, clearing results");
-                retrievedKnowledge = [];
-            } else {
-                console.log(`Using ${retrievedKnowledge.length} relevant knowledge chunks`);
-            }
-            
             if (webSearchEnabled) {
                 updateThinkingMessage(loaderElement, "🌐 Searching web...");
                 webSearchData = await performWebSearch(userMessage);
@@ -1661,10 +1697,10 @@
                 
                 let contextSummary = '';
                 if (retrievedKnowledge.length > 0) {
-                    contextSummary += '\nKnowledge available: ' + retrievedKnowledge.map(k => k.content.substring(0, 80)).join('; ');
-                }
-                if (webSearchData.contents.length > 0) {
-                    contextSummary += '\nWeb data available: ' + webSearchData.contents.map(w => w.title).join(', ');
+                    contextSummary += '\n\nAvailable knowledge:\n';
+                    retrievedKnowledge.forEach((kb, i) => {
+                        contextSummary += `${i+1}. ${kb.content.substring(0, 150)}...\n`;
+                    });
                 }
                 
                 const thinkingPrompt = `<|im_start|>system
@@ -1706,6 +1742,10 @@ Analysis:\n1.`;
             
             const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
             
+            console.log('=== PROMPT SENT TO MODEL ===');
+            console.log(prompt);
+            console.log('=== END PROMPT ===');
+            
             let finalAnswer = '';
             try {
                 abortController = new AbortController();
@@ -1738,7 +1778,7 @@ Analysis:\n1.`;
             return {
                 reasoning: reasoningText,
                 answer: finalAnswer,
-                knowledge: isRelevant ? retrievedKnowledge : [],
+                knowledge: retrievedKnowledge,
                 webResults: webSearchData.results
             };
         }
