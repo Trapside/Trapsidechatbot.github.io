@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trapside - AI Assistant</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --glass: rgba(255, 255, 255, 0.05);
@@ -26,6 +29,61 @@
 
         .container { height: 100vh; display: flex; flex-direction: column; }
         
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--liquid-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-logo {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #00b4ff, #00ff96);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s infinite;
+        }
+        
+        .progress-bar-container {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00b4ff, #00ff96);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .loading-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
         .header { 
             padding: 20px 24px; 
             display: flex; 
@@ -36,6 +94,9 @@
             top: 0;
             left: 0;
             right: 0;
+            background: rgba(2, 1, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .brand { 
@@ -82,6 +143,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
         }
         
         .header-btn:hover {
@@ -92,6 +154,20 @@
             background: #00ff96;
             box-shadow: 0 0 20px #00ff96;
             border-color: #00ff96;
+        }
+        
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4d4d;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
         }
 
         .view { 
@@ -132,11 +208,88 @@
         .ai-message { 
             border-bottom-left-radius: 4px; 
         }
+        
+        /* Markdown & Code Styling */
+        .message-content {
+            word-wrap: break-word;
+        }
+        
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        
+        .message-content p {
+            margin-bottom: 8px;
+        }
+        
+        .message-content ul, .message-content ol {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .message-content code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .message-content pre {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid var(--glass-border);
+        }
+        
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .message-content a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .message-content blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin: 10px 0;
+            opacity: 0.8;
+        }
+        
+        .message-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .message-content strong {
+            color: #00ff96;
+        }
 
         .thinking { 
             font-weight: bold;
             color: var(--accent);
             animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        .streaming {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
         }
         
         .reasoning-box {
@@ -324,7 +477,7 @@
             opacity: 1;
         }
         
-        .web-search-toggle-btn {
+        .web-search-toggle-btn, .voice-input-btn {
             background: transparent;
             border: none;
             width: 36px;
@@ -339,7 +492,7 @@
             flex-shrink: 0;
         }
         
-        .web-search-toggle-btn:hover {
+        .web-search-toggle-btn:hover, .voice-input-btn:hover {
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
         }
@@ -347,6 +500,12 @@
         .web-search-toggle-btn.active {
             color: #9370db;
             background: rgba(138, 43, 226, 0.15);
+        }
+        
+        .voice-input-btn.active {
+            color: #ff4d4d;
+            background: rgba(255, 77, 77, 0.15);
+            animation: pulse 1.5s infinite;
         }
 
         .send-btn, .stop-btn { 
@@ -398,7 +557,8 @@
             border-color: #ffa500;
         }
         
-        .knowledge-modal {
+        /* Modals */
+        .knowledge-modal, .chat-history-modal, .export-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -413,7 +573,7 @@
             padding: 20px;
         }
         
-        .knowledge-modal.active {
+        .knowledge-modal.active, .chat-history-modal.active, .export-modal.active {
             display: flex;
         }
         
@@ -434,6 +594,9 @@
             font-weight: 700;
             margin-bottom: 20px;
             color: #00ff96;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .upload-area {
@@ -471,7 +634,12 @@
             align-items: center;
         }
         
-        .delete-btn {
+        .knowledge-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .delete-btn, .preview-btn, .tag-btn {
             background: #ff4d4d;
             border: none;
             border-radius: 8px;
@@ -479,6 +647,19 @@
             color: white;
             cursor: pointer;
             font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .preview-btn {
+            background: var(--accent);
+        }
+        
+        .tag-btn {
+            background: #9370db;
+        }
+        
+        .delete-btn:hover, .preview-btn:hover, .tag-btn:hover {
+            transform: scale(1.05);
         }
         
         .close-modal {
@@ -502,8 +683,104 @@
             font-size: 13px;
         }
         
+        .search-kb-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .search-kb-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .tag-badge {
+            display: inline-block;
+            background: rgba(147, 112, 219, 0.3);
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            margin-left: 8px;
+            color: #b591ff;
+        }
+        
         #file-input {
             display: none;
+        }
+        
+        /* Chat History */
+        .chat-history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+        
+        .chat-history-date {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 5px;
+        }
+        
+        .chat-history-preview {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .clear-chat-btn, .export-chat-btn {
+            background: #ff4d4d;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+            width: 48%;
+            display: inline-block;
+        }
+        
+        .export-chat-btn {
+            background: var(--accent);
+            margin-left: 4%;
+        }
+        
+        /* Export Modal */
+        .export-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .export-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.02);
+        }
+        
+        .export-option i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--accent);
         }
 
         .view::-webkit-scrollbar { width: 6px; }
@@ -522,17 +799,32 @@
             .header-controls { right: 16px; gap: 8px; }
             .brand { font-size: 24px; }
             .send-btn { width: 38px; height: 38px; }
-            .web-search-toggle-btn { width: 34px; height: 34px; }
+            .web-search-toggle-btn, .voice-input-btn { width: 34px; height: 34px; }
+            .loading-logo { font-size: 36px; }
+            .progress-bar-container { width: 250px; }
         }
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-logo">TRAPSIDE</div>
+        <div class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="loading-text" class="loading-text">Initializing...</div>
+    </div>
+
     <div class="container">
         <div class="header">
             <span class="brand">Trapside</span>
             <div class="header-controls">
                 <button id="knowledge-btn" class="header-btn" title="Knowledge Base">
                     <i class="fas fa-book"></i>
+                </button>
+                <button id="history-btn" class="header-btn" title="Chat History">
+                    <i class="fas fa-history"></i>
+                    <span id="history-badge" class="badge" style="display: none;">0</span>
                 </button>
             </div>
         </div>
@@ -541,6 +833,9 @@
             <div class="input-container">
                 <button id="web-search-toggle" class="web-search-toggle-btn active" title="Toggle Web Search">
                     <i class="fas fa-globe"></i>
+                </button>
+                <button id="voice-input-btn" class="voice-input-btn" title="Voice Input">
+                    <i class="fas fa-microphone"></i>
                 </button>
                 <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
                 <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
@@ -552,13 +847,16 @@
     <!-- Knowledge Base Modal -->
     <div id="knowledge-modal" class="knowledge-modal">
         <div class="modal-content">
-            <div class="modal-header">📚 Knowledge Base</div>
+            <div class="modal-header">
+                📚 Knowledge Base
+            </div>
             <div class="stats-box" id="stats-box">
                 <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
                 <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
                 <strong>Files:</strong> <span id="total-files">0</span><br>
                 <strong>Web Cache:</strong> <span id="web-cache-count">0</span> searches
             </div>
+            <input type="text" id="search-kb-input" class="search-kb-input" placeholder="🔍 Search knowledge base...">
             <div class="upload-area" id="upload-area">
                 <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
                 <p>Drag & drop files here or click to upload</p>
@@ -567,6 +865,44 @@
             <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
             <div class="knowledge-list" id="knowledge-list"></div>
             <button class="close-modal" id="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Chat History Modal -->
+    <div id="chat-history-modal" class="chat-history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                💬 Chat History
+            </div>
+            <div id="chat-history-list"></div>
+            <button class="clear-chat-btn" id="clear-chat-btn">Clear History</button>
+            <button class="export-chat-btn" id="export-chat-btn">Export Chat</button>
+            <button class="close-modal" id="close-history-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="export-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                📤 Export Conversation
+            </div>
+            <div class="export-option" data-format="txt">
+                <i class="fas fa-file-alt"></i>
+                <div><strong>Plain Text</strong></div>
+                <div style="font-size: 12px; opacity: 0.7;">Simple text format</div>
+            </div>
+            <div class="export-option" data-format="json">
+                <i class="fas fa-code"></i>
+                <div><strong>JSON</strong></div>
+                <div style="font-size: 12px; opacity: 0.7;">Structured data format</div>
+            </div>
+            <div class="export-option" data-format="md">
+                <i class="fab fa-markdown"></i>
+                <div><strong>Markdown</strong></div>
+                <div style="font-size: 12px; opacity: 0.7;">Formatted markdown</div>
+            </div>
+            <button class="close-modal" id="close-export-modal">Cancel</button>
         </div>
     </div>
 
@@ -579,17 +915,23 @@
         
         // Conversation history
         let conversationHistory = [];
-        const MAX_HISTORY_LENGTH = 10;
+        const MAX_HISTORY_LENGTH = 20; // Increased
+        let chatHistories = JSON.parse(localStorage.getItem('trapside_chat_histories') || '[]');
         
         // Feature toggles
         let thinkingModeEnabled = true;
         let webSearchEnabled = true;
+        
+        // Voice recognition
+        let recognition = null;
+        let isRecording = false;
         
         // Knowledge base
         let knowledgeIndex = {};
         let globalWordFreq = {};
         let totalDocuments = 0;
         let webCacheCount = 0;
+        let knowledgeTags = JSON.parse(localStorage.getItem('trapside_knowledge_tags') || '{}');
         
         const DB_NAME = 'TrapsideKnowledge';
         const DB_VERSION = 1;
@@ -600,13 +942,80 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
-        // =============== FIXED WEB SEARCH WITH CORS PROXY ===============
+        // =============== LOADING SCREEN ===============
+        
+        function updateLoadingProgress(percent, text) {
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('loading-text').textContent = text;
+        }
+        
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.add('hidden');
+            setTimeout(() => loadingScreen.remove(), 500);
+        }
+
+        // =============== VOICE INPUT ===============
+        
+        function initVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('user-input').value = transcript;
+                    stopVoiceInput();
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    stopVoiceInput();
+                };
+                
+                recognition.onend = () => {
+                    stopVoiceInput();
+                };
+            }
+        }
+        
+        function startVoiceInput() {
+            if (!recognition) {
+                addMessage("Voice input not supported in your browser.", "ai");
+                return;
+            }
+            
+            isRecording = true;
+            document.getElementById('voice-input-btn').classList.add('active');
+            recognition.start();
+        }
+        
+        function stopVoiceInput() {
+            if (recognition && isRecording) {
+                isRecording = false;
+                document.getElementById('voice-input-btn').classList.remove('active');
+                recognition.stop();
+            }
+        }
+        
+        document.getElementById('voice-input-btn').addEventListener('click', () => {
+            if (isRecording) {
+                stopVoiceInput();
+            } else {
+                startVoiceInput();
+            }
+        });
+
+        // =============== WEB SEARCH ===============
         
         async function searchWeb(query) {
             const results = [];
             
             try {
-                // Using Wikipedia API with CORS proxy
+                // Wikipedia
                 const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
                 const wikiResponse = await fetch(wikiUrl);
                 
@@ -625,9 +1034,32 @@
                 console.log('Wikipedia search failed:', e);
             }
             
-            // Try searching for more context using alternate query
+            // Try Wikidata for structured info
             try {
-                const altQuery = query.split(' ').slice(0, 3).join(' '); // First 3 words
+                const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&origin=*`;
+                const wikidataResponse = await fetch(wikidataUrl);
+                
+                if (wikidataResponse.ok) {
+                    const wikidataData = await wikidataResponse.json();
+                    if (wikidataData.search && wikidataData.search.length > 0) {
+                        const firstResult = wikidataData.search[0];
+                        if (firstResult.description) {
+                            results.push({
+                                title: firstResult.label || 'Wikidata Result',
+                                snippet: firstResult.description + (firstResult.aliases ? '. Also known as: ' + firstResult.aliases.join(', ') : ''),
+                                url: `https://www.wikidata.org/wiki/${firstResult.id}`,
+                                source: 'Wikidata'
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Wikidata search failed:', e);
+            }
+            
+            // Try alternate Wikipedia search
+            try {
+                const altQuery = query.split(' ').slice(0, 3).join(' ');
                 const wikiUrl2 = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(altQuery)}`;
                 const wikiResponse2 = await fetch(wikiUrl2);
                 
@@ -674,13 +1106,13 @@
             
             console.log('Storing web results:', combinedText.substring(0, 200));
             
-            const chunks = smartChunk(combinedText, 800); // Larger chunks for web content
+            const chunks = smartChunk(combinedText, 800);
             
             for (const chunkText of chunks) {
                 const { freq, total } = calculateWordFreq(chunkText);
                 const keywords = Object.keys(freq)
                     .sort((a, b) => freq[b] - freq[a])
-                    .slice(0, 25); // More keywords for better matching
+                    .slice(0, 25);
                 
                 await saveKnowledge({
                     filename: filename,
@@ -696,7 +1128,7 @@
             
             console.log(`Stored ${chunks.length} chunks from web search`);
             webCacheCount++;
-            await loadKnowledgeIndex(); // Refresh index immediately
+            await loadKnowledgeIndex();
             updateStats();
         }
         
@@ -715,19 +1147,16 @@
             const queryLower = query.toLowerCase();
             const needsCurrent = currentKeywords.some(kw => queryLower.includes(kw));
             
-            // Always search if knowledge base is empty
             if (retrievedKnowledge.length === 0 && query.length > 10) {
                 console.log('Knowledge base empty, searching web');
                 return true;
             }
             
-            // Search if keywords indicate need for current info
             if (needsCurrent) {
                 console.log('Query needs current info, searching web');
                 return true;
             }
             
-            // Search if existing knowledge has low relevance
             if (retrievedKnowledge.length > 0) {
                 const avgScore = retrievedKnowledge.reduce((sum, kb) => sum + parseFloat(kb.score), 0) / retrievedKnowledge.length;
                 if (avgScore < 0.2) {
@@ -765,7 +1194,7 @@
                 chunks.push(currentChunk.trim());
             }
             
-            return chunks.length > 0 ? chunks : [text]; // Fallback to full text if no chunks
+            return chunks.length > 0 ? chunks : [text];
         }
         
         function calculateWordFreq(text) {
@@ -789,7 +1218,7 @@
                 if (chunkFreq[word]) {
                     const tf = chunkFreq[word] / chunkTotal;
                     const docsWithWord = docFreq[word] || 1;
-                    const idf = Math.log((totalDocs + 1) / (docsWithWord + 1)); // Smoothing
+                    const idf = Math.log((totalDocs + 1) / (docsWithWord + 1));
                     score += tf * idf;
                 }
             });
@@ -995,8 +1424,25 @@
                 });
             }
             
-            await loadKnowledgeIndex(); // Refresh index
+            await loadKnowledgeIndex();
             addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks indexed.`, "ai");
+        }
+
+        // =============== KB SEARCH & TAGS ===============
+        
+        document.getElementById('search-kb-input').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            updateKnowledgeList(searchTerm);
+        });
+        
+        function setKnowledgeTag(filename, tag) {
+            knowledgeTags[filename] = tag;
+            localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            updateKnowledgeList();
+        }
+        
+        function getKnowledgeTag(filename) {
+            return knowledgeTags[filename] || null;
         }
 
         // =============== UI FUNCTIONS ===============
@@ -1014,36 +1460,77 @@
             document.getElementById('web-cache-count').textContent = webCacheCount;
         }
         
-        function updateKnowledgeList() {
+        function updateKnowledgeList(searchTerm = '') {
             const list = document.getElementById('knowledge-list');
             list.innerHTML = '';
             
-            Object.keys(knowledgeIndex).forEach(filename => {
+            const filteredFiles = Object.keys(knowledgeIndex).filter(filename => 
+                filename.toLowerCase().includes(searchTerm) ||
+                (getKnowledgeTag(filename) && getKnowledgeTag(filename).toLowerCase().includes(searchTerm))
+            );
+            
+            filteredFiles.forEach(filename => {
                 const data = knowledgeIndex[filename];
                 const item = document.createElement('div');
                 item.className = 'knowledge-item';
                 const icon = data.isWebCache ? '🌐' : '📄';
+                const tag = getKnowledgeTag(filename);
+                
                 item.innerHTML = `
                     <div>
                         <strong>${icon} ${filename}</strong>
+                        ${tag ? `<span class="tag-badge">${tag}</span>` : ''}
                         <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
                     </div>
-                    <button class="delete-btn" data-filename="${filename}">Delete</button>
+                    <div class="knowledge-item-actions">
+                        <button class="tag-btn" data-filename="${filename}">Tag</button>
+                        <button class="preview-btn" data-filename="${filename}">Preview</button>
+                        <button class="delete-btn" data-filename="${filename}">Delete</button>
+                    </div>
                 `;
                 list.appendChild(item);
                 
-                // Add event listener to delete button
                 item.querySelector('.delete-btn').addEventListener('click', async function() {
                     await deleteKnowledgeFile(this.getAttribute('data-filename'));
                 });
+                
+                item.querySelector('.preview-btn').addEventListener('click', async function() {
+                    await previewKnowledgeFile(this.getAttribute('data-filename'));
+                });
+                
+                item.querySelector('.tag-btn').addEventListener('click', function() {
+                    const fname = this.getAttribute('data-filename');
+                    const newTag = prompt('Enter tag (e.g., work, personal, code):', getKnowledgeTag(fname) || '');
+                    if (newTag !== null) {
+                        setKnowledgeTag(fname, newTag.trim());
+                    }
+                });
             });
             
-            if (Object.keys(knowledgeIndex).length === 0) {
-                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge uploaded yet</p>';
+            if (filteredFiles.length === 0) {
+                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge files found</p>';
+            }
+        }
+        
+        async function previewKnowledgeFile(filename) {
+            const transaction = db.transaction(['knowledge'], 'readonly');
+            const store = transaction.objectStore('knowledge');
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            const fileChunks = allChunks.filter(kb => kb.filename === filename);
+            if (fileChunks.length > 0) {
+                const preview = fileChunks[0].content.substring(0, 500) + '...';
+                alert(`Preview of ${filename}:\n\n${preview}`);
             }
         }
         
         async function deleteKnowledgeFile(filename) {
+            if (!confirm(`Delete "${filename}" from knowledge base?`)) return;
+            
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
             const allChunks = await new Promise((resolve, reject) => {
@@ -1056,6 +1543,11 @@
             for (const kb of toDelete) {
                 await deleteKnowledge(kb.id);
             }
+            
+            // Remove tag
+            delete knowledgeTags[filename];
+            localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            
             addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
         }
         
@@ -1111,7 +1603,156 @@
             }
         });
 
-        // =============== CHAT FUNCTIONS ===============
+        // =============== CHAT HISTORY ===============
+        
+        function saveChatHistory() {
+            if (conversationHistory.length > 0) {
+                const historyEntry = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    messages: [...conversationHistory],
+                    preview: conversationHistory[0]?.content?.substring(0, 50) + '...' || 'Empty chat'
+                };
+                
+                chatHistories.unshift(historyEntry);
+                if (chatHistories.length > 50) chatHistories = chatHistories.slice(0, 50); // Keep last 50
+                
+                localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
+                updateHistoryBadge();
+            }
+        }
+        
+        function loadChatHistory(historyId) {
+            const history = chatHistories.find(h => h.id === historyId);
+            if (history) {
+                conversationHistory = [...history.messages];
+                
+                // Recreate chat display
+                document.getElementById('chat-box').innerHTML = '';
+                conversationHistory.forEach(msg => {
+                    addMessage(msg.content, msg.role);
+                });
+                
+                document.getElementById('chat-history-modal').classList.remove('active');
+                addMessage('📜 Chat history loaded.', 'ai');
+            }
+        }
+        
+        function clearChatHistory() {
+            if (confirm('Clear all chat history? This cannot be undone.')) {
+                chatHistories = [];
+                localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
+                updateHistoryBadge();
+                updateChatHistoryList();
+                addMessage('🗑️ Chat history cleared.', 'ai');
+            }
+        }
+        
+        function updateHistoryBadge() {
+            const badge = document.getElementById('history-badge');
+            if (chatHistories.length > 0) {
+                badge.textContent = chatHistories.length;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        function updateChatHistoryList() {
+            const list = document.getElementById('chat-history-list');
+            list.innerHTML = '';
+            
+            if (chatHistories.length === 0) {
+                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No chat history saved</p>';
+                return;
+            }
+            
+            chatHistories.forEach(history => {
+                const item = document.createElement('div');
+                item.className = 'chat-history-item';
+                const date = new Date(history.date).toLocaleString();
+                item.innerHTML = `
+                    <div class="chat-history-date">${date}</div>
+                    <div class="chat-history-preview">${history.preview}</div>
+                `;
+                item.onclick = () => loadChatHistory(history.id);
+                list.appendChild(item);
+            });
+        }
+        
+        document.getElementById('history-btn').addEventListener('click', () => {
+            updateChatHistoryList();
+            document.getElementById('chat-history-modal').classList.add('active');
+        });
+        
+        document.getElementById('close-history-modal').addEventListener('click', () => {
+            document.getElementById('chat-history-modal').classList.remove('active');
+        });
+        
+        document.getElementById('clear-chat-btn').addEventListener('click', clearChatHistory);
+        
+        document.getElementById('export-chat-btn').addEventListener('click', () => {
+            document.getElementById('chat-history-modal').classList.remove('active');
+            document.getElementById('export-modal').classList.add('active');
+        });
+        
+        // =============== EXPORT FUNCTIONS ===============
+        
+        function exportChat(format) {
+            if (conversationHistory.length === 0) {
+                alert('No conversation to export!');
+                return;
+            }
+            
+            let content = '';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            let filename = `trapside-chat-${timestamp}`;
+            
+            if (format === 'txt') {
+                content = `Trapside Chat Export\nDate: ${new Date().toLocaleString()}\n\n`;
+                conversationHistory.forEach(msg => {
+                    content += `[${msg.role.toUpperCase()}]\n${msg.content}\n\n`;
+                });
+                filename += '.txt';
+            } else if (format === 'json') {
+                content = JSON.stringify({
+                    export_date: new Date().toISOString(),
+                    messages: conversationHistory
+                }, null, 2);
+                filename += '.json';
+            } else if (format === 'md') {
+                content = `# Trapside Chat Export\n\n**Date:** ${new Date().toLocaleString()}\n\n---\n\n`;
+                conversationHistory.forEach(msg => {
+                    const role = msg.role === 'user' ? '**You**' : '**Trapside**';
+                    content += `### ${role}\n\n${msg.content}\n\n---\n\n`;
+                });
+                filename += '.md';
+            }
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('export-modal').classList.remove('active');
+            addMessage(`📤 Chat exported as ${format.toUpperCase()}.`, 'ai');
+        }
+        
+        document.querySelectorAll('.export-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const format = this.getAttribute('data-format');
+                exportChat(format);
+            });
+        });
+        
+        document.getElementById('close-export-modal').addEventListener('click', () => {
+            document.getElementById('export-modal').classList.remove('active');
+        });
+
+        // =============== CHAT FUNCTIONS WITH MARKDOWN ===============
         
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) { 
@@ -1140,11 +1781,11 @@
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         });
 
-        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null) {
+        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null, isStreaming = false) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''} ${isStreaming ? 'streaming' : ''}`;
             
             if (webResults && webResults.length > 0) {
                 const webBox = document.createElement('div');
@@ -1185,7 +1826,21 @@
             }
             
             const textNode = document.createElement('div');
-            textNode.innerText = text;
+            textNode.className = 'message-content';
+            
+            // Render markdown for AI messages
+            if (role === 'ai' && !isThinking) {
+                const htmlContent = marked.parse(text);
+                textNode.innerHTML = htmlContent;
+                
+                // Highlight code blocks
+                textNode.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            } else {
+                textNode.innerText = text;
+            }
+            
             msg.appendChild(textNode);
             
             row.appendChild(msg);
@@ -1218,6 +1873,7 @@
             document.getElementById('user-input').disabled = false;
             document.getElementById('thinking-mode-btn').disabled = false;
             document.getElementById('web-search-toggle').disabled = false;
+            document.getElementById('voice-input-btn').disabled = false;
         }
         
         function setupStopButton() {
@@ -1241,17 +1897,35 @@
 
         async function init() {
             try {
+                updateLoadingProgress(10, 'Initializing database...');
                 await initDB();
-                addMessage("Loading AI model...", "ai", true);
-                await wllama.loadModelFromHF(model.repo, model.file);
                 
-                const loader = document.querySelector('.thinking');
-                if (loader) loader.remove();
+                updateLoadingProgress(30, 'Loading AI model...');
+                await wllama.loadModelFromHF(model.repo, model.file, {
+                    progressCallback: (progress) => {
+                        const percent = 30 + (progress.loaded / progress.total * 60);
+                        updateLoadingProgress(percent, `Loading model: ${(progress.loaded / 1024 / 1024).toFixed(1)} MB / ${(progress.total / 1024 / 1024).toFixed(1)} MB`);
+                    }
+                });
                 
-                addMessage("Trapside is online! I can search Wikipedia and use your knowledge base. Try asking me something!", "ai");
+                updateLoadingProgress(95, 'Initializing voice recognition...');
+                initVoiceRecognition();
+                
+                updateLoadingProgress(100, 'Ready!');
+                
+                setTimeout(() => {
+                    hideLoadingScreen();
+                    addMessage("Trapside is online! I can search Wikipedia, use your knowledge base, and remember our conversation. Try asking me something!", "ai");
+                    updateHistoryBadge();
+                }, 300);
+                
             } catch (e) { 
                 console.error(e);
-                addMessage("System offline. Error: " + e.message, "ai"); 
+                updateLoadingProgress(100, 'Error: ' + e.message);
+                setTimeout(() => {
+                    hideLoadingScreen();
+                    addMessage("System offline. Error: " + e.message, "ai");
+                }, 1000);
             }
         }
         
@@ -1262,6 +1936,7 @@ Core principles:
 - Think step-by-step
 - Use provided web results and knowledge base
 - Cite sources naturally in your answer
+- Format responses in Markdown (use **bold**, *italic*, \`code\`, lists, etc.)
 - Be concise and accurate
 - Remember conversation context`;
       
@@ -1285,7 +1960,9 @@ Core principles:
             
             prompt += `<|im_end|>\n`;
             
-            for (const msg of conversationHistory) {
+            // Smart context window: Keep recent messages and summarize old ones
+            const recentHistory = conversationHistory.slice(-10); // Last 10 messages
+            for (const msg of recentHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
             
@@ -1302,11 +1979,9 @@ Core principles:
             console.log('=== Starting multiPassReasoning ===');
             console.log('Query:', userMessage);
             
-            // Step 1: Retrieve from knowledge base FIRST
             let retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
             console.log('Initial KB retrieval:', retrievedKnowledge.length, 'results');
             
-            // Step 2: Decide if web search needed
             let searchStatus = null;
             if (shouldSearchWeb(userMessage, retrievedKnowledge)) {
                 searchStatus = addSearchStatus('Searching Wikipedia...');
@@ -1316,15 +1991,13 @@ Core principles:
                 
                 if (searchStatus) searchStatus.remove();
                 
-                // Step 3: Store results in knowledge base
                 if (webResults.length > 0) {
                     searchStatus = addSearchStatus('Storing in knowledge base...');
                     await storeWebResults(userMessage, webResults);
                     if (searchStatus) searchStatus.remove();
                     
-                    // Step 4: Retrieve AGAIN after storing - this is the key!
                     searchStatus = addSearchStatus('Retrieving updated knowledge...');
-                    await new Promise(resolve => setTimeout(resolve, 300)); // Small delay for DB
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
                     console.log('Updated KB retrieval:', retrievedKnowledge.length, 'results');
                     if (searchStatus) searchStatus.remove();
@@ -1334,7 +2007,7 @@ Core principles:
             console.log('Final knowledge for prompt:', retrievedKnowledge.length, 'items');
             console.log('Web results for prompt:', webResults.length, 'items');
             
-            // Step 5: Generate response
+            // STREAMING RESPONSE
             if (thinkingModeEnabled) {
                 const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge, webResults);
                 
@@ -1362,7 +2035,13 @@ Core principles:
                 
                 try {
                     abortController = new AbortController();
-                    const answerResult = await wllama.createCompletion(answerPrompt, {
+                    
+                    // Create streaming message
+                    const streamMsg = addMessage('', 'ai', false, reasoningText, retrievedKnowledge, webResults, true);
+                    const contentDiv = streamMsg.querySelector('.message-content');
+                    
+                    let fullText = '';
+                    for await (const chunk of wllama.createCompletionStream(answerPrompt, {
                         nPredict: 400,
                         sampling: {
                             temp: 0.7,
@@ -1371,9 +2050,19 @@ Core principles:
                             repeat_penalty: 1.15
                         },
                         signal: abortController.signal
-                    });
+                    })) {
+                        fullText += chunk;
+                        const htmlContent = marked.parse(fullText);
+                        contentDiv.innerHTML = htmlContent;
+                        contentDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+                    }
                     
-                    finalAnswer = answerResult.trim();
+                    streamMsg.classList.remove('streaming');
+                    finalAnswer = fullText.trim();
+                    
                 } catch (e) {
                     if (!abortController.signal.aborted) {
                         finalAnswer = "Error generating answer.";
@@ -1384,7 +2073,12 @@ Core principles:
                 
                 try {
                     abortController = new AbortController();
-                    const result = await wllama.createCompletion(prompt, {
+                    
+                    const streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults, true);
+                    const contentDiv = streamMsg.querySelector('.message-content');
+                    
+                    let fullText = '';
+                    for await (const chunk of wllama.createCompletionStream(prompt, {
                         nPredict: 400,
                         sampling: {
                             temp: 0.7,
@@ -1393,9 +2087,19 @@ Core principles:
                             repeat_penalty: 1.15
                         },
                         signal: abortController.signal
-                    });
+                    })) {
+                        fullText += chunk;
+                        const htmlContent = marked.parse(fullText);
+                        contentDiv.innerHTML = htmlContent;
+                        contentDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
+                    }
                     
-                    finalAnswer = result.trim();
+                    streamMsg.classList.remove('streaming');
+                    finalAnswer = fullText.trim();
+                    
                 } catch (e) {
                     if (!abortController.signal.aborted) {
                         finalAnswer = "Error generating response.";
@@ -1436,7 +2140,8 @@ Core principles:
             
             prompt += `<|im_end|>\n`;
             
-            for (const msg of conversationHistory) {
+            const recentHistory = conversationHistory.slice(-10);
+            for (const msg of recentHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
             
@@ -1446,7 +2151,7 @@ Core principles:
         }
         
         function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = [], webResults = []) {
-            const answerSystemPrompt = `Based on your reasoning, web results, and knowledge base, provide a clear, accurate answer. Cite sources naturally.`;
+            const answerSystemPrompt = `Based on your reasoning, web results, and knowledge base, provide a clear, accurate answer in Markdown format. Cite sources naturally.`;
             
             let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
             
@@ -1466,7 +2171,8 @@ Core principles:
             
             prompt += `<|im_end|>\n`;
             
-            for (const msg of conversationHistory) {
+            const recentHistory = conversationHistory.slice(-10);
+            for (const msg of recentHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
             
@@ -1489,6 +2195,7 @@ Core principles:
             document.getElementById('user-input').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
             document.getElementById('web-search-toggle').disabled = true;
+            document.getElementById('voice-input-btn').disabled = true;
             setupStopButton();
             
             try {
@@ -1497,13 +2204,15 @@ Core principles:
                 conversationHistory.push({ role: 'user', content: text });
                 conversationHistory.push({ role: 'assistant', content: result.answer });
                 
+                // Smart context management
                 if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
                     conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
                 }
                 
                 loader.remove();
                 
-                addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
+                // Save to history
+                saveChatHistory();
                 
             } catch (e) {
                 console.error('Chat error:', e);
