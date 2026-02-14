@@ -600,13 +600,13 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
-        // =============== IMPROVED WEB SEARCH ===============
+        // =============== FIXED WEB SEARCH WITH CORS PROXY ===============
         
         async function searchWeb(query) {
             const results = [];
             
             try {
-                // 1. Try Wikipedia first (best for factual queries)
+                // Using Wikipedia API with CORS proxy
                 const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
                 const wikiResponse = await fetch(wikiUrl);
                 
@@ -625,54 +625,39 @@
                 console.log('Wikipedia search failed:', e);
             }
             
+            // Try searching for more context using alternate query
             try {
-                // 2. DuckDuckGo Instant Answer
-                const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-                const ddgResponse = await fetch(ddgUrl);
-                const ddgData = await ddgResponse.json();
+                const altQuery = query.split(' ').slice(0, 3).join(' '); // First 3 words
+                const wikiUrl2 = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(altQuery)}`;
+                const wikiResponse2 = await fetch(wikiUrl2);
                 
-                if (ddgData.AbstractText) {
-                    results.push({
-                        title: ddgData.Heading || 'DuckDuckGo Answer',
-                        snippet: ddgData.AbstractText,
-                        url: ddgData.AbstractURL || '',
-                        source: ddgData.AbstractSource || 'DuckDuckGo'
-                    });
-                }
-                
-                // Related topics
-                if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
-                    ddgData.RelatedTopics.slice(0, 2).forEach(topic => {
-                        if (topic.Text && !topic.Topics) {
+                if (wikiResponse2.ok) {
+                    const wikiData2 = await wikiResponse2.json();
+                    if (wikiData2.extract && wikiData2.type !== 'disambiguation') {
+                        const isDuplicate = results.some(r => r.title === wikiData2.title);
+                        if (!isDuplicate) {
                             results.push({
-                                title: topic.Text.split(' - ')[0] || 'Related',
-                                snippet: topic.Text,
-                                url: topic.FirstURL || '',
-                                source: 'DuckDuckGo'
+                                title: wikiData2.title,
+                                snippet: wikiData2.extract,
+                                url: wikiData2.content_urls?.desktop?.page || '',
+                                source: 'Wikipedia'
                             });
                         }
-                    });
+                    }
                 }
             } catch (e) {
-                console.log('DuckDuckGo search failed:', e);
+                console.log('Alternate search failed:', e);
             }
             
-            // Deduplicate by content similarity
-            const uniqueResults = [];
-            for (const result of results) {
-                const isDuplicate = uniqueResults.some(r => 
-                    r.snippet.substring(0, 100) === result.snippet.substring(0, 100)
-                );
-                if (!isDuplicate) {
-                    uniqueResults.push(result);
-                }
-            }
-            
-            return uniqueResults.slice(0, 3); // Top 3 results
+            console.log(`Web search for "${query}" returned ${results.length} results`);
+            return results;
         }
         
         async function storeWebResults(query, results) {
-            if (results.length === 0) return;
+            if (results.length === 0) {
+                console.log('No web results to store');
+                return;
+            }
             
             const timestamp = Date.now();
             const filename = `web_${query.replace(/[^a-z0-9]/gi, '_').substring(0, 30)}_${timestamp}.txt`;
@@ -687,13 +672,15 @@
                 combinedText += `${'='.repeat(50)}\n\n`;
             });
             
-            const chunks = smartChunk(combinedText);
+            console.log('Storing web results:', combinedText.substring(0, 200));
+            
+            const chunks = smartChunk(combinedText, 800); // Larger chunks for web content
             
             for (const chunkText of chunks) {
                 const { freq, total } = calculateWordFreq(chunkText);
                 const keywords = Object.keys(freq)
                     .sort((a, b) => freq[b] - freq[a])
-                    .slice(0, 20);
+                    .slice(0, 25); // More keywords for better matching
                 
                 await saveKnowledge({
                     filename: filename,
@@ -707,31 +694,50 @@
                 });
             }
             
+            console.log(`Stored ${chunks.length} chunks from web search`);
             webCacheCount++;
+            await loadKnowledgeIndex(); // Refresh index immediately
             updateStats();
         }
         
         function shouldSearchWeb(query, retrievedKnowledge) {
-            if (!webSearchEnabled) return false;
+            if (!webSearchEnabled) {
+                console.log('Web search disabled by user');
+                return false;
+            }
             
             const currentKeywords = [
+                'what is', 'who is', 'define', 'explain', 'tell me about',
                 'current', 'latest', 'recent', 'today', 'now', 'this year',
-                '2024', '2025', '2026', 'news', 'update', 'what is', 'who is',
-                'define', 'explain', 'tell me about'
+                '2024', '2025', '2026', 'news', 'update'
             ];
             
             const queryLower = query.toLowerCase();
             const needsCurrent = currentKeywords.some(kw => queryLower.includes(kw));
             
-            // If knowledge base is empty or has low-quality results
-            if (retrievedKnowledge.length === 0) {
-                return query.length > 10; // Search for substantial queries
+            // Always search if knowledge base is empty
+            if (retrievedKnowledge.length === 0 && query.length > 10) {
+                console.log('Knowledge base empty, searching web');
+                return true;
             }
             
-            // If existing knowledge has low relevance
-            const avgScore = retrievedKnowledge.reduce((sum, kb) => sum + parseFloat(kb.score), 0) / retrievedKnowledge.length;
+            // Search if keywords indicate need for current info
+            if (needsCurrent) {
+                console.log('Query needs current info, searching web');
+                return true;
+            }
             
-            return (avgScore < 0.15 && needsCurrent) || needsCurrent;
+            // Search if existing knowledge has low relevance
+            if (retrievedKnowledge.length > 0) {
+                const avgScore = retrievedKnowledge.reduce((sum, kb) => sum + parseFloat(kb.score), 0) / retrievedKnowledge.length;
+                if (avgScore < 0.2) {
+                    console.log(`Low relevance score (${avgScore}), searching web`);
+                    return true;
+                }
+            }
+            
+            console.log('Using local knowledge only');
+            return false;
         }
 
         // =============== CHUNKING & INDEXING ===============
@@ -759,7 +765,7 @@
                 chunks.push(currentChunk.trim());
             }
             
-            return chunks;
+            return chunks.length > 0 ? chunks : [text]; // Fallback to full text if no chunks
         }
         
         function calculateWordFreq(text) {
@@ -783,7 +789,7 @@
                 if (chunkFreq[word]) {
                     const tf = chunkFreq[word] / chunkTotal;
                     const docsWithWord = docFreq[word] || 1;
-                    const idf = Math.log(totalDocs / docsWithWord);
+                    const idf = Math.log((totalDocs + 1) / (docsWithWord + 1)); // Smoothing
                     score += tf * idf;
                 }
             });
@@ -791,8 +797,11 @@
             return score;
         }
         
-        async function retrieveRelevantKnowledge(query, topK = 3) {
-            if (totalDocuments === 0) return [];
+        async function retrieveRelevantKnowledge(query, topK = 4) {
+            if (totalDocuments === 0) {
+                console.log('Knowledge base is empty');
+                return [];
+            }
             
             const queryLower = query.toLowerCase();
             const queryWords = queryLower
@@ -800,32 +809,33 @@
                 .split(/\s+/)
                 .filter(w => w.length > 2);
             
+            console.log('Query words:', queryWords);
+            
             if (queryWords.length === 0) return [];
             
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
-            const allKeys = await new Promise((resolve, reject) => {
-                const request = store.getAllKeys();
+            
+            const allChunks = await new Promise((resolve, reject) => {
+                const request = store.getAll();
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = () => reject(request.error);
             });
             
+            console.log(`Total chunks in database: ${allChunks.length}`);
+            
             const candidates = [];
-            for (const key of allKeys) {
-                const chunk = await new Promise((resolve, reject) => {
-                    const request = store.get(key);
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-                
+            for (const chunk of allChunks) {
                 const hasMatch = queryWords.some(word => 
                     chunk.keywords && chunk.keywords.includes(word)
                 );
                 
                 if (hasMatch) {
-                    candidates.push({ id: key, ...chunk });
+                    candidates.push(chunk);
                 }
             }
+            
+            console.log(`Found ${candidates.length} candidate chunks`);
             
             const scored = candidates.map(chunk => {
                 const score = calculateTFIDF(
@@ -844,6 +854,8 @@
                 .sort((a, b) => b.score - a.score)
                 .slice(0, topK);
             
+            console.log('Top results:', topResults.map(r => ({ file: r.filename, score: r.score.toFixed(3) })));
+            
             return topResults.map(chunk => ({
                 content: chunk.content,
                 filename: chunk.filename,
@@ -861,6 +873,7 @@
                 request.onerror = () => reject(request.error);
                 request.onsuccess = () => {
                     db = request.result;
+                    console.log('Database opened successfully');
                     loadKnowledgeIndex();
                     resolve(db);
                 };
@@ -869,6 +882,7 @@
                     const db = event.target.result;
                     if (!db.objectStoreNames.contains('knowledge')) {
                         db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
+                        console.log('Knowledge store created');
                     }
                 };
             });
@@ -912,6 +926,8 @@
                         }
                     });
                     
+                    console.log(`Loaded index: ${totalDocuments} documents, ${webCacheCount} web caches`);
+                    
                     updateKnowledgeList();
                     updateStats();
                     
@@ -932,10 +948,13 @@
                 const request = store.add(knowledge);
                 
                 request.onsuccess = () => {
-                    loadKnowledgeIndex();
+                    console.log('Knowledge saved:', knowledge.filename);
                     resolve(request.result);
                 };
-                request.onerror = () => reject(request.error);
+                request.onerror = () => {
+                    console.error('Error saving knowledge:', request.error);
+                    reject(request.error);
+                };
             });
         }
         
@@ -976,6 +995,7 @@
                 });
             }
             
+            await loadKnowledgeIndex(); // Refresh index
             addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks indexed.`, "ai");
         }
 
@@ -1008,9 +1028,14 @@
                         <strong>${icon} ${filename}</strong>
                         <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
                     </div>
-                    <button class="delete-btn" onclick="window.deleteKnowledgeFile('${filename.replace(/'/g, "\\'")}')">Delete</button>
+                    <button class="delete-btn" data-filename="${filename}">Delete</button>
                 `;
                 list.appendChild(item);
+                
+                // Add event listener to delete button
+                item.querySelector('.delete-btn').addEventListener('click', async function() {
+                    await deleteKnowledgeFile(this.getAttribute('data-filename'));
+                });
             });
             
             if (Object.keys(knowledgeIndex).length === 0) {
@@ -1018,7 +1043,7 @@
             }
         }
         
-        window.deleteKnowledgeFile = async function(filename) {
+        async function deleteKnowledgeFile(filename) {
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
             const allChunks = await new Promise((resolve, reject) => {
@@ -1032,7 +1057,7 @@
                 await deleteKnowledge(kb.id);
             }
             addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
-        };
+        }
         
         document.getElementById('upload-area').addEventListener('click', () => {
             document.getElementById('file-input').click();
@@ -1179,7 +1204,7 @@
         function addSearchStatus(text) {
             const status = document.createElement('div');
             status.className = 'search-status';
-            status.innerHTML = `<i class="fas fa-spinner spinner"></i>${text}`;
+            status.innerHTML = `<i class="fas fa-spinner spinner"></i> ${text}`;
             document.getElementById('chat-box').appendChild(status);
             document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
             return status;
@@ -1217,9 +1242,13 @@
         async function init() {
             try {
                 await initDB();
+                addMessage("Loading AI model...", "ai", true);
                 await wllama.loadModelFromHF(model.repo, model.file);
                 
-                addMessage("Trapside is online! I can search the web and use your knowledge base. Ask me anything!", "ai");
+                const loader = document.querySelector('.thinking');
+                if (loader) loader.remove();
+                
+                addMessage("Trapside is online! I can search Wikipedia and use your knowledge base. Try asking me something!", "ai");
             } catch (e) { 
                 console.error(e);
                 addMessage("System offline. Error: " + e.message, "ai"); 
@@ -1232,7 +1261,7 @@
 Core principles:
 - Think step-by-step
 - Use provided web results and knowledge base
-- Cite sources naturally
+- Cite sources naturally in your answer
 - Be concise and accurate
 - Remember conversation context`;
       
@@ -1241,15 +1270,17 @@ Core principles:
             if (webResults.length > 0) {
                 prompt += `\n\n=== WEB SEARCH RESULTS ===\n`;
                 webResults.forEach((result, i) => {
-                    prompt += `\n[${i+1}] ${result.title} (${result.source})\n${result.snippet}\n`;
+                    prompt += `\n[Source ${i+1}] ${result.title} (${result.source})\n${result.snippet}\n`;
                 });
+                prompt += `\nPlease use these web results in your answer and cite them naturally.`;
             }
             
             if (retrievedKnowledge.length > 0) {
                 prompt += `\n\n=== KNOWLEDGE BASE ===\n`;
                 retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `\n[${i+1}] From: ${kb.filename}\n${kb.content}\n`;
+                    prompt += `\n[KB ${i+1}] From: ${kb.filename}\n${kb.content}\n`;
                 });
+                prompt += `\nPlease use this knowledge in your answer when relevant.`;
             }
             
             prompt += `<|im_end|>\n`;
@@ -1268,27 +1299,42 @@ Core principles:
             let finalAnswer = '';
             let webResults = [];
             
-            // Step 1: Retrieve from knowledge base
-            const retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
+            console.log('=== Starting multiPassReasoning ===');
+            console.log('Query:', userMessage);
+            
+            // Step 1: Retrieve from knowledge base FIRST
+            let retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
+            console.log('Initial KB retrieval:', retrievedKnowledge.length, 'results');
             
             // Step 2: Decide if web search needed
             let searchStatus = null;
             if (shouldSearchWeb(userMessage, retrievedKnowledge)) {
-                searchStatus = addSearchStatus('🔍 Searching the web...');
+                searchStatus = addSearchStatus('Searching Wikipedia...');
                 
                 webResults = await searchWeb(userMessage);
+                console.log('Web search returned:', webResults.length, 'results');
                 
                 if (searchStatus) searchStatus.remove();
                 
-                // Step 3: Store results
+                // Step 3: Store results in knowledge base
                 if (webResults.length > 0) {
-                    searchStatus = addSearchStatus('💾 Storing in knowledge base...');
+                    searchStatus = addSearchStatus('Storing in knowledge base...');
                     await storeWebResults(userMessage, webResults);
+                    if (searchStatus) searchStatus.remove();
+                    
+                    // Step 4: Retrieve AGAIN after storing - this is the key!
+                    searchStatus = addSearchStatus('Retrieving updated knowledge...');
+                    await new Promise(resolve => setTimeout(resolve, 300)); // Small delay for DB
+                    retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
+                    console.log('Updated KB retrieval:', retrievedKnowledge.length, 'results');
                     if (searchStatus) searchStatus.remove();
                 }
             }
             
-            // Step 4: Generate response
+            console.log('Final knowledge for prompt:', retrievedKnowledge.length, 'items');
+            console.log('Web results for prompt:', webResults.length, 'items');
+            
+            // Step 5: Generate response
             if (thinkingModeEnabled) {
                 const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge, webResults);
                 
@@ -1400,7 +1446,7 @@ Core principles:
         }
         
         function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = [], webResults = []) {
-            const answerSystemPrompt = `Based on your reasoning, web results, and knowledge base, provide a clear, accurate answer.`;
+            const answerSystemPrompt = `Based on your reasoning, web results, and knowledge base, provide a clear, accurate answer. Cite sources naturally.`;
             
             let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
             
@@ -1438,7 +1484,7 @@ Core principles:
             input.value = ''; 
             input.style.height = 'auto';
             
-            const loader = addMessage("Processing...", 'ai', true);
+            const loader = addMessage("Processing your request...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
@@ -1460,7 +1506,7 @@ Core principles:
                 addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
                 
             } catch (e) {
-                console.error(e);
+                console.error('Chat error:', e);
                 loader.classList.remove('thinking');
                 loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred.";
             } finally { 
