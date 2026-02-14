@@ -805,7 +805,7 @@
             return codeBlock;
         }
 
-        // =============== IMPROVED KNOWLEDGE RETRIEVAL ===============
+        // =============== ENHANCED KNOWLEDGE RETRIEVAL ===============
         
         function extractKeyPhrases(query) {
             const words = query.toLowerCase()
@@ -813,7 +813,7 @@
                 .split(/\s+/)
                 .filter(w => w.length > 2);
             
-            const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'what', 'when', 'where', 'who', 'will', 'with', 'this', 'that', 'from', 'they', 'been', 'have', 'has', 'had', 'were', 'said', 'each', 'which', 'how', 'their', 'does']);
+            const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'what', 'when', 'where', 'who', 'will', 'with', 'this', 'that', 'from', 'they', 'been', 'have', 'has', 'had', 'were', 'said', 'each', 'which', 'how', 'their', 'does', 'about', 'into', 'than', 'them', 'some', 'only', 'more']);
             
             return words.filter(w => !stopWords.has(w));
         }
@@ -824,28 +824,41 @@
             
             let score = 0;
             
-            // Exact phrase match
+            // Exact phrase match - very high priority
             if (contentLower.includes(queryLower)) {
-                score += 100;
+                score += 200;
             }
             
-            // Individual word matches
+            // Extract key phrases and check for matches
             const queryWords = extractKeyPhrases(query);
             const contentWords = contentLower.split(/\s+/);
             
+            // Check each query word
             queryWords.forEach(qWord => {
-                contentWords.forEach((cWord) => {
-                    if (cWord.includes(qWord) || qWord.includes(cWord)) {
+                let wordFound = false;
+                contentWords.forEach((cWord, idx) => {
+                    // Exact word match
+                    if (cWord === qWord) {
+                        score += 20;
+                        wordFound = true;
+                    }
+                    // Partial match
+                    else if (cWord.includes(qWord) || qWord.includes(cWord)) {
                         score += 10;
+                        wordFound = true;
                     }
                 });
+                
+                // Bonus if query word found multiple times
+                if (wordFound) {
+                    const occurrences = contentWords.filter(w => w.includes(qWord)).length;
+                    score += occurrences * 3;
+                }
             });
             
             return score;
         }
 
-        // =============== DEDUPLICATION FUNCTIONS ===============
-        
         function calculateSimilarity(text1, text2) {
             const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
             const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
@@ -888,6 +901,7 @@
         
         async function searchDuckDuckGo(query) {
             try {
+                console.log('🔍 Searching DuckDuckGo for:', query);
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
                 const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
                 
@@ -896,16 +910,13 @@
                 
                 const response = await fetch(proxyUrl, { 
                     signal: controller.signal,
-                    headers: {
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                    }
+                    headers: { 'Accept': 'text/html' }
                 });
                 clearTimeout(timeout);
                 
                 if (!response.ok) throw new Error('Search failed');
                 
                 const html = await response.text();
-                
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const results = [];
@@ -930,16 +941,17 @@
                     }
                 });
                 
-                console.log(`Found ${results.length} search results`);
+                console.log(`✅ Found ${results.length} search results`);
                 return results;
             } catch (error) {
-                console.error('DuckDuckGo search error:', error);
+                console.error('❌ DuckDuckGo search error:', error);
                 return [];
             }
         }
         
         async function fetchWebContent(url) {
             try {
+                console.log('📥 Fetching content from:', url);
                 const jinaUrl = `https://r.jina.ai/${url}`;
                 
                 const controller = new AbortController();
@@ -950,20 +962,20 @@
                 
                 if (!response.ok) throw new Error('Fetch failed');
                 const markdown = await response.text();
-                console.log(`Fetched ${markdown.length} chars from ${url}`);
+                console.log(`✅ Fetched ${markdown.length} characters`);
                 return markdown;
             } catch (error) {
-                console.error('Jina AI fetch error:', error);
+                console.error('❌ Fetch error:', error);
                 return null;
             }
         }
         
         async function performWebSearch(query) {
-            console.log('Performing web search for:', query);
+            console.log('🌐 === STARTING WEB SEARCH ===');
             const searchResults = await searchDuckDuckGo(query);
             
             if (searchResults.length === 0) {
-                console.log('No search results found');
+                console.log('⚠️ No search results found');
                 return { results: [], contents: [] };
             }
             
@@ -976,18 +988,19 @@
                         contents.push({
                             title: result.title,
                             url: result.url,
-                            content: content.substring(0, 3000),
+                            content: content.substring(0, 4000),
                             snippet: result.snippet
                         });
                         
+                        console.log(`💾 Saving to knowledge base: ${result.title}`);
                         await saveWebContentToKnowledge(result.title, result.url, content);
                     }
                 } catch (error) {
-                    console.error(`Failed to fetch ${result.url}:`, error);
+                    console.error(`❌ Failed to fetch ${result.url}:`, error);
                 }
             }
             
-            console.log(`Successfully fetched ${contents.length} web contents`);
+            console.log(`✅ Web search complete. Saved ${contents.length} sources to knowledge base`);
             return { results: searchResults, contents };
         }
         
@@ -998,14 +1011,12 @@
                 
                 for (const chunkText of chunks) {
                     const duplicate = await isDuplicate(chunkText, `[WEB] ${title}`);
-                    if (duplicate) {
-                        continue;
-                    }
+                    if (duplicate) continue;
                     
                     const { freq, total } = calculateWordFreq(chunkText);
                     const keywords = Object.keys(freq)
                         .sort((a, b) => freq[b] - freq[a])
-                        .slice(0, 20);
+                        .slice(0, 25);
                     
                     await saveKnowledge({
                         filename: `[WEB] ${title}`,
@@ -1020,9 +1031,9 @@
                     savedCount++;
                 }
                 
-                console.log(`Saved ${savedCount} unique chunks from "${title}"`);
+                console.log(`  ✓ Saved ${savedCount} unique chunks from "${title}"`);
             } catch (error) {
-                console.error('Error saving web content:', error);
+                console.error('❌ Error saving web content:', error);
             }
         }
 
@@ -1074,28 +1085,30 @@
                     const tf = chunkFreq[word] / chunkTotal;
                     const docsWithWord = docFreq[word] || 1;
                     const idf = Math.log((totalDocs + 1) / (docsWithWord + 1));
-                    score += tf * idf;
+                    score += tf * idf * 10; // Boost TF-IDF importance
                 }
             });
             
             return score;
         }
         
-        async function retrieveRelevantKnowledge(query, topK = 5) {
+        async function retrieveRelevantKnowledge(query, topK = 8) {
             if (totalDocuments === 0) {
-                console.log('No knowledge in database');
+                console.log('⚠️ No knowledge in database');
                 return [];
             }
             
             try {
+                console.log('📚 === RETRIEVING FROM KNOWLEDGE BASE ===');
+                console.log(`Query: "${query}"`);
+                
                 const queryKeyPhrases = extractKeyPhrases(query);
+                console.log('Key phrases extracted:', queryKeyPhrases);
                 
                 if (queryKeyPhrases.length === 0) {
-                    console.log('No valid query phrases extracted');
+                    console.log('⚠️ No valid query phrases');
                     return [];
                 }
-                
-                console.log('Query key phrases:', queryKeyPhrases);
                 
                 const transaction = db.transaction(['knowledge'], 'readonly');
                 const store = transaction.objectStore('knowledge');
@@ -1105,9 +1118,9 @@
                     request.onerror = () => reject(request.error);
                 });
                 
-                console.log(`Searching through ${allChunks.length} total chunks`);
+                console.log(`Searching through ${allChunks.length} chunks...`);
                 
-                // Score all chunks
+                // Score all chunks with improved algorithm
                 const scored = allChunks.map(chunk => {
                     const tfidfScore = calculateTFIDF(
                         queryKeyPhrases,
@@ -1118,30 +1131,35 @@
                     );
                     
                     const semanticScore = calculateSemanticScore(query, chunk.content);
-                    const combinedScore = (semanticScore * 3) + tfidfScore;
+                    
+                    // Combined score: semantic is weighted higher for better accuracy
+                    const combinedScore = (semanticScore * 5) + tfidfScore;
                     
                     return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
                 });
                 
+                // Get top results with meaningful scores
                 const topResults = scored
-                    .filter(chunk => chunk.score > 0.5)
+                    .filter(chunk => chunk.score > 5) // Only chunks with good relevance
                     .sort((a, b) => b.score - a.score)
                     .slice(0, topK);
                 
-                console.log(`Retrieved ${topResults.length} relevant chunks:`);
+                console.log(`\n✅ Retrieved ${topResults.length} relevant chunks:`);
                 topResults.forEach((chunk, i) => {
-                    console.log(`  ${i+1}. Score: ${chunk.score.toFixed(2)} - ${chunk.filename}`);
+                    console.log(`  ${i+1}. [Score: ${chunk.score.toFixed(1)}] ${chunk.filename}`);
+                    console.log(`     Semantic: ${chunk.semanticScore.toFixed(1)} | TF-IDF: ${chunk.tfidfScore.toFixed(1)}`);
+                    console.log(`     Preview: ${chunk.content.substring(0, 80)}...`);
                 });
                 
                 return topResults.map(chunk => ({
                     content: chunk.content,
                     filename: chunk.filename,
-                    score: chunk.score.toFixed(2),
+                    score: chunk.score.toFixed(1),
                     category: chunk.category || 'local',
                     sourceUrl: chunk.sourceUrl
                 }));
             } catch (error) {
-                console.error('Knowledge retrieval error:', error);
+                console.error('❌ Knowledge retrieval error:', error);
                 return [];
             }
         }
@@ -1213,7 +1231,6 @@
                         document.getElementById('knowledge-btn').classList.remove('active');
                     }
                     
-                    console.log(`Loaded ${totalDocuments} chunks from ${Object.keys(knowledgeIndex).length} files`);
                     resolve();
                 };
                 request.onerror = () => reject(request.error);
@@ -1261,7 +1278,7 @@
                     const { freq, total } = calculateWordFreq(chunkText);
                     const keywords = Object.keys(freq)
                         .sort((a, b) => freq[b] - freq[a])
-                        .slice(0, 20);
+                        .slice(0, 25);
                     
                     await saveKnowledge({
                         filename: file.name,
@@ -1275,7 +1292,7 @@
                     savedCount++;
                 }
                 
-                console.log(`Saved ${savedCount} unique chunks from "${file.name}"`);
+                console.log(`Saved ${savedCount} chunks from "${file.name}"`);
             } catch (error) {
                 console.error('File processing error:', error);
             }
@@ -1471,7 +1488,7 @@
                     knowledgeBox.className = 'knowledge-box';
                     let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong><br>';
                     knowledgeResults.forEach((kb, i) => {
-                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">[Score: ${kb.score}] ${kb.filename}</strong><br>${kb.content.substring(0, 200)}...</div>`;
+                        knowledgeHTML += `<div style="margin-top: 6px;"><strong style="color: #00ff96;">[Score: ${kb.score}] ${kb.filename}</strong><br>${kb.content.substring(0, 250)}...</div>`;
                     });
                     knowledgeBox.innerHTML = knowledgeHTML;
                     
@@ -1624,7 +1641,7 @@
                 
                 modelLoaded = true;
                 document.getElementById('loading-overlay').style.display = 'none';
-                addMessage("Trapside is online. Deep reasoning mode active. Knowledge retrieval and web search ready.", "ai");
+                addMessage("Trapside is online. Deep reasoning mode active. Upload files or enable web search to build your knowledge base.", "ai");
                 document.getElementById('thinking-mode-btn').classList.add('active');
             } catch (e) { 
                 console.error(e);
@@ -1633,25 +1650,20 @@
             }
         }
         
-        function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
-            let prompt = `<|im_start|>system\nYou are Trapside, a helpful AI assistant. `;
-            
-            if (useDeepReasoning) {
-                prompt += `Use step-by-step logical reasoning to provide thorough responses.`;
-            } else {
-                prompt += `Provide clear and helpful responses.`;
-            }
+        function buildPrompt(userMessage, retrievedKnowledge = []) {
+            let prompt = `<|im_start|>system\nYou are Trapside, a helpful AI assistant. Provide accurate, clear answers.`;
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\nUse this context to answer:\n`;
+                prompt += `\n\nUse this information to answer accurately:\n`;
                 retrievedKnowledge.forEach((kb, idx) => {
-                    prompt += `\n${kb.content}\n`;
+                    prompt += `\nSource ${idx+1} (${kb.filename}):\n${kb.content}\n`;
                 });
+                prompt += `\nBase your answer on the sources above.`;
             }
             
             prompt += `<|im_end|>\n`;
             
-            conversationHistory.slice(-4).forEach(msg => {
+            conversationHistory.slice(-3).forEach(msg => {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             });
             
@@ -1661,41 +1673,56 @@
         }
         
         async function generateResponse(userMessage, loaderElement) {
+            console.log('\n🚀 === GENERATION PIPELINE START ===');
+            console.log(`User Query: "${userMessage}"`);
+            
             let webSearchData = { results: [], contents: [] };
             let retrievedKnowledge = [];
             
-            updateThinkingMessage(loaderElement, "📚 Retrieving knowledge...");
-            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 5);
-            
+            // STEP 1: Web Search (if enabled)
             if (webSearchEnabled) {
-                updateThinkingMessage(loaderElement, "🌐 Searching web...");
+                updateThinkingMessage(loaderElement, "🌐 Step 1/4: Searching web...");
                 webSearchData = await performWebSearch(userMessage);
+                
+                // Wait for knowledge to be indexed
+                if (webSearchData.contents.length > 0) {
+                    updateThinkingMessage(loaderElement, "⏳ Indexing web content...");
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
             }
             
+            // STEP 2: Retrieve from Knowledge Base
+            updateThinkingMessage(loaderElement, "📚 Step 2/4: Searching knowledge base...");
+            await new Promise(resolve => setTimeout(resolve, 300));
+            retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 8);
+            
+            console.log(`\n📊 Knowledge Retrieved: ${retrievedKnowledge.length} chunks`);
+            
+            // STEP 3: Deep Reasoning (if enabled and we have knowledge)
             let reasoningText = '';
             if (thinkingModeEnabled && retrievedKnowledge.length > 0) {
-                updateThinkingMessage(loaderElement, "🧠 Deep reasoning...");
+                updateThinkingMessage(loaderElement, "🧠 Step 3/4: Deep reasoning...");
                 
-                let contextSummary = '\n\nKnowledge:\n';
+                let contextSummary = '\n\nAvailable information:\n';
                 retrievedKnowledge.forEach((kb, i) => {
-                    contextSummary += `${i+1}. ${kb.content.substring(0, 100)}...\n`;
+                    contextSummary += `${i+1}. ${kb.content.substring(0, 120)}...\n`;
                 });
                 
-                const thinkingPrompt = `<|im_start|>system\nThink step-by-step.<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}${contextSummary}\n\nAnalyze step by step:<|im_end|>\n<|im_start|>assistant\n1.`;
+                const thinkingPrompt = `<|im_start|>system\nAnalyze step-by-step.<|im_end|>\n<|im_start|>user\nQuestion: ${userMessage}${contextSummary}\n\nThink through this:<|im_end|>\n<|im_start|>assistant\n`;
                 
                 try {
                     abortController = new AbortController();
                     reasoningText = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 150,
-                        sampling: { temp: 0.5, top_k: 30, top_p: 0.8, repeat_penalty: 1.1 },
+                        nPredict: 120,
+                        sampling: { temp: 0.4, top_k: 25, top_p: 0.75, repeat_penalty: 1.15 },
                         signal: abortController.signal
                     });
-                    reasoningText = '\n1.' + reasoningText.trim();
+                    reasoningText = '\n' + reasoningText.trim();
+                    console.log('💭 Reasoning complete');
                 } catch (e) {
                     if (e.name !== 'AbortError') {
                         console.error('Reasoning error:', e);
                     }
-                    reasoningText = '';
                 }
             }
             
@@ -1703,51 +1730,51 @@
                 throw new Error('Generation cancelled');
             }
             
-            updateThinkingMessage(loaderElement, "✨ Generating answer...");
+            // STEP 4: Generate Final Answer
+            updateThinkingMessage(loaderElement, "✨ Step 4/4: Generating answer...");
             
-            const prompt = buildPrompt(userMessage, retrievedKnowledge, thinkingModeEnabled);
+            const prompt = buildPrompt(userMessage, retrievedKnowledge);
             
-            console.log('=== PROMPT ===');
+            console.log('\n📝 === FINAL PROMPT ===');
             console.log(prompt);
-            console.log('=== END ===');
+            console.log('=== END PROMPT ===\n');
             
             let finalAnswer = '';
             try {
                 abortController = new AbortController();
                 
-                const completionOptions = {
-                    nPredict: 300,
+                finalAnswer = await wllama.createCompletion(prompt, {
+                    nPredict: 350,
                     sampling: { 
-                        temp: 0.7,
+                        temp: 0.65,
                         top_k: 40,
                         top_p: 0.9,
-                        repeat_penalty: 1.15
+                        repeat_penalty: 1.2
                     },
                     signal: abortController.signal
-                };
-                
-                console.log('Completion options:', completionOptions);
-                
-                finalAnswer = await wllama.createCompletion(prompt, completionOptions);
-                
-                console.log('Raw model output:', finalAnswer);
+                });
                 
                 finalAnswer = finalAnswer.trim();
                 
                 if (!finalAnswer || finalAnswer.length < 5) {
-                    finalAnswer = "Based on the available information, I can help you with that. Could you provide more specific details about what you'd like to know?";
+                    if (retrievedKnowledge.length > 0) {
+                        finalAnswer = "Based on the available information, I can help answer that. Let me know if you need clarification on anything specific!";
+                    } else {
+                        finalAnswer = "I'd be happy to help! Could you provide more details or enable web search for current information?";
+                    }
                 }
                 
-                console.log('Final answer:', finalAnswer);
+                console.log('\n✅ Final answer generated:', finalAnswer.substring(0, 100) + '...');
                 
             } catch (e) {
                 if (e.name === 'AbortError') {
                     throw new Error('Generation cancelled');
                 }
-                console.error('GENERATION ERROR:', e);
-                console.error('Error stack:', e.stack);
-                finalAnswer = "I'm ready to help! Could you rephrase your question?";
+                console.error('❌ GENERATION ERROR:', e);
+                finalAnswer = "I'm ready to help! Could you rephrase your question or enable web search for more information?";
             }
+            
+            console.log('=== GENERATION COMPLETE ===\n');
             
             return {
                 reasoning: reasoningText,
@@ -1782,7 +1809,7 @@
             loader.className = 'message-row ai-row';
             const loaderMsg = document.createElement('div');
             loaderMsg.className = 'message ai-message thinking';
-            loaderMsg.innerHTML = '<span class="thinking-steps">Processing...</span>';
+            loaderMsg.innerHTML = '<span class="thinking-steps">Initializing...</span>';
             loader.appendChild(loaderMsg);
             document.getElementById('chat-box').appendChild(loader);
             document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
@@ -1806,12 +1833,12 @@
                 addMessage(result.answer, 'ai', false, result.reasoning, result.knowledge, result.webResults);
                 
             } catch (e) {
-                console.error('Chat error:', e);
+                console.error('❌ Chat error:', e);
                 loader.remove();
                 if (e.message === 'Generation cancelled') {
                     addMessage("Response generation was cancelled.", 'ai');
                 } else {
-                    addMessage("An error occurred. Let me try again - please rephrase your question.", 'ai');
+                    addMessage("Ready to help! Please try your question again.", 'ai');
                 }
             } finally { 
                 resetSendButton(); 
