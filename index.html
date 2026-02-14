@@ -708,7 +708,7 @@
         <div class="upload-area" id="upload-area">
             <i class="fas fa-cloud-upload-alt" style="font-size: 42px; color: var(--accent); margin-bottom: 8px;"></i>
             <p style="font-size: 14px;">Drag & drop files here or click to upload</p>
-            <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
+            <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Supports: .txt, .md, .json, .js, .py, .html, .css</p>
         </div>
         <input type="file" id="file-input" multiple accept=".txt,.md,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
         <div class="knowledge-list" id="knowledge-list"></div>
@@ -859,8 +859,6 @@
         return score;
     }
 
-    // =============== DEDUPLICATION FUNCTIONS ===============
-    
     function calculateSimilarity(text1, text2) {
         const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
         const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
@@ -875,6 +873,11 @@
     
     async function isDuplicate(newContent, filename) {
         try {
+            if (!db) {
+                console.error('Database not initialized');
+                return false;
+            }
+            
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
             const allChunks = await new Promise((resolve, reject) => {
@@ -899,8 +902,6 @@
         }
     }
 
-    // =============== WEB SEARCH FUNCTIONS ===============
-    
     async function searchDuckDuckGo(query) {
         try {
             const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -1008,6 +1009,11 @@
     
     async function saveWebContentToKnowledge(title, url, content) {
         try {
+            if (!db) {
+                console.error('Database not initialized for web content save');
+                return;
+            }
+            
             const chunks = smartChunk(content, 700, 100);
             let savedCount = 0;
             
@@ -1042,6 +1048,10 @@
     }
 
     function smartChunk(text, maxChunkSize = 700, overlap = 100) {
+        if (!text || text.length === 0) {
+            return [];
+        }
+        
         const chunks = [];
         const sections = text.split(/\n\n+/);
         let currentChunk = '';
@@ -1068,6 +1078,10 @@
     }
     
     function calculateWordFreq(text) {
+        if (!text) {
+            return { freq: {}, total: 0 };
+        }
+        
         const words = text.toLowerCase()
             .replace(/[^a-z0-9\s]/g, ' ')
             .split(/\s+/)
@@ -1082,6 +1096,10 @@
     }
     
     function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
+        if (!queryWords || !chunkFreq || chunkTotal === 0 || totalDocs === 0) {
+            return 0;
+        }
+        
         let score = 0;
         
         queryWords.forEach(word => {
@@ -1097,7 +1115,7 @@
     }
     
     async function retrieveRelevantKnowledge(query, topK = 5) {
-        if (totalDocuments === 0) {
+        if (!db || totalDocuments === 0) {
             console.log('No knowledge in database');
             return [];
         }
@@ -1116,7 +1134,7 @@
             const store = transaction.objectStore('knowledge');
             const allChunks = await new Promise((resolve, reject) => {
                 const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
+                request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => reject(request.error);
             });
             
@@ -1131,7 +1149,7 @@
                     totalDocuments
                 );
                 
-                const semanticScore = calculateSemanticScore(query, chunk.content);
+                const semanticScore = calculateSemanticScore(query, chunk.content || '');
                 const combinedScore = (semanticScore * 3) + tfidfScore;
                 
                 return { ...chunk, score: combinedScore, tfidfScore, semanticScore };
@@ -1164,9 +1182,14 @@
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
             
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                console.error('Database error:', request.error);
+                reject(request.error);
+            };
+            
             request.onsuccess = () => {
                 db = request.result;
+                console.log('Database initialized successfully');
                 loadKnowledgeIndex();
                 resolve(db);
             };
@@ -1174,20 +1197,26 @@
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains('knowledge')) {
-                    db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
+                    const objectStore = db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
+                    console.log('Knowledge object store created');
                 }
             };
         });
     }
     
     async function loadKnowledgeIndex() {
+        if (!db) {
+            console.error('Database not initialized');
+            return;
+        }
+        
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
             const request = store.getAll();
             
             request.onsuccess = () => {
-                const allChunks = request.result;
+                const allChunks = request.result || [];
                 
                 knowledgeIndex = {};
                 globalWordFreq = {};
@@ -1230,11 +1259,19 @@
                 console.log(`Loaded ${totalDocuments} chunks from ${Object.keys(knowledgeIndex).length} files`);
                 resolve();
             };
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                console.error('Load knowledge index error:', request.error);
+                reject(request.error);
+            };
         });
     }
     
     async function saveKnowledge(knowledge) {
+        if (!db) {
+            console.error('Database not initialized');
+            return;
+        }
+        
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['knowledge'], 'readwrite');
             const store = transaction.objectStore('knowledge');
@@ -1244,11 +1281,19 @@
                 loadKnowledgeIndex();
                 resolve(request.result);
             };
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                console.error('Save knowledge error:', request.error);
+                reject(request.error);
+            };
         });
     }
     
     async function deleteKnowledge(id) {
+        if (!db) {
+            console.error('Database not initialized');
+            return;
+        }
+        
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['knowledge'], 'readwrite');
             const store = transaction.objectStore('knowledge');
@@ -1258,19 +1303,32 @@
                 loadKnowledgeIndex();
                 resolve();
             };
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                console.error('Delete knowledge error:', request.error);
+                reject(request.error);
+            };
         });
     }
     
     async function processFile(file) {
         try {
+            console.log(`Processing file: ${file.name}`);
             const text = await file.text();
+            
+            if (!text || text.trim().length === 0) {
+                console.error('File is empty');
+                return;
+            }
+            
             const chunks = smartChunk(text, 700, 100);
             let savedCount = 0;
             
             for (const chunkText of chunks) {
                 const duplicate = await isDuplicate(chunkText, file.name);
-                if (duplicate) continue;
+                if (duplicate) {
+                    console.log(`Skipping duplicate chunk from ${file.name}`);
+                    continue;
+                }
                 
                 const { freq, total } = calculateWordFreq(chunkText);
                 const keywords = Object.keys(freq)
@@ -1322,15 +1380,13 @@
                 ? '<div class="knowledge-category">🌐 Online Info</div>' 
                 : '<div class="knowledge-category">📁 Local File</div>';
             
-            const escapedFilename = filename.replace(/'/g, "\\'").replace(/"/g, '\\"');
-            
             item.innerHTML = `
                 <div>
                     <strong style="font-size: 13px;">${filename}</strong>
                     ${categoryBadge}
                     <div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
                 </div>
-                <button class="delete-btn" data-filename="${escapedFilename}">Delete</button>
+                <button class="delete-btn" data-filename="${filename}">Delete</button>
             `;
             list.appendChild(item);
         });
@@ -1349,11 +1405,16 @@
     
     async function deleteKnowledgeFile(filename) {
         try {
+            if (!db) {
+                console.error('Database not initialized');
+                return;
+            }
+            
             const transaction = db.transaction(['knowledge'], 'readonly');
             const store = transaction.objectStore('knowledge');
             const allChunks = await new Promise((resolve, reject) => {
                 const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
+                request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => reject(request.error);
             });
             
@@ -1361,6 +1422,8 @@
             for (const kb of toDelete) {
                 await deleteKnowledge(kb.id);
             }
+            
+            console.log(`Deleted ${toDelete.length} chunks for "${filename}"`);
         } catch (error) {
             console.error('Delete error:', error);
         }
@@ -1622,13 +1685,17 @@
 
     async function init() {
         try {
+            console.log('Initializing Trapside AI...');
+            
             await initDB();
+            console.log('Database initialized');
             
             wllama = new Wllama({
                 'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
                 'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
             });
             
+            console.log('Loading model...');
             await wllama.loadModelFromHF(model.repo, model.file, {
                 progressCallback: ({ loaded, total }) => {
                     const percent = Math.round((loaded / total) * 100);
@@ -1637,34 +1704,38 @@
             });
             
             modelLoaded = true;
+            console.log('Model loaded successfully');
+            
             document.getElementById('loading-overlay').style.display = 'none';
             addMessage("Trapside is online. Deep reasoning mode active. Knowledge retrieval and web search ready.", "ai");
             document.getElementById('thinking-mode-btn').classList.add('active');
         } catch (e) { 
-            console.error('Init error:', e);
+            console.error('Initialization error:', e);
             document.getElementById('loading-overlay').style.display = 'none';
             addMessage("System error: " + e.message + ". Please refresh the page.", "ai"); 
         }
     }
     
     function buildPrompt(userMessage, retrievedKnowledge = [], useDeepReasoning = false) {
-        let systemPrompt = `You are Trapside, a helpful and knowledgeable AI assistant. Be concise, accurate, and friendly.`;
+        let prompt = `<|im_start|>system\nYou are Trapside, a helpful and knowledgeable AI assistant. `;
         
         if (useDeepReasoning) {
-            systemPrompt += ` Think step-by-step when needed.`;
+            prompt += `Use careful step-by-step reasoning. `;
         }
+        
+        prompt += `Be direct and helpful.`;
         
         if (retrievedKnowledge.length > 0) {
-            systemPrompt += `\n\nRelevant Context:\n`;
+            prompt += `\n\nContext:\n`;
             retrievedKnowledge.forEach((kb, idx) => {
-                systemPrompt += `[${idx+1}] ${kb.content}\n\n`;
+                prompt += `[${idx+1}] ${kb.content}\n\n`;
             });
-            systemPrompt += `Use this context to provide accurate answers.`;
+            prompt += `Use this context to answer accurately.`;
         }
         
-        let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
+        prompt += `<|im_end|>\n`;
         
-        conversationHistory.slice(-6).forEach(msg => {
+        conversationHistory.slice(-4).forEach(msg => {
             prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
         });
         
@@ -1729,12 +1800,12 @@
         try {
             abortController = new AbortController();
             finalAnswer = await wllama.createCompletion(prompt, {
-                nPredict: 450,
+                nPredict: 400,
                 sampling: { 
-                    temp: 0.7, 
+                    temp: 0.75, 
                     top_k: 40, 
                     top_p: 0.9, 
-                    repeat_penalty: 1.15,
+                    repeat_penalty: 1.18,
                     min_p: 0.05
                 },
                 signal: abortController.signal
@@ -1764,7 +1835,7 @@
             }
             console.error('Generation error:', e);
             console.error('Error stack:', e.stack);
-            finalAnswer = "I'm having trouble generating a response right now. Please try rephrasing your question.";
+            finalAnswer = "I'm having trouble generating a response. This might be due to the model processing. Please try asking in a different way.";
         }
         
         return {
@@ -1829,7 +1900,7 @@
             if (e.message === 'Generation cancelled') {
                 addMessage("Response generation was cancelled.", 'ai');
             } else {
-                addMessage("Something went wrong. Please try again.", 'ai');
+                addMessage("Something went wrong. Please try again with a simpler question.", 'ai');
             }
         } finally { 
             resetSendButton(); 
