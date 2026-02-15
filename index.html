@@ -2,141 +2,238 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Qwen GGUF Mobile</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/index.all.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen Chat</title>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --primary: #8b5cf6; --coder: #10b981; --text: #f8fafc; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* Progress Bar */
-        #loader-overlay { padding: 15px; background: #1e293b; border-bottom: 2px solid #334155; display: none; }
-        .progress-bg { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; }
-        #progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s; }
-        .status-txt { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; }
-
-        /* Interface */
-        header { padding: 15px; background: var(--card); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        #chat-box { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 14px; line-height: 1.5; }
-        .user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
-        .ai { align-self: flex-start; background: #334155; border-bottom-left-radius: 4px; }
-        
-        .controls { padding: 15px; background: var(--card); display: flex; gap: 10px; }
-        input { flex-grow: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 25px; outline: none; }
-        button { border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; color: white; }
-        #btn-toggle { background: #475569; font-size: 12px; }
-        #btn-toggle.coder-mode { background: var(--coder); }
-        #btn-send { background: var(--primary); }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .model-switch {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-bottom: 1px solid #ddd;
+        }
+        .model-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #2196F3;
+            background: white;
+            color: #2196F3;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .model-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        .user-message {
+            background: #2196F3;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background: white;
+            color: #333;
+            align-self: flex-start;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .status {
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            color: #666;
+            background: #fff9e6;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+        #userInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+        }
+        #sendBtn {
+            padding: 12px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #sendBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>Qwen Chat</h1>
+    </div>
+    
+    <div class="model-switch">
+        <button class="model-btn active" id="chatBtn" onclick="switchModel('chat')">
+            💬 Chat Mode
+        </button>
+        <button class="model-btn" id="coderBtn" onclick="switchModel('coder')">
+            💻 Coder Mode
+        </button>
+    </div>
+    
+    <div class="status" id="status">Loading model...</div>
+    
+    <div class="chat-container" id="chatContainer"></div>
+    
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Type your message..." disabled>
+        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+    </div>
 
-<header>
-    <div id="model-name">Qwen 2.5 Chat</div>
-    <button id="btn-toggle">Switch to Coder</button>
-</header>
+    <script type="module">
+        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-<div id="loader-overlay">
-    <div class="status-txt"><span id="load-status">Downloading GGUF...</span> <span id="load-pct">0%</span></div>
-    <div class="progress-bg"><div id="progress-fill"></div></div>
-</div>
-
-<div id="chat-box">
-    <div class="msg ai">I am running via Wasm (GGUF). The first load will download the model to your phone's cache.</div>
-</div>
-
-<div class="controls">
-    <input type="text" id="user-input" placeholder="Type a message...">
-    <button id="btn-send">Send</button>
-</div>
-
-<script type="module">
-    // URLs for GGUF models (using Q4_K_M quantization for balance)
-    const MODELS = {
-        chat: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
-        coder: "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-0.5b-instruct-q4_k_m.gguf"
-    };
-
-    let wllama = null;
-    let currentMode = 'chat';
-
-    const chatBox = document.getElementById('chat-box');
-    const input = document.getElementById('user-input');
-    const btnSend = document.getElementById('btn-send');
-    const btnToggle = document.getElementById('btn-toggle');
-    const progressFill = document.getElementById('progress-fill');
-    const loadPct = document.getElementById('load-pct');
-    const loaderOverlay = document.getElementById('loader-overlay');
-
-    async function initWllama(url) {
-        loaderOverlay.style.display = 'block';
+        let engine = null;
+        let currentModel = 'chat';
         
-        // If wllama already exists, shut it down before switching
-        if (wllama) await wllama.exit();
+        const models = {
+            chat: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+            coder: "Qwen2.5-Coder-0.5B-Instruct-q4f16_1-MLC"
+        };
 
-        wllama = new Wllama({
-            "bootstrap.js": "https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/bootstrap.js",
-            "wasm-mg.js": "https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/wllama-main.js",
-        });
+        window.switchModel = async function(mode) {
+            if (currentModel === mode) return;
+            
+            currentModel = mode;
+            document.getElementById('chatBtn').classList.toggle('active', mode === 'chat');
+            document.getElementById('coderBtn').classList.toggle('active', mode === 'coder');
+            
+            await loadModel();
+        };
 
-        await wllama.loadModelFromUrl(url, {
-            progressCallback: ({ loaded, total }) => {
-                const pct = Math.round((loaded / total) * 100);
-                progressFill.style.width = pct + '%';
-                loadPct.textContent = pct + '%';
+        async function loadModel() {
+            try {
+                updateStatus('Loading ' + (currentModel === 'chat' ? 'Chat' : 'Coder') + ' model...');
+                document.getElementById('sendBtn').disabled = true;
+                document.getElementById('userInput').disabled = true;
+
+                const selectedModel = models[currentModel];
+                
+                engine = await CreateMLCEngine(selectedModel, {
+                    initProgressCallback: (progress) => {
+                        updateStatus(progress.text);
+                    }
+                });
+
+                updateStatus('Model ready! Start chatting.');
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('userInput').disabled = false;
+                document.getElementById('userInput').focus();
+            } catch (error) {
+                updateStatus('Error: ' + error.message);
+                console.error(error);
             }
-        });
+        }
 
-        loaderOverlay.style.display = 'none';
-        appendMsg('ai', `Model loaded successfully!`);
-    }
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
 
-    btnToggle.onclick = async () => {
-        currentMode = currentMode === 'chat' ? 'coder' : 'chat';
-        btnToggle.textContent = currentMode === 'chat' ? 'Switch to Coder' : 'Switch to Chat';
-        btnToggle.classList.toggle('coder-mode');
-        document.getElementById('model-name').textContent = currentMode === 'chat' ? 'Qwen 2.5 Chat' : 'Qwen 2.5 Coder';
-        await initWllama(MODELS[currentMode]);
-    };
+        function addMessage(text, isUser) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isUser ? 'user-message' : 'bot-message');
+            messageDiv.textContent = text;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
 
-    async function sendMessage() {
-        const text = input.value.trim();
-        if (!text || !wllama) return;
+        window.sendMessage = async function() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message || !engine) return;
+            
+            addMessage(message, true);
+            input.value = '';
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
 
-        appendMsg('user', text);
-        input.value = '';
+            try {
+                const response = await engine.chat.completions.create({
+                    messages: [{ role: "user", content: message }],
+                    temperature: 0.7,
+                    max_tokens: 512
+                });
 
-        const aiMsgDiv = appendMsg('ai', '...');
-        let fullResponse = '';
-
-        await wllama.run({
-            prompt: `<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`,
-            nPredict: 256,
-            sampling: { temp: 0.7, top_k: 40 },
-            onNewToken: (token, piece, currentText) => {
-                fullResponse = currentText;
-                aiMsgDiv.textContent = fullResponse;
-                chatBox.scrollTop = chatBox.scrollHeight;
+                const reply = response.choices[0].message.content;
+                addMessage(reply, false);
+            } catch (error) {
+                addMessage('Error: ' + error.message, false);
             }
+
+            input.disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            input.focus();
+        };
+
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
         });
-    }
 
-    function appendMsg(sender, text) {
-        const div = document.createElement('div');
-        div.className = `msg ${sender}`;
-        div.textContent = text;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return div;
-    }
-
-    btnSend.onclick = sendMessage;
-    input.onkeypress = (e) => e.key === 'Enter' && sendMessage();
-
-    // Initial load
-    initWllama(MODELS.chat);
-</script>
-
+        // Auto-load chat model on start
+        loadModel();
+    </script>
 </body>
 </html>
