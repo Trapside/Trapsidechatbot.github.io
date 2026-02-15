@@ -3,170 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qwen 2.5 All-In-One Chat</title>
+    <title>Qwen Mobile Lite</title>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 700px; background: white; border-radius: 12px; shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; height: 90vh; }
-        .header { background: #4a90e2; color: white; padding: 15px; text-align: center; }
-        .mode-toggle { background: #357abd; padding: 10px; display: flex; justify-content: center; gap: 10px; }
-        .mode-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
-        .mode-btn.active { background: white; color: #357abd; font-weight: bold; }
-        .progress-container { padding: 15px; background: #f9f9f9; border-bottom: 1px solid #eee; display: none; }
-        .progress-bar { width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-top: 5px; }
-        .progress-fill { height: 100%; background: #2ecc71; width: 0%; transition: width 0.3s; }
-        .chat-box { flex: 1; overflow-y: auto; padding: 20px; background: #fafafa; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
-        .user-msg { background: #4a90e2; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .bot-msg { background: white; border: 1px solid #ddd; align-self: flex-start; border-bottom-left-radius: 2px; white-space: pre-wrap; }
-        .input-area { padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
-        button#sendBtn { background: #4a90e2; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        :root { --bg: #f4f4f9; --card: #ffffff; --primary: #6366f1; --coder: #10b981; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
+        #chat-box { flex-grow: 1; overflow-y: auto; background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #ddd; font-size: 14px; }
+        .controls { display: flex; gap: 8px; margin-bottom: 10px; }
+        button { border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        #toggle-mode { background: var(--primary); flex-grow: 1; }
+        #toggle-mode.coder-mode { background: var(--coder); }
+        .input-area { display: flex; gap: 8px; }
+        input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; outline: none; }
+        #send-btn { background: #333; width: 60px; }
+        .msg { margin-bottom: 10px; line-height: 1.4; }
+        .user { color: #555; font-weight: bold; }
+        .ai { color: #000; }
+        .status { font-size: 10px; color: #888; text-align: center; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header"><h2>Qwen 2.5 Local AI</h2></div>
-    <div class="mode-toggle">
-        <button class="mode-btn active" id="chatBtn">💬 Chat Mode</button>
-        <button class="mode-btn" id="coderBtn">💻 Coder Mode</button>
-    </div>
+    <div class="status" id="status">Ready (Wasm Mode)</div>
     
-    <div class="progress-container" id="progressContainer">
-        <div style="font-size: 12px; color: #666;" id="progressLabel">Loading model...</div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="controls">
+        <button id="toggle-mode">Mode: General Chat</button>
     </div>
 
-    <div class="chat-box" id="chatBox"></div>
-    
+    <div id="chat-box"></div>
+
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Type a message..." disabled>
-        <button id="sendBtn" disabled>Send</button>
+        <input type="text" id="user-input" placeholder="Type a message...">
+        <button id="send-btn">Send</button>
     </div>
-</div>
 
-<script type="module">
-    // --- WORKER CODE AS A STRING ---
-    const workerCode = `
-        import { pipeline, AutoTokenizer, AutoModelForCausalLM, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-        
-        env.allowLocalModels = false;
-        let model, tokenizer;
+    <script type="module">
+        const status = document.getElementById('status');
+        const chatBox = document.getElementById('chat-box');
+        const toggleBtn = document.getElementById('toggle-mode');
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
 
-        self.onmessage = async (e) => {
-            const { type, text, modelName } = e.data;
+        let isCoder = false;
+        let generator = null;
 
-            if (type === 'load') {
-                tokenizer = await AutoTokenizer.from_pretrained(modelName);
-                model = await AutoModelForCausalLM.from_pretrained(modelName, {
-                    quantized: true,
-                    progress_callback: (p) => self.postMessage({ type: 'progress', data: p })
-                });
-                self.postMessage({ type: 'ready' });
-            }
-
-            if (type === 'generate') {
-                const { input_ids } = await tokenizer(text);
-                const streamer = new TextStreamer(tokenizer, {
-                    skip_prompt: true,
-                    callback_function: (token) => self.postMessage({ type: 'chunk', data: token })
-                });
-
-                self.postMessage({ type: 'start' });
-                await model.generate({
-                    input_ids,
-                    max_new_tokens: 512,
-                    temperature: 0.7,
-                    do_sample: true,
-                    streamer
-                });
-                self.postMessage({ type: 'done' });
-            }
+        const models = {
+            general: 'Xenova/Qwen2.5-0.5B-Instruct',
+            coder: 'Xenova/Qwen2.5-Coder-0.5B-Instruct'
         };
-    `;
 
-    // Initialize Worker via Blob
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
-
-    const chatBox = document.getElementById('chatBox');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressFill = document.getElementById('progressFill');
-    const progressLabel = document.getElementById('progressLabel');
-    
-    let currentBotDiv = null;
-
-    // Handle UI logic
-    worker.onmessage = (e) => {
-        const { type, data } = e.data;
-
-        if (type === 'progress') {
-            progressContainer.style.display = 'block';
-            if (data.status === 'progress') {
-                const percent = Math.round((data.loaded / data.total) * 100);
-                progressFill.style.width = percent + '%';
-                progressLabel.textContent = \`Downloading \${data.file}: \${percent}%\`;
-            }
-        } else if (type === 'ready') {
-            progressContainer.style.display = 'none';
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-            userInput.placeholder = "Ask me anything...";
-        } else if (type === 'start') {
-            currentBotDiv = document.createElement('div');
-            currentBotDiv.className = 'message bot-msg';
-            chatBox.appendChild(currentBotDiv);
-        } else if (type === 'chunk') {
-            currentBotDiv.textContent += data;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        } else if (type === 'done') {
-            sendBtn.disabled = false;
+        // Initialize pipeline
+        async function loadModel(modelName) {
+            status.textContent = `Loading ${modelName} (Quantized)...`;
+            toggleBtn.disabled = true;
+            
+            // Using 'q4' quantization for mobile memory efficiency
+            generator = await transformer.pipeline('text-generation', modelName, {
+                device: 'wasm', 
+                quantized: true,
+            });
+            
+            status.textContent = `${isCoder ? 'Coder' : 'General'} Model Ready`;
+            toggleBtn.disabled = false;
         }
-    };
 
-    function loadModel(name) {
-        userInput.disabled = true;
-        sendBtn.disabled = true;
-        progressContainer.style.display = 'block';
-        worker.postMessage({ type: 'load', modelName: name });
-    }
+        // Toggle Logic
+        toggleBtn.onclick = async () => {
+            isCoder = !isCoder;
+            toggleBtn.classList.toggle('coder-mode');
+            toggleBtn.textContent = isCoder ? "Mode: Coder" : "Mode: General Chat";
+            await loadModel(isCoder ? models.coder : models.general);
+        };
 
-    function handleSend() {
-        const text = userInput.value.trim();
-        if (!text) return;
+        async function generateResponse() {
+            const text = input.value;
+            if (!text || !generator) return;
 
-        const userDiv = document.createElement('div');
-        userDiv.className = 'message user-msg';
-        userDiv.textContent = text;
-        chatBox.appendChild(userDiv);
+            appendMsg('User', text);
+            input.value = '';
+            status.textContent = "Thinking...";
 
-        userInput.value = '';
-        sendBtn.disabled = true;
-        worker.postMessage({ type: 'generate', text });
-    }
+            const output = await generator(text, {
+                max_new_tokens: 128,
+                temperature: 0.7,
+            });
 
-    sendBtn.onclick = handleSend;
-    userInput.onkeypress = (e) => e.key === 'Enter' && handleSend();
+            appendMsg('AI', output[0].generated_text.replace(text, '').trim());
+            status.textContent = "Ready";
+        }
 
-    document.getElementById('chatBtn').onclick = (e) => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        loadModel('onnx-community/Qwen2.5-0.5B-Instruct');
-    };
+        function appendMsg(sender, text) {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = `<span class="${sender.toLowerCase()}">${sender}:</span> ${text}`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-    document.getElementById('coderBtn').onclick = (e) => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        loadModel('onnx-community/Qwen2.5-Coder-0.5B-Instruct');
-    };
+        sendBtn.onclick = generateResponse;
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') generateResponse(); });
 
-    // Initial Load
-    loadModel('onnx-community/Qwen2.5-0.5B-Instruct');
-</script>
-
+        // Initial Load
+        import * as transformer from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+        loadModel(models.general);
+    </script>
 </body>
 </html>
