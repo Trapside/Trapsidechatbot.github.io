@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Qwen Chat</title>
-    <script src="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2"></script>
     <style>
         * {
             margin: 0;
@@ -48,6 +47,10 @@
         .mode-btn.active {
             background: #2ecc71;
             color: white;
+        }
+        .mode-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .status {
             padding: 10px;
@@ -117,6 +120,7 @@
         .bot-msg {
             background: white;
             border: 1px solid #ddd;
+            white-space: pre-wrap;
         }
         .input-area {
             padding: 15px;
@@ -152,6 +156,14 @@
             color: #666;
             font-style: italic;
         }
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -181,9 +193,11 @@
     </div>
 
     <script type="module">
-        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2';
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
         
+        // Configure environment
         env.allowLocalModels = false;
+        env.allowRemoteModels = true;
         
         let generator = null;
         let currentMode = 'chat';
@@ -201,21 +215,40 @@
         const progressLabel = document.getElementById('progressLabel');
         const progressDetails = document.getElementById('progressDetails');
         
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = '⚠️ ' + message;
+            chatBox.appendChild(errorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            console.error(message);
+        }
+        
         function updateProgress(progress) {
-            if (progress.status === 'progress') {
-                progressContainer.classList.add('show');
-                const percent = Math.round((progress.loaded / progress.total) * 100);
-                progressFill.style.width = percent + '%';
-                progressFill.textContent = percent + '%';
-                
-                const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
-                const totalMB = (progress.total / 1024 / 1024).toFixed(1);
-                progressDetails.textContent = `${loadedMB} MB / ${totalMB} MB`;
-                progressLabel.textContent = `Loading ${progress.file}...`;
-            } else if (progress.status === 'done') {
-                progressFill.style.width = '100%';
-                progressFill.textContent = '100%';
-                progressLabel.textContent = 'Complete!';
+            try {
+                if (progress && progress.status === 'progress' && progress.loaded && progress.total) {
+                    progressContainer.classList.add('show');
+                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = percent + '%';
+                    
+                    const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                    const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                    progressDetails.textContent = `${loadedMB} MB / ${totalMB} MB`;
+                    
+                    if (progress.file) {
+                        progressLabel.textContent = `Loading ${progress.file}...`;
+                    }
+                } else if (progress && progress.status === 'done') {
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = '100%';
+                    progressLabel.textContent = 'Complete!';
+                } else if (progress && progress.status === 'initiate') {
+                    progressContainer.classList.add('show');
+                    progressLabel.textContent = 'Starting download...';
+                }
+            } catch (e) {
+                console.log('Progress update:', progress);
             }
         }
         
@@ -224,25 +257,38 @@
             progressContainer.classList.add('show');
             progressFill.style.width = '0%';
             progressFill.textContent = '0%';
-            progressDetails.textContent = '';
+            progressDetails.textContent = 'Initializing...';
             sendBtn.disabled = true;
             userInput.disabled = true;
+            chatModeBtn.disabled = true;
+            coderModeBtn.disabled = true;
             
             try {
+                console.log('Starting to load model:', modelName);
+                
                 generator = await pipeline('text-generation', modelName, {
-                    progress_callback: updateProgress
+                    progress_callback: updateProgress,
+                    quantized: true
                 });
+                
+                console.log('Model loaded successfully');
                 
                 setTimeout(() => {
                     progressContainer.classList.remove('show');
                     status.textContent = `✓ ${modelName.split('/')[1]} ready`;
                     sendBtn.disabled = false;
                     userInput.disabled = false;
+                    chatModeBtn.disabled = false;
+                    coderModeBtn.disabled = false;
                     userInput.focus();
                 }, 500);
             } catch (error) {
+                console.error('Model loading error:', error);
                 progressContainer.classList.remove('show');
-                status.textContent = `Error: ${error.message}`;
+                status.textContent = `❌ Failed to load model`;
+                showError(`Failed to load model: ${error.message}`);
+                chatModeBtn.disabled = false;
+                coderModeBtn.disabled = false;
             }
         }
         
@@ -256,7 +302,7 @@
         
         async function sendMessage() {
             const message = userInput.value.trim();
-            if (!message) return;
+            if (!message || !generator) return;
             
             addMessage(message, true);
             userInput.value = '';
@@ -266,27 +312,39 @@
             loadingDiv.className = 'message bot-msg loading';
             loadingDiv.textContent = 'Thinking...';
             chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
             
             try {
                 const output = await generator(message, {
-                    max_new_tokens: 200,
+                    max_new_tokens: 256,
                     temperature: 0.7,
-                    do_sample: true
+                    do_sample: true,
+                    top_k: 50,
+                    top_p: 0.9
                 });
                 
                 chatBox.removeChild(loadingDiv);
-                const response = output[0].generated_text.replace(message, '').trim();
+                
+                let response = output[0].generated_text;
+                
+                // Try to extract just the response part
+                if (response.includes(message)) {
+                    response = response.substring(response.indexOf(message) + message.length).trim();
+                }
+                
                 addMessage(response || 'No response generated.', false);
             } catch (error) {
+                console.error('Generation error:', error);
                 chatBox.removeChild(loadingDiv);
-                addMessage('Error: ' + error.message, false);
+                showError('Generation error: ' + error.message);
             }
             
             sendBtn.disabled = false;
+            userInput.focus();
         }
         
         chatModeBtn.addEventListener('click', async () => {
-            if (currentMode === 'chat') return;
+            if (currentMode === 'chat' || chatModeBtn.disabled) return;
             currentMode = 'chat';
             chatModeBtn.classList.add('active');
             coderModeBtn.classList.remove('active');
@@ -294,7 +352,7 @@
         });
         
         coderModeBtn.addEventListener('click', async () => {
-            if (currentMode === 'coder') return;
+            if (currentMode === 'coder' || coderModeBtn.disabled) return;
             currentMode = 'coder';
             coderModeBtn.classList.add('active');
             chatModeBtn.classList.remove('active');
@@ -303,10 +361,11 @@
         
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter' && !sendBtn.disabled) sendMessage();
         });
         
         // Load initial model
+        console.log('App initialized, loading model...');
         loadModel(chatModel);
     </script>
 </body>
