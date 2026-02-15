@@ -56,6 +56,46 @@
             color: #666;
             background: #f9f9f9;
         }
+        .progress-container {
+            padding: 15px;
+            background: #f9f9f9;
+            display: none;
+        }
+        .progress-container.show {
+            display: block;
+        }
+        .progress-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a90e2, #357abd);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .progress-details {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+            text-align: center;
+        }
         .chat-box {
             height: 400px;
             overflow-y: auto;
@@ -67,6 +107,7 @@
             padding: 10px;
             border-radius: 8px;
             max-width: 85%;
+            word-wrap: break-word;
         }
         .user-msg {
             background: #4a90e2;
@@ -122,7 +163,14 @@
             <button class="mode-btn active" id="chatMode">💬 Chat Mode</button>
             <button class="mode-btn" id="coderMode">💻 Coder Mode</button>
         </div>
-        <div class="status" id="status">Loading model...</div>
+        <div class="status" id="status">Initializing...</div>
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-label" id="progressLabel">Loading model...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div class="progress-details" id="progressDetails"></div>
+        </div>
         <div class="chat-box" id="chatBox"></div>
         <div class="input-area">
             <div class="input-group">
@@ -148,18 +196,54 @@
         const status = document.getElementById('status');
         const chatModeBtn = document.getElementById('chatMode');
         const coderModeBtn = document.getElementById('coderMode');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressLabel = document.getElementById('progressLabel');
+        const progressDetails = document.getElementById('progressDetails');
+        
+        function updateProgress(progress) {
+            if (progress.status === 'progress') {
+                progressContainer.classList.add('show');
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                progressFill.style.width = percent + '%';
+                progressFill.textContent = percent + '%';
+                
+                const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                progressDetails.textContent = `${loadedMB} MB / ${totalMB} MB`;
+                progressLabel.textContent = `Loading ${progress.file}...`;
+            } else if (progress.status === 'done') {
+                progressFill.style.width = '100%';
+                progressFill.textContent = '100%';
+                progressLabel.textContent = 'Complete!';
+            }
+        }
         
         async function loadModel(modelName) {
             status.textContent = `Loading ${modelName.split('/')[1]}...`;
+            progressContainer.classList.add('show');
+            progressFill.style.width = '0%';
+            progressFill.textContent = '0%';
+            progressDetails.textContent = '';
             sendBtn.disabled = true;
             userInput.disabled = true;
             
-            generator = await pipeline('text-generation', modelName);
-            
-            status.textContent = `✓ ${modelName.split('/')[1]} ready`;
-            sendBtn.disabled = false;
-            userInput.disabled = false;
-            userInput.focus();
+            try {
+                generator = await pipeline('text-generation', modelName, {
+                    progress_callback: updateProgress
+                });
+                
+                setTimeout(() => {
+                    progressContainer.classList.remove('show');
+                    status.textContent = `✓ ${modelName.split('/')[1]} ready`;
+                    sendBtn.disabled = false;
+                    userInput.disabled = false;
+                    userInput.focus();
+                }, 500);
+            } catch (error) {
+                progressContainer.classList.remove('show');
+                status.textContent = `Error: ${error.message}`;
+            }
         }
         
         function addMessage(text, isUser) {
