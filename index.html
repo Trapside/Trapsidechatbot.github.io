@@ -2,110 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qwen Mobile Lite</title>
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qwen GGUF Mobile</title>
+    <script src="https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/index.all.min.js"></script>
     <style>
-        :root { --bg: #f4f4f9; --card: #ffffff; --primary: #6366f1; --coder: #10b981; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
-        #chat-box { flex-grow: 1; overflow-y: auto; background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #ddd; font-size: 14px; }
-        .controls { display: flex; gap: 8px; margin-bottom: 10px; }
-        button { border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
-        #toggle-mode { background: var(--primary); flex-grow: 1; }
-        #toggle-mode.coder-mode { background: var(--coder); }
-        .input-area { display: flex; gap: 8px; }
-        input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; outline: none; }
-        #send-btn { background: #333; width: 60px; }
-        .msg { margin-bottom: 10px; line-height: 1.4; }
-        .user { color: #555; font-weight: bold; }
-        .ai { color: #000; }
-        .status { font-size: 10px; color: #888; text-align: center; margin-bottom: 5px; }
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #8b5cf6; --coder: #10b981; --text: #f8fafc; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Progress Bar */
+        #loader-overlay { padding: 15px; background: #1e293b; border-bottom: 2px solid #334155; display: none; }
+        .progress-bg { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        #progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s; }
+        .status-txt { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; }
+
+        /* Interface */
+        header { padding: 15px; background: var(--card); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        #chat-box { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 14px; line-height: 1.5; }
+        .user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .ai { align-self: flex-start; background: #334155; border-bottom-left-radius: 4px; }
+        
+        .controls { padding: 15px; background: var(--card); display: flex; gap: 10px; }
+        input { flex-grow: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 25px; outline: none; }
+        button { border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; color: white; }
+        #btn-toggle { background: #475569; font-size: 12px; }
+        #btn-toggle.coder-mode { background: var(--coder); }
+        #btn-send { background: var(--primary); }
     </style>
 </head>
 <body>
 
-    <div class="status" id="status">Ready (Wasm Mode)</div>
-    
-    <div class="controls">
-        <button id="toggle-mode">Mode: General Chat</button>
-    </div>
+<header>
+    <div id="model-name">Qwen 2.5 Chat</div>
+    <button id="btn-toggle">Switch to Coder</button>
+</header>
 
-    <div id="chat-box"></div>
+<div id="loader-overlay">
+    <div class="status-txt"><span id="load-status">Downloading GGUF...</span> <span id="load-pct">0%</span></div>
+    <div class="progress-bg"><div id="progress-fill"></div></div>
+</div>
 
-    <div class="input-area">
-        <input type="text" id="user-input" placeholder="Type a message...">
-        <button id="send-btn">Send</button>
-    </div>
+<div id="chat-box">
+    <div class="msg ai">I am running via Wasm (GGUF). The first load will download the model to your phone's cache.</div>
+</div>
 
-    <script type="module">
-        const status = document.getElementById('status');
-        const chatBox = document.getElementById('chat-box');
-        const toggleBtn = document.getElementById('toggle-mode');
-        const input = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
+<div class="controls">
+    <input type="text" id="user-input" placeholder="Type a message...">
+    <button id="btn-send">Send</button>
+</div>
 
-        let isCoder = false;
-        let generator = null;
+<script type="module">
+    // URLs for GGUF models (using Q4_K_M quantization for balance)
+    const MODELS = {
+        chat: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        coder: "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-0.5b-instruct-q4_k_m.gguf"
+    };
 
-        const models = {
-            general: 'Xenova/Qwen2.5-0.5B-Instruct',
-            coder: 'Xenova/Qwen2.5-Coder-0.5B-Instruct'
-        };
+    let wllama = null;
+    let currentMode = 'chat';
 
-        // Initialize pipeline
-        async function loadModel(modelName) {
-            status.textContent = `Loading ${modelName} (Quantized)...`;
-            toggleBtn.disabled = true;
-            
-            // Using 'q4' quantization for mobile memory efficiency
-            generator = await transformer.pipeline('text-generation', modelName, {
-                device: 'wasm', 
-                quantized: true,
-            });
-            
-            status.textContent = `${isCoder ? 'Coder' : 'General'} Model Ready`;
-            toggleBtn.disabled = false;
-        }
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('user-input');
+    const btnSend = document.getElementById('btn-send');
+    const btnToggle = document.getElementById('btn-toggle');
+    const progressFill = document.getElementById('progress-fill');
+    const loadPct = document.getElementById('load-pct');
+    const loaderOverlay = document.getElementById('loader-overlay');
 
-        // Toggle Logic
-        toggleBtn.onclick = async () => {
-            isCoder = !isCoder;
-            toggleBtn.classList.toggle('coder-mode');
-            toggleBtn.textContent = isCoder ? "Mode: Coder" : "Mode: General Chat";
-            await loadModel(isCoder ? models.coder : models.general);
-        };
+    async function initWllama(url) {
+        loaderOverlay.style.display = 'block';
+        
+        // If wllama already exists, shut it down before switching
+        if (wllama) await wllama.exit();
 
-        async function generateResponse() {
-            const text = input.value;
-            if (!text || !generator) return;
+        wllama = new Wllama({
+            "bootstrap.js": "https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/bootstrap.js",
+            "wasm-mg.js": "https://cdn.jsdelivr.net/npm/@wllama/wllama@1.23.0/dist/wllama-main.js",
+        });
 
-            appendMsg('User', text);
-            input.value = '';
-            status.textContent = "Thinking...";
+        await wllama.loadModelFromUrl(url, {
+            progressCallback: ({ loaded, total }) => {
+                const pct = Math.round((loaded / total) * 100);
+                progressFill.style.width = pct + '%';
+                loadPct.textContent = pct + '%';
+            }
+        });
 
-            const output = await generator(text, {
-                max_new_tokens: 128,
-                temperature: 0.7,
-            });
+        loaderOverlay.style.display = 'none';
+        appendMsg('ai', `Model loaded successfully!`);
+    }
 
-            appendMsg('AI', output[0].generated_text.replace(text, '').trim());
-            status.textContent = "Ready";
-        }
+    btnToggle.onclick = async () => {
+        currentMode = currentMode === 'chat' ? 'coder' : 'chat';
+        btnToggle.textContent = currentMode === 'chat' ? 'Switch to Coder' : 'Switch to Chat';
+        btnToggle.classList.toggle('coder-mode');
+        document.getElementById('model-name').textContent = currentMode === 'chat' ? 'Qwen 2.5 Chat' : 'Qwen 2.5 Coder';
+        await initWllama(MODELS[currentMode]);
+    };
 
-        function appendMsg(sender, text) {
-            const div = document.createElement('div');
-            div.className = 'msg';
-            div.innerHTML = `<span class="${sender.toLowerCase()}">${sender}:</span> ${text}`;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text || !wllama) return;
 
-        sendBtn.onclick = generateResponse;
-        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') generateResponse(); });
+        appendMsg('user', text);
+        input.value = '';
 
-        // Initial Load
-        import * as transformer from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-        loadModel(models.general);
-    </script>
+        const aiMsgDiv = appendMsg('ai', '...');
+        let fullResponse = '';
+
+        await wllama.run({
+            prompt: `<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`,
+            nPredict: 256,
+            sampling: { temp: 0.7, top_k: 40 },
+            onNewToken: (token, piece, currentText) => {
+                fullResponse = currentText;
+                aiMsgDiv.textContent = fullResponse;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        });
+    }
+
+    function appendMsg(sender, text) {
+        const div = document.createElement('div');
+        div.className = `msg ${sender}`;
+        div.textContent = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return div;
+    }
+
+    btnSend.onclick = sendMessage;
+    input.onkeypress = (e) => e.key === 'Enter' && sendMessage();
+
+    // Initial load
+    initWllama(MODELS.chat);
+</script>
+
 </body>
 </html>
