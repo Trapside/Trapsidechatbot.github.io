@@ -1,2182 +1,333 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trapside - AI Assistant</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root {
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --accent: #00b4ff;
-            --liquid-bg: linear-gradient(135deg, #02010a 0%, #0d1127 50%, #1a0b2e 100%);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--liquid-bg);
-            background-attachment: fixed;
-            color: #fff; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-
-        .container { height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--liquid-bg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            transition: opacity 0.5s ease;
-        }
-        
-        .loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .loading-logo {
-            font-size: 48px;
-            font-weight: 900;
-            letter-spacing: 3px;
-            margin-bottom: 30px;
-            background: linear-gradient(135deg, #00b4ff, #00ff96);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: pulse 2s infinite;
-        }
-        
-        .progress-bar-container {
-            width: 300px;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #00b4ff, #00ff96);
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 10px;
-        }
-        
-        .loading-text {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        
-        .header { 
-            padding: 20px 24px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            z-index: 10;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(2, 1, 10, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .brand { 
-            font-weight: 900; 
-            font-size: 28px; 
-            color: #fff;
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            filter: drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
-            position: relative;
-        }
-        
-        .brand::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: var(--accent);
-            border-radius: 3px;
-        }
-        
-        .header-controls {
-            position: absolute;
-            right: 24px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .header-btn {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            width: 44px; 
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            position: relative;
-        }
-        
-        .header-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .header-btn.active {
-            background: #00ff96;
-            box-shadow: 0 0 20px #00ff96;
-            border-color: #00ff96;
-        }
-        
-        .badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #ff4d4d;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 10px;
-            min-width: 18px;
-            text-align: center;
-        }
-
-        .view { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            overflow-y: auto; 
-            padding: 20px; 
-            gap: 20px; 
-            padding-bottom: 140px;
-            padding-top: 100px; 
-        }
-        #chat-box { display: flex; flex-direction: column; gap: 16px; }
-
-        .message-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; }
-        .user-row { flex-direction: row-reverse; }
-
-        .message { 
-            max-width: 80%; 
-            padding: 16px 22px 42px 22px; 
-            border-radius: 24px; 
-            line-height: 1.6; 
-            font-size: 15px; 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            background: var(--glass);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-
-        .user-message { 
-            background: rgba(0, 180, 255, 0.1); 
-            border-color: rgba(0, 180, 255, 0.3);
-            border-bottom-right-radius: 4px;
-        }
-
-        .ai-message { 
-            border-bottom-left-radius: 4px; 
-        }
-        
-        /* Markdown & Code Styling */
-        .message-content {
-            word-wrap: break-word;
-        }
-        
-        .message-content h1, .message-content h2, .message-content h3 {
-            margin-top: 16px;
-            margin-bottom: 8px;
-            color: var(--accent);
-        }
-        
-        .message-content p {
-            margin-bottom: 8px;
-        }
-        
-        .message-content ul, .message-content ol {
-            margin-left: 20px;
-            margin-bottom: 8px;
-        }
-        
-        .message-content code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-        }
-        
-        .message-content pre {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 12px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 10px 0;
-            border: 1px solid var(--glass-border);
-        }
-        
-        .message-content pre code {
-            background: none;
-            padding: 0;
-        }
-        
-        .message-content a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        
-        .message-content a:hover {
-            text-decoration: underline;
-        }
-        
-        .message-content blockquote {
-            border-left: 3px solid var(--accent);
-            padding-left: 12px;
-            margin: 10px 0;
-            opacity: 0.8;
-        }
-        
-        .message-content img {
-            max-width: 100%;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
-        .message-content strong {
-            color: #00ff96;
-        }
-
-        .thinking { 
-            font-weight: bold;
-            color: var(--accent);
-            animation: pulse 1.5s infinite ease-in-out;
-        }
-        
-        .streaming::after {
-            content: '▋';
-            animation: blink 1s infinite;
-            color: var(--accent);
-            margin-left: 2px;
-        }
-        
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-        
-        .reasoning-box {
-            background: rgba(255, 165, 0, 0.1);
-            border: 1px solid rgba(255, 165, 0, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            color: #ffb84d;
-            font-style: italic;
-        }
-        
-        .reasoning-box strong {
-            color: #ffa500;
-            display: block;
-            margin-bottom: 6px;
-        }
-        
-        .knowledge-box {
-            background: rgba(0, 255, 150, 0.1);
-            border: 1px solid rgba(0, 255, 150, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            color: #5fffb8;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .knowledge-box strong {
-            color: #00ff96;
-            display: block;
-            margin-bottom: 6px;
-        }
-        
-        .web-search-box {
-            background: rgba(138, 43, 226, 0.1);
-            border: 1px solid rgba(138, 43, 226, 0.3);
-            border-radius: 16px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            color: #b591ff;
-        }
-        
-        .web-search-box strong {
-            color: #9370db;
-            display: block;
-            margin-bottom: 8px;
-        }
-        
-        .web-result {
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(138, 43, 226, 0.2);
-        }
-        
-        .web-result:first-child {
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
-        }
-        
-        .web-result-title {
-            color: #b591ff;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .web-result-source {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
-        
-        .search-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            background: rgba(138, 43, 226, 0.15);
-            border: 1px solid rgba(138, 43, 226, 0.3);
-            border-radius: 12px;
-            font-size: 13px;
-            margin-bottom: 10px;
-            color: #b591ff;
-        }
-        
-        @keyframes pulse { 
-            0% { opacity: 0.3; } 
-            50% { opacity: 1; } 
-            100% { opacity: 0.3; } 
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .spinner {
-            animation: spin 1s linear infinite;
-        }
-
-        .speak-btn { 
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--glass-border);
-            color: #fff; 
-            width: 34px; 
-            height: 34px; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.3s ease;
-            position: absolute;
-            bottom: 10px; 
-            right: 10px; 
-            box-shadow: 0 0 10px rgba(0, 180, 255, 0.2);
-            z-index: 5;
-        }
-        .speak-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: scale(1.05);
-        }
-        .speak-btn.active { 
-            background: var(--accent); 
-            box-shadow: 0 0 15px var(--accent);
-            border-color: var(--accent);
-        }
-
-        .input-area { 
-            position: fixed; 
-            bottom: 24px; 
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 0 20px; 
-            display: flex;
-            justify-content: center;
-            align-items: flex-end; 
-            gap: 10px; 
-            max-width: 860px; 
-            width: calc(100% - 40px);
-            z-index: 100;
-        }
-
-        .input-container { 
-            display: flex; 
-            gap: 0;
-            align-items: center;
-            flex: 1; 
-            padding: 6px 6px 6px 12px;
-            border-radius: 30px;
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            transition: all 0.3s ease;
-        }
-        
-        .input-container:focus-within {
-            box-shadow: 0 10px 50px rgba(0, 180, 255, 0.3);
-            border-color: rgba(0, 180, 255, 0.4);
-        }
-
-        .input-field { 
-            flex: 1; 
-            background: transparent; 
-            border: none; 
-            padding: 10px 8px;
-            color: #fff; 
-            font-size: 15px; 
-            outline: none; 
-            resize: none;
-            max-height: 120px;
-            min-height: 24px;
-            line-height: 1.5;
-            font-family: inherit;
-        }
-        
-        .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-        
-        .input-controls {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .web-search-toggle-btn, .voice-input-btn {
-            background: transparent;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-        
-        .web-search-toggle-btn:hover, .voice-input-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-        
-        .web-search-toggle-btn.active {
-            color: #9370db;
-            background: rgba(138, 43, 226, 0.15);
-        }
-        
-        .voice-input-btn.active {
-            color: #ff4d4d;
-            background: rgba(255, 77, 77, 0.15);
-            animation: pulse 1.5s infinite;
-        }
-
-        .send-btn, .stop-btn { 
-            background: var(--accent); 
-            border: none; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            color: #fff; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        
-        .send-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 180, 255, 0.5);
-        }
-        
-        .send-btn:disabled { 
-            opacity: 0.3; 
-            cursor: not-allowed;
-        }
-        
-        .stop-btn {
-            background: #ff4d4d;
-            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
-        }
-
-        .thinking-mode-btn {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            width: 48px; 
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            flex-shrink: 0;
-        }
-        
-        .thinking-mode-btn:hover {
-            transform: scale(1.05);
-        }
-
-        .thinking-mode-btn.active {
-            background: #ffa500;
-            box-shadow: 0 0 20px #ffa500;
-            border-color: #ffa500;
-        }
-        
-        /* Modals */
-        .knowledge-modal, .chat-history-modal, .export-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        
-        .knowledge-modal.active, .chat-history-modal.active, .export-modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 30px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .modal-header {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #00ff96;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .upload-area {
-            border: 2px dashed var(--glass-border);
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-        
-        .upload-area:hover {
-            border-color: var(--accent);
-            background: rgba(0, 180, 255, 0.05);
-        }
-        
-        .upload-area.dragover {
-            border-color: #00ff96;
-            background: rgba(0, 255, 150, 0.1);
-        }
-        
-        .knowledge-list {
-            margin-top: 20px;
-        }
-        
-        .knowledge-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .knowledge-item-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .delete-btn, .preview-btn, .tag-btn {
-            background: #ff4d4d;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 12px;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-        
-        .preview-btn {
-            background: var(--accent);
-        }
-        
-        .tag-btn {
-            background: #9370db;
-        }
-        
-        .delete-btn:hover, .preview-btn:hover, .tag-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .close-modal {
-            background: var(--accent);
-            border: none;
-            border-radius: 12px;
-            padding: 12px 24px;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-        
-        .close-modal:hover {
-            transform: scale(1.02);
-        }
-        
-        .stats-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-        
-        .search-kb-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 12px;
-            color: white;
-            font-size: 14px;
-            margin-bottom: 15px;
-            outline: none;
-        }
-        
-        .search-kb-input:focus {
-            border-color: var(--accent);
-        }
-        
-        .tag-badge {
-            display: inline-block;
-            background: rgba(147, 112, 219, 0.3);
-            padding: 3px 8px;
-            border-radius: 8px;
-            font-size: 11px;
-            margin-left: 8px;
-            color: #b591ff;
-        }
-        
-        #file-input {
-            display: none;
-        }
-        
-        /* Chat History */
-        .chat-history-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .chat-history-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateX(5px);
-        }
-        
-        .chat-history-date {
-            font-size: 11px;
-            opacity: 0.6;
-            margin-bottom: 5px;
-        }
-        
-        .chat-history-preview {
-            font-size: 13px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .clear-chat-btn, .export-chat-btn {
-            background: #ff4d4d;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 20px;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 15px;
-            width: 48%;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-        
-        .export-chat-btn {
-            background: var(--accent);
-            margin-left: 4%;
-        }
-        
-        .clear-chat-btn:hover, .export-chat-btn:hover {
-            transform: scale(1.02);
-        }
-        
-        /* Export Modal */
-        .export-option {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .export-option:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: scale(1.02);
-        }
-        
-        .export-option i {
-            font-size: 24px;
-            margin-bottom: 8px;
-            color: var(--accent);
-        }
-
-        .view::-webkit-scrollbar { width: 6px; }
-        .view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .modal-content::-webkit-scrollbar { width: 6px; }
-        .modal-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        .knowledge-box::-webkit-scrollbar { width: 4px; }
-        .knowledge-box::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-
-        @media (max-width: 768px) {
-            .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-            .input-area { padding: 0 12px; bottom: 20px; width: calc(100% - 24px); }
-            .thinking-mode-btn { width: 44px; height: 44px; }
-            .modal-content { padding: 20px; }
-            .header-btn { width: 40px; height: 40px; }
-            .header-controls { right: 16px; gap: 8px; }
-            .brand { font-size: 24px; }
-            .send-btn { width: 38px; height: 38px; }
-            .web-search-toggle-btn, .voice-input-btn { width: 32px; height: 32px; font-size: 14px; }
-            .loading-logo { font-size: 36px; }
-            .progress-bar-container { width: 250px; }
-        }
-    </style>
-</head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="loading-logo">TRAPSIDE</div>
-        <div class="progress-bar-container">
-            <div id="progress-bar" class="progress-bar"></div>
-        </div>
-        <div id="loading-text" class="loading-text">Initializing...</div>
-    </div>
-
-    <div class="container">
-        <div class="header">
-            <span class="brand">Trapside</span>
-            <div class="header-controls">
-                <button id="knowledge-btn" class="header-btn" title="Knowledge Base">
-                    <i class="fas fa-book"></i>
-                </button>
-                <button id="history-btn" class="header-btn" title="Chat History">
-                    <i class="fas fa-history"></i>
-                    <span id="history-badge" class="badge" style="display: none;">0</span>
-                </button>
-            </div>
-        </div>
-        <div class="view" id="scroll-area"><div id="chat-box"></div></div>
-        <div class="input-area">
-            <div class="input-container">
-                <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
-                <div class="input-controls">
-                    <button id="web-search-toggle" class="web-search-toggle-btn active" title="Web Search">
-                        <i class="fas fa-globe"></i>
-                    </button>
-                    <button id="voice-input-btn" class="voice-input-btn" title="Voice Input">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
-                </div>
-            </div>
-            <button id="thinking-mode-btn" class="thinking-mode-btn active" title="Thinking Mode"><i class="fas fa-brain"></i></button>
-        </div>
-    </div>
-
-    <!-- Knowledge Base Modal -->
-    <div id="knowledge-modal" class="knowledge-modal">
-        <div class="modal-content">
-            <div class="modal-header">📚 Knowledge Base</div>
-            <div class="stats-box" id="stats-box">
-                <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
-                <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
-                <strong>Files:</strong> <span id="total-files">0</span><br>
-                <strong>Web Cache:</strong> <span id="web-cache-count">0</span> searches
-            </div>
-            <input type="text" id="search-kb-input" class="search-kb-input" placeholder="🔍 Search knowledge base...">
-            <div class="upload-area" id="upload-area">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 10px;"></i>
-                <p>Drag & drop files here or click to upload</p>
-                <p style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Supports: .txt, .md, .pdf, .json, .js, .py, .html, .css</p>
-            </div>
-            <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.json,.js,.py,.html,.css,.java,.cpp,.c,.go,.rs">
-            <div class="knowledge-list" id="knowledge-list"></div>
-            <button class="close-modal" id="close-modal">Close</button>
-        </div>
-    </div>
-
-    <!-- Chat History Modal -->
-    <div id="chat-history-modal" class="chat-history-modal">
-        <div class="modal-content">
-            <div class="modal-header">💬 Chat History</div>
-            <div id="chat-history-list"></div>
-            <button class="clear-chat-btn" id="clear-chat-btn">Clear History</button>
-            <button class="export-chat-btn" id="export-chat-btn">Export Chat</button>
-            <button class="close-modal" id="close-history-modal">Close</button>
-        </div>
-    </div>
-
-    <!-- Export Modal -->
-    <div id="export-modal" class="export-modal">
-        <div class="modal-content">
-            <div class="modal-header">📤 Export Conversation</div>
-            <div class="export-option" data-format="txt">
-                <i class="fas fa-file-alt"></i>
-                <div><strong>Plain Text</strong></div>
-                <div style="font-size: 12px; opacity: 0.7;">Simple text format</div>
-            </div>
-            <div class="export-option" data-format="json">
-                <i class="fas fa-code"></i>
-                <div><strong>JSON</strong></div>
-                <div style="font-size: 12px; opacity: 0.7;">Structured data format</div>
-            </div>
-            <div class="export-option" data-format="md">
-                <i class="fab fa-markdown"></i>
-                <div><strong>Markdown</strong></div>
-                <div style="font-size: 12px; opacity: 0.7;">Formatted markdown</div>
-            </div>
-            <button class="close-modal" id="close-export-modal">Cancel</button>
-        </div>
-    </div>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama 3.2 1B - WebGPU Chat</title>
     <script type="module">
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/index.js';
+        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-        const synth = window.speechSynthesis;
-        let activeBtn = null;
-        let abortController = null;
+```
+    let engine = null;
+    let isGenerating = false;
+
+    async function initModel() {
+        const statusDiv = document.getElementById('status');
+        const loadBtn = document.getElementById('loadBtn');
+        const sendBtn = document.getElementById('sendBtn');
         
-        let conversationHistory = [];
-        const MAX_HISTORY_LENGTH = 20;
-        let chatHistories = [];
+        loadBtn.disabled = true;
+        statusDiv.className = 'status loading';
+        statusDiv.textContent = 'Initializing WebGPU...';
         
         try {
-            chatHistories = JSON.parse(localStorage.getItem('trapside_chat_histories') || '[]');
-        } catch (e) {
-            console.error('Error loading chat histories:', e);
-            chatHistories = [];
-        }
-        
-        let thinkingModeEnabled = true;
-        let webSearchEnabled = true;
-        
-        let recognition = null;
-        let isRecording = false;
-        
-        let knowledgeIndex = {};
-        let globalWordFreq = {};
-        let totalDocuments = 0;
-        let webCacheCount = 0;
-        let knowledgeTags = {};
-        
-        try {
-            knowledgeTags = JSON.parse(localStorage.getItem('trapside_knowledge_tags') || '{}');
-        } catch (e) {
-            console.error('Error loading knowledge tags:', e);
-            knowledgeTags = {};
-        }
-        
-        const DB_NAME = 'TrapsideKnowledge';
-        const DB_VERSION = 1;
-        let db;
-
-        const model = {
-            repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
-            file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
-        };
-
-        function updateLoadingProgress(percent, text) {
-            const progressBar = document.getElementById('progress-bar');
-            const loadingText = document.getElementById('loading-text');
-            if (progressBar) progressBar.style.width = percent + '%';
-            if (loadingText) loadingText.textContent = text;
-        }
-        
-        function hideLoadingScreen() {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.classList.add('hidden');
-                setTimeout(() => {
-                    if (loadingScreen.parentNode) {
-                        loadingScreen.remove();
-                    }
-                }, 500);
-            }
-        }
-
-        function initVoiceRecognition() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US';
-                
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById('user-input').value = transcript;
-                    stopVoiceInput();
-                };
-                
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error:', event.error);
-                    stopVoiceInput();
-                    if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                        addMessage("Voice input error: " + event.error, "ai");
-                    }
-                };
-                
-                recognition.onend = () => {
-                    stopVoiceInput();
-                };
-                
-                console.log('Voice recognition initialized');
-            } else {
-                console.log('Voice recognition not supported');
-            }
-        }
-        
-        function startVoiceInput() {
-            if (!recognition) {
-                addMessage("❌ Voice input not supported in your browser.", "ai");
-                return;
-            }
+            statusDiv.textContent = 'Loading Llama 3.2 1B (Q4 quantized)... This may take 1-2 minutes on first load.';
             
-            try {
-                isRecording = true;
-                document.getElementById('voice-input-btn').classList.add('active');
-                recognition.start();
-                console.log('Voice recording started');
-            } catch (e) {
-                console.error('Error starting voice input:', e);
-                stopVoiceInput();
-            }
-        }
-        
-        function stopVoiceInput() {
-            if (recognition && isRecording) {
-                isRecording = false;
-                document.getElementById('voice-input-btn').classList.remove('active');
-                try {
-                    recognition.stop();
-                    console.log('Voice recording stopped');
-                } catch (e) {
-                    console.error('Error stopping voice input:', e);
-                }
-            }
-        }
-        
-        document.getElementById('voice-input-btn').addEventListener('click', () => {
-            if (isRecording) {
-                stopVoiceInput();
-            } else {
-                startVoiceInput();
-            }
-        });
-
-        async function searchWeb(query) {
-            const results = [];
-            
-            try {
-                const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-                const wikiResponse = await fetch(wikiUrl);
-                
-                if (wikiResponse.ok) {
-                    const wikiData = await wikiResponse.json();
-                    if (wikiData.extract && wikiData.type !== 'disambiguation') {
-                        results.push({
-                            title: wikiData.title,
-                            snippet: wikiData.extract,
-                            url: wikiData.content_urls?.desktop?.page || '',
-                            source: 'Wikipedia'
-                        });
+            engine = await CreateMLCEngine(
+                "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                {
+                    initProgressCallback: (progress) => {
+                        const percent = Math.round(progress.progress * 100);
+                        statusDiv.textContent = `Loading model: ${percent}% - ${progress.text}`;
                     }
                 }
-            } catch (e) {
-                console.log('Wikipedia search failed:', e);
-            }
-            
-            try {
-                const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&origin=*`;
-                const wikidataResponse = await fetch(wikidataUrl);
-                
-                if (wikidataResponse.ok) {
-                    const wikidataData = await wikidataResponse.json();
-                    if (wikidataData.search && wikidataData.search.length > 0) {
-                        const firstResult = wikidataData.search[0];
-                        if (firstResult.description) {
-                            results.push({
-                                title: firstResult.label || 'Wikidata Result',
-                                snippet: firstResult.description + (firstResult.aliases ? '. Also known as: ' + firstResult.aliases.join(', ') : ''),
-                                url: `https://www.wikidata.org/wiki/${firstResult.id}`,
-                                source: 'Wikidata'
-                            });
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Wikidata search failed:', e);
-            }
-            
-            try {
-                const altQuery = query.split(' ').slice(0, 3).join(' ');
-                if (altQuery !== query) {
-                    const wikiUrl2 = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(altQuery)}`;
-                    const wikiResponse2 = await fetch(wikiUrl2);
-                    
-                    if (wikiResponse2.ok) {
-                        const wikiData2 = await wikiResponse2.json();
-                        if (wikiData2.extract && wikiData2.type !== 'disambiguation') {
-                            const isDuplicate = results.some(r => r.title === wikiData2.title);
-                            if (!isDuplicate) {
-                                results.push({
-                                    title: wikiData2.title,
-                                    snippet: wikiData2.extract,
-                                    url: wikiData2.content_urls?.desktop?.page || '',
-                                    source: 'Wikipedia'
-                                });
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Alternate search failed:', e);
-            }
-            
-            console.log(`Web search for "${query}" returned ${results.length} results`);
-            return results;
-        }
-        
-        async function storeWebResults(query, results) {
-            if (results.length === 0) {
-                console.log('No web results to store');
-                return;
-            }
-            
-            const timestamp = Date.now();
-            const filename = `web_${query.replace(/[^a-z0-9]/gi, '_').substring(0, 30)}_${timestamp}.txt`;
-            
-            let combinedText = `Web Search: "${query}"\nDate: ${new Date().toLocaleString()}\n\n`;
-            
-            results.forEach((result, i) => {
-                combinedText += `[${i+1}] ${result.title}\n`;
-                combinedText += `Source: ${result.source}\n`;
-                if (result.url) combinedText += `URL: ${result.url}\n`;
-                combinedText += `\n${result.snippet}\n\n`;
-                combinedText += `${'='.repeat(50)}\n\n`;
-            });
-            
-            console.log('Storing web results:', combinedText.substring(0, 200));
-            
-            const chunks = smartChunk(combinedText, 800);
-            
-            for (const chunkText of chunks) {
-                const { freq, total } = calculateWordFreq(chunkText);
-                const keywords = Object.keys(freq)
-                    .sort((a, b) => freq[b] - freq[a])
-                    .slice(0, 25);
-                
-                await saveKnowledge({
-                    filename: filename,
-                    content: chunkText,
-                    wordFreq: freq,
-                    wordCount: total,
-                    keywords: keywords,
-                    timestamp: timestamp,
-                    isWebCache: true,
-                    originalQuery: query
-                });
-            }
-            
-            console.log(`Stored ${chunks.length} chunks from web search`);
-            webCacheCount++;
-            await loadKnowledgeIndex();
-            updateStats();
-        }
-        
-        function shouldSearchWeb(query, retrievedKnowledge) {
-            if (!webSearchEnabled) {
-                console.log('Web search disabled by user');
-                return false;
-            }
-            
-            const currentKeywords = [
-                'what is', 'who is', 'define', 'explain', 'tell me about',
-                'current', 'latest', 'recent', 'today', 'now', 'this year',
-                '2024', '2025', '2026', 'news', 'update'
-            ];
-            
-            const queryLower = query.toLowerCase();
-            const needsCurrent = currentKeywords.some(kw => queryLower.includes(kw));
-            
-            if (retrievedKnowledge.length === 0 && query.length > 10) {
-                console.log('Knowledge base empty, searching web');
-                return true;
-            }
-            
-            if (needsCurrent) {
-                console.log('Query needs current info, searching web');
-                return true;
-            }
-            
-            if (retrievedKnowledge.length > 0) {
-                const avgScore = retrievedKnowledge.reduce((sum, kb) => sum + parseFloat(kb.score), 0) / retrievedKnowledge.length;
-                if (avgScore < 0.2) {
-                    console.log(`Low relevance score (${avgScore}), searching web`);
-                    return true;
-                }
-            }
-            
-            console.log('Using local knowledge only');
-            return false;
-        }
-
-        function smartChunk(text, maxChunkSize = 600, overlap = 100) {
-            const chunks = [];
-            const sections = text.split(/\n\n+/);
-            let currentChunk = '';
-            
-            for (const section of sections) {
-                if ((currentChunk + section).length < maxChunkSize) {
-                    currentChunk += section + '\n\n';
-                } else {
-                    if (currentChunk.trim().length > 50) {
-                        chunks.push(currentChunk.trim());
-                    }
-                    
-                    const words = currentChunk.split(/\s+/);
-                    const overlapWords = words.slice(-Math.floor(overlap / 5));
-                    currentChunk = overlapWords.join(' ') + '\n\n' + section + '\n\n';
-                }
-            }
-            
-            if (currentChunk.trim().length > 50) {
-                chunks.push(currentChunk.trim());
-            }
-            
-            return chunks.length > 0 ? chunks : [text];
-        }
-        
-        function calculateWordFreq(text) {
-            const words = text.toLowerCase()
-                .replace(/[^a-z0-9\s]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length > 2);
-            
-            const freq = {};
-            words.forEach(word => {
-                freq[word] = (freq[word] || 0) + 1;
-            });
-            
-            return { freq, total: words.length };
-        }
-        
-        function calculateTFIDF(queryWords, chunkFreq, chunkTotal, docFreq, totalDocs) {
-            let score = 0;
-            
-            queryWords.forEach(word => {
-                if (chunkFreq[word]) {
-                    const tf = chunkFreq[word] / chunkTotal;
-                    const docsWithWord = docFreq[word] || 1;
-                    const idf = Math.log((totalDocs + 1) / (docsWithWord + 1));
-                    score += tf * idf;
-                }
-            });
-            
-            return score;
-        }
-        
-        async function retrieveRelevantKnowledge(query, topK = 4) {
-            if (totalDocuments === 0) {
-                console.log('Knowledge base is empty');
-                return [];
-            }
-            
-            const queryLower = query.toLowerCase();
-            const queryWords = queryLower
-                .replace(/[^a-z0-9\s]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length > 2);
-            
-            console.log('Query words:', queryWords);
-            
-            if (queryWords.length === 0) return [];
-            
-            const transaction = db.transaction(['knowledge'], 'readonly');
-            const store = transaction.objectStore('knowledge');
-            
-            const allChunks = await new Promise((resolve, reject) => {
-                const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-            
-            console.log(`Total chunks in database: ${allChunks.length}`);
-            
-            const candidates = [];
-            for (const chunk of allChunks) {
-                const hasMatch = queryWords.some(word => 
-                    chunk.keywords && chunk.keywords.includes(word)
-                );
-                
-                if (hasMatch) {
-                    candidates.push(chunk);
-                }
-            }
-            
-            console.log(`Found ${candidates.length} candidate chunks`);
-            
-            const scored = candidates.map(chunk => {
-                const score = calculateTFIDF(
-                    queryWords,
-                    chunk.wordFreq || {},
-                    chunk.wordCount || 1,
-                    globalWordFreq,
-                    totalDocuments
-                );
-                
-                return { ...chunk, score };
-            });
-            
-            const topResults = scored
-                .filter(chunk => chunk.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, topK);
-            
-            console.log('Top results:', topResults.map(r => ({ file: r.filename, score: r.score.toFixed(3) })));
-            
-            return topResults.map(chunk => ({
-                content: chunk.content,
-                filename: chunk.filename,
-                score: chunk.score.toFixed(3),
-                isWebCache: chunk.isWebCache || false
-            }));
-        }
-
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    console.log('Database opened successfully');
-                    loadKnowledgeIndex();
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('knowledge')) {
-                        db.createObjectStore('knowledge', { keyPath: 'id', autoIncrement: true });
-                        console.log('Knowledge store created');
-                    }
-                };
-            });
-        }
-        
-        async function loadKnowledgeIndex() {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readonly');
-                const store = transaction.objectStore('knowledge');
-                const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    const allChunks = request.result;
-                    
-                    knowledgeIndex = {};
-                    globalWordFreq = {};
-                    totalDocuments = 0;
-                    webCacheCount = 0;
-                    
-                    allChunks.forEach(chunk => {
-                        if (!knowledgeIndex[chunk.filename]) {
-                            knowledgeIndex[chunk.filename] = {
-                                chunks: 0,
-                                totalWords: 0,
-                                isWebCache: chunk.isWebCache || false
-                            };
-                        }
-                        
-                        knowledgeIndex[chunk.filename].chunks++;
-                        knowledgeIndex[chunk.filename].totalWords += chunk.wordCount || 0;
-                        totalDocuments++;
-                        
-                        if (chunk.isWebCache) {
-                            webCacheCount++;
-                        }
-                        
-                        if (chunk.wordFreq) {
-                            Object.keys(chunk.wordFreq).forEach(word => {
-                                globalWordFreq[word] = (globalWordFreq[word] || 0) + 1;
-                            });
-                        }
-                    });
-                    
-                    console.log(`Loaded index: ${totalDocuments} documents, ${webCacheCount} web caches`);
-                    
-                    updateKnowledgeList();
-                    updateStats();
-                    
-                    if (totalDocuments > 0) {
-                        document.getElementById('knowledge-btn').classList.add('active');
-                    }
-                    
-                    resolve();
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-        
-        async function saveKnowledge(knowledge) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readwrite');
-                const store = transaction.objectStore('knowledge');
-                const request = store.add(knowledge);
-                
-                request.onsuccess = () => {
-                    console.log('Knowledge saved:', knowledge.filename);
-                    resolve(request.result);
-                };
-                request.onerror = () => {
-                    console.error('Error saving knowledge:', request.error);
-                    reject(request.error);
-                };
-            });
-        }
-        
-        async function deleteKnowledge(id) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['knowledge'], 'readwrite');
-                const store = transaction.objectStore('knowledge');
-                const request = store.delete(id);
-                
-                request.onsuccess = () => {
-                    loadKnowledgeIndex();
-                    resolve();
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        async function processFile(file) {
-            try {
-                const text = await file.text();
-                const chunks = smartChunk(text);
-                
-                for (const chunkText of chunks) {
-                    const { freq, total } = calculateWordFreq(chunkText);
-                    const keywords = Object.keys(freq)
-                        .sort((a, b) => freq[b] - freq[a])
-                        .slice(0, 20);
-                    
-                    await saveKnowledge({
-                        filename: file.name,
-                        content: chunkText,
-                        wordFreq: freq,
-                        wordCount: total,
-                        keywords: keywords,
-                        timestamp: Date.now(),
-                        isWebCache: false
-                    });
-                }
-                
-                await loadKnowledgeIndex();
-                addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks indexed.`, "ai");
-            } catch (e) {
-                console.error('Error processing file:', e);
-                addMessage(`❌ Error processing "${file.name}": ${e.message}`, "ai");
-            }
-        }
-
-        document.getElementById('search-kb-input').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            updateKnowledgeList(searchTerm);
-        });
-        
-        function setKnowledgeTag(filename, tag) {
-            knowledgeTags[filename] = tag;
-            try {
-                localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
-            } catch (e) {
-                console.error('Error saving tag:', e);
-            }
-            updateKnowledgeList();
-        }
-        
-        function getKnowledgeTag(filename) {
-            return knowledgeTags[filename] || null;
-        }
-
-        function updateStats() {
-            const totalChunks = totalDocuments;
-            const totalFiles = Object.keys(knowledgeIndex).length;
-            const avgChunkSize = 400;
-            const storageBytes = totalChunks * avgChunkSize;
-            const storageKB = (storageBytes / 1024).toFixed(1);
-            
-            document.getElementById('total-chunks').textContent = totalChunks;
-            document.getElementById('total-files').textContent = totalFiles;
-            document.getElementById('storage-used').textContent = storageKB + ' KB';
-            document.getElementById('web-cache-count').textContent = webCacheCount;
-        }
-        
-        function updateKnowledgeList(searchTerm = '') {
-            const list = document.getElementById('knowledge-list');
-            list.innerHTML = '';
-            
-            const filteredFiles = Object.keys(knowledgeIndex).filter(filename => 
-                filename.toLowerCase().includes(searchTerm) ||
-                (getKnowledgeTag(filename) && getKnowledgeTag(filename).toLowerCase().includes(searchTerm))
             );
             
-            filteredFiles.forEach(filename => {
-                const data = knowledgeIndex[filename];
-                const item = document.createElement('div');
-                item.className = 'knowledge-item';
-                const icon = data.isWebCache ? '🌐' : '📄';
-                const tag = getKnowledgeTag(filename);
-                
-                item.innerHTML = `
-                    <div>
-                        <strong>${icon} ${filename}</strong>
-                        ${tag ? `<span class="tag-badge">${tag}</span>` : ''}
-                        <div style="font-size: 12px; opacity: 0.6;">${data.chunks} chunks • ${data.totalWords.toLocaleString()} words</div>
-                    </div>
-                    <div class="knowledge-item-actions">
-                        <button class="tag-btn" data-filename="${filename}">Tag</button>
-                        <button class="preview-btn" data-filename="${filename}">Preview</button>
-                        <button class="delete-btn" data-filename="${filename}">Delete</button>
-                    </div>
-                `;
-                list.appendChild(item);
-                
-                item.querySelector('.delete-btn').addEventListener('click', async function() {
-                    await deleteKnowledgeFile(this.getAttribute('data-filename'));
-                });
-                
-                item.querySelector('.preview-btn').addEventListener('click', async function() {
-                    await previewKnowledgeFile(this.getAttribute('data-filename'));
-                });
-                
-                item.querySelector('.tag-btn').addEventListener('click', function() {
-                    const fname = this.getAttribute('data-filename');
-                    const newTag = prompt('Enter tag (e.g., work, personal, code):', getKnowledgeTag(fname) || '');
-                    if (newTag !== null) {
-                        setKnowledgeTag(fname, newTag.trim());
-                    }
-                });
-            });
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '✓ Llama 3.2 1B loaded! Model is running entirely in your browser.';
+            sendBtn.disabled = false;
+            loadBtn.style.display = 'none';
             
-            if (filteredFiles.length === 0) {
-                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No knowledge files found</p>';
-            }
+        } catch (error) {
+            statusDiv.className = 'status error';
+            statusDiv.textContent = 'Error: ' + error.message + ' (WebGPU may not be supported on this device)';
+            loadBtn.disabled = false;
         }
-        
-        async function previewKnowledgeFile(filename) {
-            const transaction = db.transaction(['knowledge'], 'readonly');
-            const store = transaction.objectStore('knowledge');
-            const allChunks = await new Promise((resolve, reject) => {
-                const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-            
-            const fileChunks = allChunks.filter(kb => kb.filename === filename);
-            if (fileChunks.length > 0) {
-                const preview = fileChunks[0].content.substring(0, 500) + '...';
-                alert(`Preview of ${filename}:\n\n${preview}`);
-            }
-        }
-        
-        async function deleteKnowledgeFile(filename) {
-            if (!confirm(`Delete "${filename}" from knowledge base?`)) return;
-            
-            const transaction = db.transaction(['knowledge'], 'readonly');
-            const store = transaction.objectStore('knowledge');
-            const allChunks = await new Promise((resolve, reject) => {
-                const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-            
-            const toDelete = allChunks.filter(kb => kb.filename === filename);
-            for (const kb of toDelete) {
-                await deleteKnowledge(kb.id);
-            }
-            
-            delete knowledgeTags[filename];
-            try {
-                localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
-            } catch (e) {
-                console.error('Error saving tags:', e);
-            }
-            
-            addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
-        }
-        
-        document.getElementById('upload-area').addEventListener('click', () => {
-            document.getElementById('file-input').click();
-        });
-        
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            for (const file of files) {
-                await processFile(file);
-            }
-            e.target.value = '';
-        });
-        
-        const uploadArea = document.getElementById('upload-area');
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            for (const file of files) {
-                await processFile(file);
-            }
-        });
-        
-        document.getElementById('knowledge-btn').addEventListener('click', () => {
-            document.getElementById('knowledge-modal').classList.add('active');
-        });
-        
-        document.getElementById('close-modal').addEventListener('click', () => {
-            document.getElementById('knowledge-modal').classList.remove('active');
-        });
-        
-        document.getElementById('web-search-toggle').addEventListener('click', () => {
-            webSearchEnabled = !webSearchEnabled;
-            const btn = document.getElementById('web-search-toggle');
-            
-            if (webSearchEnabled) {
-                btn.classList.add('active');
-                addMessage('🌐 Web search enabled.', 'ai');
-            } else {
-                btn.classList.remove('active');
-                addMessage('📚 Web search disabled. Local knowledge only.', 'ai');
-            }
-        });
+    }
 
-        function saveChatHistory() {
-            if (conversationHistory.length > 0) {
-                const historyEntry = {
-                    id: Date.now(),
-                    date: new Date().toISOString(),
-                    messages: [...conversationHistory],
-                    preview: conversationHistory[0]?.content?.substring(0, 50) + '...' || 'Empty chat'
-                };
-                
-                chatHistories.unshift(historyEntry);
-                if (chatHistories.length > 50) chatHistories = chatHistories.slice(0, 50);
-                
-                try {
-                    localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
-                    updateHistoryBadge();
-                } catch (e) {
-                    console.error('Error saving chat history:', e);
-                }
-            }
-        }
+    async function sendMessage() {
+        if (!engine || isGenerating) return;
         
-        function loadChatHistory(historyId) {
-            const history = chatHistories.find(h => h.id === historyId);
-            if (history) {
-                conversationHistory = [...history.messages];
-                
-                document.getElementById('chat-box').innerHTML = '';
-                conversationHistory.forEach(msg => {
-                    addMessage(msg.content, msg.role);
-                });
-                
-                document.getElementById('chat-history-modal').classList.remove('active');
-                addMessage('📜 Chat history loaded.', 'ai');
-            }
-        }
+        const input = document.getElementById('userInput');
+        const messagesDiv = document.getElementById('messages');
+        const sendBtn = document.getElementById('sendBtn');
+        const prompt = input.value.trim();
         
-        function clearChatHistory() {
-            if (confirm('Clear all chat history? This cannot be undone.')) {
-                chatHistories = [];
-                try {
-                    localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
-                } catch (e) {
-                    console.error('Error clearing history:', e);
-                }
-                updateHistoryBadge();
-                updateChatHistoryList();
-                addMessage('🗑️ Chat history cleared.', 'ai');
-            }
-        }
+        if (!prompt) return;
         
-        function updateHistoryBadge() {
-            const badge = document.getElementById('history-badge');
-            if (chatHistories.length > 0) {
-                badge.textContent = chatHistories.length;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
+        isGenerating = true;
+        sendBtn.disabled = true;
         
-        function updateChatHistoryList() {
-            const list = document.getElementById('chat-history-list');
-            list.innerHTML = '';
-            
-            if (chatHistories.length === 0) {
-                list.innerHTML = '<p style="opacity: 0.6; text-align: center;">No chat history saved</p>';
-                return;
-            }
-            
-            chatHistories.forEach(history => {
-                const item = document.createElement('div');
-                item.className = 'chat-history-item';
-                const date = new Date(history.date).toLocaleString();
-                item.innerHTML = `
-                    <div class="chat-history-date">${date}</div>
-                    <div class="chat-history-preview">${history.preview}</div>
-                `;
-                item.onclick = () => loadChatHistory(history.id);
-                list.appendChild(item);
-            });
-        }
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user';
+        userMsg.textContent = prompt;
+        messagesDiv.appendChild(userMsg);
         
-        document.getElementById('history-btn').addEventListener('click', () => {
-            updateChatHistoryList();
-            document.getElementById('chat-history-modal').classList.add('active');
-        });
+        // Add assistant message container
+        const assistantMsg = document.createElement('div');
+        assistantMsg.className = 'message assistant';
+        assistantMsg.textContent = '';
+        messagesDiv.appendChild(assistantMsg);
         
-        document.getElementById('close-history-modal').addEventListener('click', () => {
-            document.getElementById('chat-history-modal').classList.remove('active');
-        });
+        input.value = '';
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        document.getElementById('clear-chat-btn').addEventListener('click', clearChatHistory);
-        
-        document.getElementById('export-chat-btn').addEventListener('click', () => {
-            document.getElementById('chat-history-modal').classList.remove('active');
-            document.getElementById('export-modal').classList.add('active');
-        });
-        
-        function exportChat(format) {
-            if (conversationHistory.length === 0) {
-                alert('No conversation to export!');
-                return;
-            }
-            
-            let content = '';
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            let filename = `trapside-chat-${timestamp}`;
-            
-            if (format === 'txt') {
-                content = `Trapside Chat Export\nDate: ${new Date().toLocaleString()}\n\n`;
-                conversationHistory.forEach(msg => {
-                    content += `[${msg.role.toUpperCase()}]\n${msg.content}\n\n`;
-                });
-                filename += '.txt';
-            } else if (format === 'json') {
-                content = JSON.stringify({
-                    export_date: new Date().toISOString(),
-                    messages: conversationHistory
-                }, null, 2);
-                filename += '.json';
-            } else if (format === 'md') {
-                content = `# Trapside Chat Export\n\n**Date:** ${new Date().toLocaleString()}\n\n---\n\n`;
-                conversationHistory.forEach(msg => {
-                    const role = msg.role === 'user' ? '**You**' : '**Trapside**';
-                    content += `### ${role}\n\n${msg.content}\n\n---\n\n`;
-                });
-                filename += '.md';
-            }
-            
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            document.getElementById('export-modal').classList.remove('active');
-            addMessage(`📤 Chat exported as ${format.toUpperCase()}.`, 'ai');
-        }
-        
-        document.querySelectorAll('.export-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const format = this.getAttribute('data-format');
-                exportChat(format);
-            });
-        });
-        
-        document.getElementById('close-export-modal').addEventListener('click', () => {
-            document.getElementById('export-modal').classList.remove('active');
-        });
-
-        function speak(text, btn) {
-            if (synth.speaking && activeBtn === btn) { 
-                synth.cancel(); 
-                btn.classList.remove('active'); 
-                activeBtn = null; 
-                return; 
-            }
-            if (synth.speaking) { 
-                synth.cancel(); 
-                if (activeBtn) activeBtn.classList.remove('active'); 
-            }
-            
-            const utter = new SpeechSynthesisUtterance(text);
-            const voices = synth.getVoices();
-            utter.voice = voices.find(v => v.name.includes("Daniel")) || voices[0];
-            utter.pitch = 1.5; 
-            utter.rate = 1.0;
-            utter.onstart = () => { btn.classList.add('active'); activeBtn = btn; };
-            utter.onend = () => { if (activeBtn === btn) { btn.classList.remove('active'); activeBtn = null; } };
-            synth.speak(utter);
-        }
-
-        const wllama = new Wllama({
-            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
-        });
-
-        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null) {
-            const row = document.createElement('div');
-            row.className = `message-row ${role}-row`;
-            const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
-            
-            if (webResults && webResults.length > 0) {
-                const webBox = document.createElement('div');
-                webBox.className = 'web-search-box';
-                let webHTML = '<strong>🌐 Web Search Results:</strong>';
-                webResults.forEach((result, i) => {
-                    webHTML += `<div class="web-result">
-                        <div class="web-result-title">${result.title}</div>
-                        <div>${result.snippet.substring(0, 200)}${result.snippet.length > 200 ? '...' : ''}</div>
-                        <div class="web-result-source">Source: ${result.source}</div>
-                    </div>`;
-                });
-                webBox.innerHTML = webHTML;
-                msg.appendChild(webBox);
-            }
-            
-            if (knowledgeResults && knowledgeResults.length > 0) {
-                const knowledgeBox = document.createElement('div');
-                knowledgeBox.className = 'knowledge-box';
-                let knowledgeHTML = '<strong>📚 Retrieved Knowledge:</strong>';
-                knowledgeResults.forEach((kb, i) => {
-                    const icon = kb.isWebCache ? '🌐' : '📄';
-                    knowledgeHTML += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0, 255, 150, 0.2);">
-                        <strong style="color: #00ff96;">${icon} ${kb.filename}</strong>
-                        <span style="opacity: 0.7; font-size: 11px;"> (relevance: ${kb.score})</span>
-                        <div style="margin-top: 4px;">${kb.content.substring(0, 180)}...</div>
-                    </div>`;
-                });
-                knowledgeBox.innerHTML = knowledgeHTML;
-                msg.appendChild(knowledgeBox);
-            }
-            
-            if (reasoningText && thinkingModeEnabled) {
-                const reasoningBox = document.createElement('div');
-                reasoningBox.className = 'reasoning-box';
-                reasoningBox.innerHTML = `<strong>🧠 Chain of Thought:</strong><br>${reasoningText}`;
-                msg.appendChild(reasoningBox);
-            }
-            
-            const textNode = document.createElement('div');
-            textNode.className = 'message-content';
-            
-            if (role === 'ai' && !isThinking) {
-                try {
-                    const htmlContent = marked.parse(text);
-                    textNode.innerHTML = htmlContent;
-                    
-                    textNode.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightElement(block);
-                    });
-                } catch (e) {
-                    console.error('Markdown parsing error:', e);
-                    textNode.innerText = text;
-                }
-            } else {
-                textNode.innerText = text;
-            }
-            
-            msg.appendChild(textNode);
-            
-            row.appendChild(msg);
-            if (role === 'ai' && !isThinking) {
-                const btn = document.createElement('button');
-                btn.className = 'speak-btn';
-                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                btn.onclick = () => speak(text, btn);
-                msg.appendChild(btn);
-            }
-            document.getElementById('chat-box').appendChild(row);
-            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-            return msg;
-        }
-        
-        function addSearchStatus(text) {
-            const status = document.createElement('div');
-            status.className = 'search-status';
-            status.innerHTML = `<i class="fas fa-spinner spinner"></i> ${text}`;
-            document.getElementById('chat-box').appendChild(status);
-            document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-            return status;
-        }
-        
-        function resetSendButton() {
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            sendBtn.className = 'send-btn';
-            sendBtn.onclick = handleChat;
-            document.getElementById('user-input').disabled = false;
-            document.getElementById('thinking-mode-btn').disabled = false;
-            document.getElementById('web-search-toggle').disabled = false;
-            document.getElementById('voice-input-btn').disabled = false;
-        }
-        
-        function setupStopButton() {
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
-            sendBtn.className = 'stop-btn';
-            sendBtn.onclick = () => { 
-                if (abortController) {
-                    abortController.abort();
-                    addMessage('⏹️ Response stopped.', 'ai');
-                }
-            };
-        }
-        
-        function toggleThinkingMode() {
-            thinkingModeEnabled = !thinkingModeEnabled;
-            const btn = document.getElementById('thinking-mode-btn');
-            if (thinkingModeEnabled) {
-                btn.classList.add('active');
-                addMessage("🧠 Thinking mode enabled.", "ai");
-            } else {
-                btn.classList.remove('active');
-                addMessage("💬 Thinking mode disabled.", "ai");
-            }
-        }
-
-        async function init() {
-            try {
-                updateLoadingProgress(10, 'Initializing database...');
-                await initDB();
-                
-                updateLoadingProgress(30, 'Loading AI model...');
-                await wllama.loadModelFromHF(model.repo, model.file, {
-                    progressCallback: (progress) => {
-                        const percent = 30 + (progress.loaded / progress.total * 60);
-                        updateLoadingProgress(percent, `Loading model: ${(progress.loaded / 1024 / 1024).toFixed(1)} MB / ${(progress.total / 1024 / 1024).toFixed(1)} MB`);
-                    }
-                });
-                
-                updateLoadingProgress(95, 'Initializing voice recognition...');
-                initVoiceRecognition();
-                
-                updateLoadingProgress(100, 'Ready!');
-                
-                setTimeout(() => {
-                    hideLoadingScreen();
-                    addMessage("✨ **Trapside is online!**\n\nI can:\n- 🌐 Search Wikipedia\n- 📚 Use your knowledge base\n- 💬 Remember our conversation\n- 🎤 Accept voice input\n\nAsk me anything!", "ai");
-                    updateHistoryBadge();
-                }, 300);
-                
-            } catch (e) { 
-                console.error('Initialization error:', e);
-                updateLoadingProgress(100, 'Error: ' + e.message);
-                setTimeout(() => {
-                    hideLoadingScreen();
-                    addMessage("❌ System offline. Error: " + e.message, "ai");
-                }, 1000);
-            }
-        }
-        
-        // FIXED: Simplified prompt building - this was the issue!
-        function buildPrompt(userMessage, retrievedKnowledge = [], webResults = []) {
-            let prompt = `You are Trapside, a helpful AI assistant. Be conversational and friendly.\n\n`;
-            
-            if (webResults.length > 0) {
-                prompt += `Web Search Results:\n`;
-                webResults.forEach((r, i) => {
-                    prompt += `${i+1}. ${r.title}: ${r.snippet.substring(0, 200)}\n`;
-                });
-                prompt += `\n`;
-            }
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `Knowledge Base:\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `${i+1}. ${kb.content.substring(0, 200)}\n`;
-                });
-                prompt += `\n`;
-            }
-            
-            // Add recent history
-            const recentHistory = conversationHistory.slice(-6); // Last 3 exchanges
-            recentHistory.forEach(msg => {
-                prompt += `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}\n`;
+        try {
+            const chunks = await engine.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.7,
+                max_tokens: 512,
+                stream: true,
             });
             
-            prompt += `Human: ${userMessage}\nAssistant:`;
+            let fullResponse = '';
+            for await (const chunk of chunks) {
+                const content = chunk.choices[0]?.delta?.content || "";
+                fullResponse += content;
+                assistantMsg.textContent = fullResponse;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
             
-            console.log('=== PROMPT ===');
-            console.log(prompt);
-            console.log('=== END PROMPT ===');
-            
-            return prompt;
+        } catch (error) {
+            assistantMsg.className = 'message assistant error';
+            assistantMsg.textContent = 'Error: ' + error.message;
         }
         
-        async function generateResponse(userMessage) {
-            console.log('=== Starting generateResponse ===');
-            console.log('Query:', userMessage);
-            
-            let retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
-            console.log('KB results:', retrievedKnowledge.length);
-            
-            let webResults = [];
-            let searchStatus = null;
-            
-            if (shouldSearchWeb(userMessage, retrievedKnowledge)) {
-                searchStatus = addSearchStatus('Searching...');
-                webResults = await searchWeb(userMessage);
-                console.log('Web results:', webResults.length);
-                
-                if (searchStatus && searchStatus.parentNode) searchStatus.remove();
-                
-                if (webResults.length > 0) {
-                    searchStatus = addSearchStatus('Storing...');
-                    await storeWebResults(userMessage, webResults);
-                    if (searchStatus && searchStatus.parentNode) searchStatus.remove();
-                    
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
-                }
+        isGenerating = false;
+        sendBtn.disabled = false;
+    }
+
+    window.initModel = initModel;
+    window.sendMessage = sendMessage;
+    
+    // Allow Enter to send
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
             }
-            
-            const prompt = buildPrompt(userMessage, retrievedKnowledge, webResults);
-            
-            // Create streaming message
-            const streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults);
-            streamMsg.classList.add('streaming');
-            const contentDiv = streamMsg.querySelector('.message-content');
-            
-            let fullText = '';
-            
-            try {
-                abortController = new AbortController();
-                
-                console.log('Starting completion stream...');
-                
-                for await (const chunk of wllama.createCompletionStream(prompt, {
-                    nPredict: 500,
-                    sampling: {
-                        temp: 0.7,
-                        top_k: 40,
-                        top_p: 0.9,
-                        repeat_penalty: 1.1
-                    },
-                    signal: abortController.signal
-                })) {
-                    fullText += chunk;
-                    console.log('Chunk:', chunk);
-                    
-                    try {
-                        const htmlContent = marked.parse(fullText);
-                        contentDiv.innerHTML = htmlContent;
-                        contentDiv.querySelectorAll('pre code').forEach((block) => {
-                            hljs.highlightElement(block);
-                        });
-                    } catch (e) {
-                        contentDiv.innerText = fullText;
-                    }
-                    
-                    document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-                }
-                
-                console.log('Stream complete. Full text:', fullText);
-                
-                if (streamMsg) streamMsg.classList.remove('streaming');
-                
-                return {
-                    answer: fullText.trim() || "I'm having trouble generating a response. Please try again.",
-                    knowledge: retrievedKnowledge,
-                    webResults: webResults
-                };
-                
-            } catch (e) {
-                console.error('Generation error:', e);
-                if (!abortController.signal.aborted) {
-                    contentDiv.innerText = "Error generating response. Please try again.";
-                }
-                throw e;
-            }
-        }
-       
-        async function handleChat() {
-            const input = document.getElementById('user-input');
-            const text = input.value.trim();
-            if (!text) return;
-            
-            console.log('=== HANDLE CHAT START ===');
-            console.log('User input:', text);
-            
-            addMessage(text, 'user');
-            input.value = ''; 
-            input.style.height = 'auto';
-            
-            const loader = addMessage("Thinking...", 'ai', true);
-            
-            document.getElementById('user-input').disabled = true;
-            document.getElementById('thinking-mode-btn').disabled = true;
-            document.getElementById('web-search-toggle').disabled = true;
-            document.getElementById('voice-input-btn').disabled = true;
-            setupStopButton();
-            
-            try {
-                const result = await generateResponse(text);
-                
-                conversationHistory.push({ role: 'user', content: text });
-                conversationHistory.push({ role: 'assistant', content: result.answer });
-                
-                if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
-                    conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
-                }
-                
-                if (loader && loader.parentNode) loader.remove();
-                
-                saveChatHistory();
-                
-                console.log('=== HANDLE CHAT SUCCESS ===');
-                
-            } catch (e) {
-                console.error('Chat error:', e);
-                if (loader && loader.parentNode) {
-                    loader.classList.remove('thinking');
-                    loader.querySelector('.message-content').innerText = abortController && abortController.signal.aborted ? "⏹️ Stopped" : "❌ Error occurred. Please try again.";
-                }
-            } finally { 
-                resetSendButton(); 
-            }
-        }
-       
-        document.getElementById('user-input').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
-       
-        document.getElementById('send-btn').onclick = handleChat;
-        document.getElementById('thinking-mode-btn').onclick = toggleThinkingMode;
-        document.getElementById('user-input').onkeydown = (e) => { 
-            if(e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                handleChat(); 
-            } 
-        };
-        
-        init();
-    </script>
+    });
+</script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 10px;
+    }
+    
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 95vh;
+        max-height: 900px;
+    }
+    
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .header h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+    
+    .header p {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+    
+    .status {
+        padding: 15px 20px;
+        font-size: 14px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .status.loading {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status.success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status.error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fa;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        max-width: 80%;
+        line-height: 1.5;
+        word-wrap: break-word;
+    }
+    
+    .message.user {
+        background: #667eea;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .message.assistant {
+        background: white;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .message.assistant.error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+    
+    .input-area {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #eee;
+    }
+    
+    .input-group {
+        display: flex;
+        gap: 10px;
+    }
+    
+    #userInput {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 25px;
+        font-size: 15px;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+    
+    #userInput:focus {
+        border-color: #667eea;
+    }
+    
+    button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+    }
+    
+    #loadBtn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+    }
+    
+    #sendBtn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-width: 80px;
+    }
+    
+    button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .info {
+        padding: 15px 20px;
+        background: #e7f3ff;
+        color: #004085;
+        font-size: 13px;
+        text-align: center;
+    }
+    
+    @media (max-width: 600px) {
+        .header h1 {
+            font-size: 20px;
+        }
+        .message {
+            max-width: 90%;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦙 Llama 3.2 1B WebGPU</h1>
+            <p>Q4 Quantized • Runs in Browser • No Server</p>
+        </div>
+
+```
+    <div id="status" class="status">
+        <button id="loadBtn" onclick="initModel()">Load Model (879MB download)</button>
+    </div>
+    
+    <div class="info">
+        💡 First load downloads the model (~879MB). Cached for future use. Requires WebGPU support.
+    </div>
+    
+    <div id="messages" class="messages">
+        <div class="message assistant">
+            Hi! I'm Llama 3.2 1B running entirely in your browser using WebGPU. Click "Load Model" above to start, then ask me anything!
+        </div>
+    </div>
+    
+    <div class="input-area">
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Type your message... (Press Enter to send)"
+                disabled
+            />
+            <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+        </div>
+    </div>
+</div>
+```
+
 </body>
 </html>
