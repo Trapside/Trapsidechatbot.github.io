@@ -169,7 +169,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Qwen Chat</h2>
+            <h2>AI Chat</h2>
         </div>
         <div class="mode-toggle">
             <button class="mode-btn active" id="chatMode">💬 Chat Mode</button>
@@ -201,8 +201,9 @@
         
         let generator = null;
         let currentMode = 'chat';
-        const chatModel = 'onnx-community/Qwen2.5-0.5B-Instruct';
-        const coderModel = 'onnx-community/Qwen2.5-Coder-0.5B-Instruct';
+        // Using models that actually exist in ONNX format
+        const chatModel = 'Xenova/LaMini-Flan-T5-783M';
+        const coderModel = 'Xenova/codegen-350M-mono';
         
         const chatBox = document.getElementById('chatBox');
         const userInput = document.getElementById('userInput');
@@ -237,7 +238,8 @@
                     progressDetails.textContent = `${loadedMB} MB / ${totalMB} MB`;
                     
                     if (progress.file) {
-                        progressLabel.textContent = `Loading ${progress.file}...`;
+                        const fileName = progress.file.split('/').pop();
+                        progressLabel.textContent = `Loading ${fileName}...`;
                     }
                 } else if (progress && progress.status === 'done') {
                     progressFill.style.width = '100%';
@@ -253,7 +255,8 @@
         }
         
         async function loadModel(modelName) {
-            status.textContent = `Loading ${modelName.split('/')[1]}...`;
+            const modelDisplayName = currentMode === 'chat' ? 'Chat Model (LaMini-Flan-T5)' : 'Code Model (CodeGen)';
+            status.textContent = `Loading ${modelDisplayName}...`;
             progressContainer.classList.add('show');
             progressFill.style.width = '0%';
             progressFill.textContent = '0%';
@@ -266,16 +269,15 @@
             try {
                 console.log('Starting to load model:', modelName);
                 
-                generator = await pipeline('text-generation', modelName, {
-                    progress_callback: updateProgress,
-                    quantized: true
+                generator = await pipeline('text2text-generation', modelName, {
+                    progress_callback: updateProgress
                 });
                 
                 console.log('Model loaded successfully');
                 
                 setTimeout(() => {
                     progressContainer.classList.remove('show');
-                    status.textContent = `✓ ${modelName.split('/')[1]} ready`;
+                    status.textContent = `✓ ${modelDisplayName} ready`;
                     sendBtn.disabled = false;
                     userInput.disabled = false;
                     chatModeBtn.disabled = false;
@@ -316,23 +318,16 @@
             
             try {
                 const output = await generator(message, {
-                    max_new_tokens: 256,
+                    max_new_tokens: 200,
                     temperature: 0.7,
-                    do_sample: true,
-                    top_k: 50,
-                    top_p: 0.9
+                    do_sample: false
                 });
                 
                 chatBox.removeChild(loadingDiv);
                 
-                let response = output[0].generated_text;
+                const response = output[0].generated_text || 'No response generated.';
                 
-                // Try to extract just the response part
-                if (response.includes(message)) {
-                    response = response.substring(response.indexOf(message) + message.length).trim();
-                }
-                
-                addMessage(response || 'No response generated.', false);
+                addMessage(response, false);
             } catch (error) {
                 console.error('Generation error:', error);
                 chatBox.removeChild(loadingDiv);
