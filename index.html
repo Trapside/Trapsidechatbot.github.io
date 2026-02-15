@@ -284,14 +284,11 @@
             animation: pulse 1.5s infinite ease-in-out;
         }
         
-        .streaming {
-            position: relative;
-        }
-        
         .streaming::after {
             content: '▋';
             animation: blink 1s infinite;
             color: var(--accent);
+            margin-left: 2px;
         }
         
         @keyframes blink {
@@ -941,12 +938,10 @@
         let activeBtn = null;
         let abortController = null;
         
-        // Conversation history
         let conversationHistory = [];
         const MAX_HISTORY_LENGTH = 20;
         let chatHistories = [];
         
-        // Load chat histories from localStorage
         try {
             chatHistories = JSON.parse(localStorage.getItem('trapside_chat_histories') || '[]');
         } catch (e) {
@@ -954,22 +949,18 @@
             chatHistories = [];
         }
         
-        // Feature toggles
         let thinkingModeEnabled = true;
         let webSearchEnabled = true;
         
-        // Voice recognition
         let recognition = null;
         let isRecording = false;
         
-        // Knowledge base
         let knowledgeIndex = {};
         let globalWordFreq = {};
         let totalDocuments = 0;
         let webCacheCount = 0;
         let knowledgeTags = {};
         
-        // Load knowledge tags from localStorage
         try {
             knowledgeTags = JSON.parse(localStorage.getItem('trapside_knowledge_tags') || '{}');
         } catch (e) {
@@ -986,8 +977,6 @@
             file: 'SmolLM2-360M-Instruct-Q4_K_M.gguf'
         };
 
-        // =============== LOADING SCREEN ===============
-        
         function updateLoadingProgress(percent, text) {
             const progressBar = document.getElementById('progress-bar');
             const loadingText = document.getElementById('loading-text');
@@ -1007,8 +996,6 @@
             }
         }
 
-        // =============== VOICE INPUT ===============
-        
         function initVoiceRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1079,8 +1066,6 @@
             }
         });
 
-        // =============== WEB SEARCH ===============
-        
         async function searchWeb(query) {
             const results = [];
             
@@ -1238,8 +1223,6 @@
             return false;
         }
 
-        // =============== CHUNKING & INDEXING ===============
-        
         function smartChunk(text, maxChunkSize = 600, overlap = 100) {
             const chunks = [];
             const sections = text.split(/\n\n+/);
@@ -1362,8 +1345,6 @@
             }));
         }
 
-        // =============== DATABASE ===============
-        
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1470,8 +1451,6 @@
             });
         }
 
-        // =============== FILE PROCESSING ===============
-        
         async function processFile(file) {
             try {
                 const text = await file.text();
@@ -1502,8 +1481,6 @@
             }
         }
 
-        // =============== KB SEARCH & TAGS ===============
-        
         document.getElementById('search-kb-input').addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             updateKnowledgeList(searchTerm);
@@ -1523,8 +1500,6 @@
             return knowledgeTags[filename] || null;
         }
 
-        // =============== UI FUNCTIONS ===============
-        
         function updateStats() {
             const totalChunks = totalDocuments;
             const totalFiles = Object.keys(knowledgeIndex).length;
@@ -1684,8 +1659,6 @@
             }
         });
 
-        // =============== CHAT HISTORY ===============
-        
         function saveChatHistory() {
             if (conversationHistory.length > 0) {
                 const historyEntry = {
@@ -1784,8 +1757,6 @@
             document.getElementById('export-modal').classList.add('active');
         });
         
-        // =============== EXPORT FUNCTIONS ===============
-        
         function exportChat(format) {
             if (conversationHistory.length === 0) {
                 alert('No conversation to export!');
@@ -1840,8 +1811,6 @@
             document.getElementById('export-modal').classList.remove('active');
         });
 
-        // =============== CHAT FUNCTIONS ===============
-        
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) { 
                 synth.cancel(); 
@@ -2011,7 +1980,7 @@
                 
                 setTimeout(() => {
                     hideLoadingScreen();
-                    addMessage("✨ **Trapside is online!**\n\nI can:\n- 🌐 Search Wikipedia for information\n- 📚 Use your knowledge base\n- 💬 Remember our conversation\n- 🎤 Accept voice input\n\nTry asking me anything!", "ai");
+                    addMessage("✨ **Trapside is online!**\n\nI can:\n- 🌐 Search Wikipedia\n- 📚 Use your knowledge base\n- 💬 Remember our conversation\n- 🎤 Accept voice input\n\nAsk me anything!", "ai");
                     updateHistoryBadge();
                 }, 300);
                 
@@ -2025,275 +1994,125 @@
             }
         }
         
-        function buildPromptWithHistory(userMessage, retrievedKnowledge = [], webResults = []) {
-            const systemPrompt = `You are Trapside, an advanced AI assistant with web search and knowledge base access.
-
-Core principles:
-- Think step-by-step
-- Use provided web results and knowledge base
-- Cite sources naturally in your answer
-- Format responses in Markdown (use **bold**, *italic*, \`code\`, lists, etc.)
-- Be concise and accurate
-- Remember conversation context`;
-      
-            let prompt = `<|im_start|>system\n${systemPrompt}`;
+        // FIXED: Simplified prompt building - this was the issue!
+        function buildPrompt(userMessage, retrievedKnowledge = [], webResults = []) {
+            let prompt = `You are Trapside, a helpful AI assistant. Be conversational and friendly.\n\n`;
             
             if (webResults.length > 0) {
-                prompt += `\n\n=== WEB SEARCH RESULTS ===\n`;
-                webResults.forEach((result, i) => {
-                    prompt += `\n[Source ${i+1}] ${result.title} (${result.source})\n${result.snippet}\n`;
+                prompt += `Web Search Results:\n`;
+                webResults.forEach((r, i) => {
+                    prompt += `${i+1}. ${r.title}: ${r.snippet.substring(0, 200)}\n`;
                 });
-                prompt += `\nPlease use these web results in your answer and cite them naturally.`;
+                prompt += `\n`;
             }
             
             if (retrievedKnowledge.length > 0) {
-                prompt += `\n\n=== KNOWLEDGE BASE ===\n`;
+                prompt += `Knowledge Base:\n`;
                 retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `\n[KB ${i+1}] From: ${kb.filename}\n${kb.content}\n`;
+                    prompt += `${i+1}. ${kb.content.substring(0, 200)}\n`;
                 });
-                prompt += `\nPlease use this knowledge in your answer when relevant.`;
+                prompt += `\n`;
             }
             
-            prompt += `<|im_end|>\n`;
+            // Add recent history
+            const recentHistory = conversationHistory.slice(-6); // Last 3 exchanges
+            recentHistory.forEach(msg => {
+                prompt += `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}\n`;
+            });
             
-            const recentHistory = conversationHistory.slice(-10);
-            for (const msg of recentHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
+            prompt += `Human: ${userMessage}\nAssistant:`;
             
-            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`;
+            console.log('=== PROMPT ===');
+            console.log(prompt);
+            console.log('=== END PROMPT ===');
             
             return prompt;
         }
         
-        async function multiPassReasoning(userMessage) {
-            let reasoningText = '';
-            let finalAnswer = '';
-            let webResults = [];
-            
-            console.log('=== Starting multiPassReasoning ===');
+        async function generateResponse(userMessage) {
+            console.log('=== Starting generateResponse ===');
             console.log('Query:', userMessage);
             
-            let retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
-            console.log('Initial KB retrieval:', retrievedKnowledge.length, 'results');
+            let retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
+            console.log('KB results:', retrievedKnowledge.length);
             
+            let webResults = [];
             let searchStatus = null;
+            
             if (shouldSearchWeb(userMessage, retrievedKnowledge)) {
-                searchStatus = addSearchStatus('Searching Wikipedia...');
-                
+                searchStatus = addSearchStatus('Searching...');
                 webResults = await searchWeb(userMessage);
-                console.log('Web search returned:', webResults.length, 'results');
+                console.log('Web results:', webResults.length);
                 
                 if (searchStatus && searchStatus.parentNode) searchStatus.remove();
                 
                 if (webResults.length > 0) {
-                    searchStatus = addSearchStatus('Storing in knowledge base...');
+                    searchStatus = addSearchStatus('Storing...');
                     await storeWebResults(userMessage, webResults);
                     if (searchStatus && searchStatus.parentNode) searchStatus.remove();
                     
-                    searchStatus = addSearchStatus('Retrieving updated knowledge...');
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
-                    console.log('Updated KB retrieval:', retrievedKnowledge.length, 'results');
-                    if (searchStatus && searchStatus.parentNode) searchStatus.remove();
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 3);
                 }
             }
             
-            console.log('Final knowledge for prompt:', retrievedKnowledge.length, 'items');
-            console.log('Web results for prompt:', webResults.length, 'items');
+            const prompt = buildPrompt(userMessage, retrievedKnowledge, webResults);
             
             // Create streaming message
-            let streamMsg = null;
-            let contentDiv = null;
+            const streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults);
+            streamMsg.classList.add('streaming');
+            const contentDiv = streamMsg.querySelector('.message-content');
             
-            if (thinkingModeEnabled) {
-                const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge, webResults);
+            let fullText = '';
+            
+            try {
+                abortController = new AbortController();
                 
-                try {
-                    abortController = new AbortController();
-                    const thinkingResult = await wllama.createCompletion(thinkingPrompt, {
-                        nPredict: 300,
-                        sampling: {
-                            temp: 0.8,
-                            top_k: 40,
-                            top_p: 0.95,
-                            repeat_penalty: 1.2
-                        },
-                        signal: abortController.signal
-                    });
+                console.log('Starting completion stream...');
+                
+                for await (const chunk of wllama.createCompletionStream(prompt, {
+                    nPredict: 500,
+                    sampling: {
+                        temp: 0.7,
+                        top_k: 40,
+                        top_p: 0.9,
+                        repeat_penalty: 1.1
+                    },
+                    signal: abortController.signal
+                })) {
+                    fullText += chunk;
+                    console.log('Chunk:', chunk);
                     
-                    reasoningText = thinkingResult.trim();
-                } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        reasoningText = "Reasoning interrupted.";
-                    } else {
-                        throw e; // Re-throw if aborted
+                    try {
+                        const htmlContent = marked.parse(fullText);
+                        contentDiv.innerHTML = htmlContent;
+                        contentDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    } catch (e) {
+                        contentDiv.innerText = fullText;
                     }
+                    
+                    document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
                 }
                 
-                const answerPrompt = buildAnswerPrompt(userMessage, reasoningText, retrievedKnowledge, webResults);
+                console.log('Stream complete. Full text:', fullText);
                 
-                try {
-                    abortController = new AbortController();
-                    
-                    streamMsg = addMessage('', 'ai', false, reasoningText, retrievedKnowledge, webResults);
-                    streamMsg.classList.add('streaming');
-                    contentDiv = streamMsg.querySelector('.message-content');
-                    
-                    let fullText = '';
-                    for await (const chunk of wllama.createCompletionStream(answerPrompt, {
-                        nPredict: 400,
-                        sampling: {
-                            temp: 0.7,
-                            top_k: 40,
-                            top_p: 0.9,
-                            repeat_penalty: 1.15
-                        },
-                        signal: abortController.signal
-                    })) {
-                        fullText += chunk;
-                        try {
-                            const htmlContent = marked.parse(fullText);
-                            contentDiv.innerHTML = htmlContent;
-                            contentDiv.querySelectorAll('pre code').forEach((block) => {
-                                hljs.highlightElement(block);
-                            });
-                        } catch (e) {
-                            contentDiv.innerText = fullText;
-                        }
-                        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-                    }
-                    
-                    if (streamMsg) streamMsg.classList.remove('streaming');
-                    finalAnswer = fullText.trim();
-                    
-                } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        console.error('Error in answer generation:', e);
-                        finalAnswer = "Error generating answer.";
-                    } else {
-                        throw e;
-                    }
-                }
-            } else {
-                const prompt = buildPromptWithHistory(userMessage, retrievedKnowledge, webResults);
+                if (streamMsg) streamMsg.classList.remove('streaming');
                 
-                try {
-                    abortController = new AbortController();
-                    
-                    streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults);
-                    streamMsg.classList.add('streaming');
-                    contentDiv = streamMsg.querySelector('.message-content');
-                    
-                    let fullText = '';
-                    for await (const chunk of wllama.createCompletionStream(prompt, {
-                        nPredict: 400,
-                        sampling: {
-                            temp: 0.7,
-                            top_k: 40,
-                            top_p: 0.9,
-                            repeat_penalty: 1.15
-                        },
-                        signal: abortController.signal
-                    })) {
-                        fullText += chunk;
-                        try {
-                            const htmlContent = marked.parse(fullText);
-                            contentDiv.innerHTML = htmlContent;
-                            contentDiv.querySelectorAll('pre code').forEach((block) => {
-                                hljs.highlightElement(block);
-                            });
-                        } catch (e) {
-                            contentDiv.innerText = fullText;
-                        }
-                        document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
-                    }
-                    
-                    if (streamMsg) streamMsg.classList.remove('streaming');
-                    finalAnswer = fullText.trim();
-                    
-                } catch (e) {
-                    if (!abortController.signal.aborted) {
-                        console.error('Error in response generation:', e);
-                        finalAnswer = "Error generating response.";
-                    } else {
-                        throw e;
-                    }
+                return {
+                    answer: fullText.trim() || "I'm having trouble generating a response. Please try again.",
+                    knowledge: retrievedKnowledge,
+                    webResults: webResults
+                };
+                
+            } catch (e) {
+                console.error('Generation error:', e);
+                if (!abortController.signal.aborted) {
+                    contentDiv.innerText = "Error generating response. Please try again.";
                 }
+                throw e;
             }
-            
-            return { 
-                reasoning: reasoningText, 
-                answer: finalAnswer, 
-                knowledge: retrievedKnowledge,
-                webResults: webResults
-            };
-        }
-        
-        function buildThinkingPrompt(userMessage, retrievedKnowledge = [], webResults = []) {
-            const thinkingSystemPrompt = `Think step-by-step:
-1. What is being asked?
-2. What info is relevant (web/knowledge)?
-3. How to approach this?
-4. What's my reasoning?`;
-       
-            let prompt = `<|im_start|>system\n${thinkingSystemPrompt}`;
-            
-            if (webResults.length > 0) {
-                prompt += `\n\n=== WEB RESULTS ===\n`;
-                webResults.forEach((r, i) => {
-                    prompt += `[${i+1}] ${r.title}: ${r.snippet.substring(0, 150)}\n`;
-                });
-            }
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\n=== KNOWLEDGE ===\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `[${i+1}] ${kb.content.substring(0, 150)}\n`;
-                });
-            }
-            
-            prompt += `<|im_end|>\n`;
-            
-            const recentHistory = conversationHistory.slice(-10);
-            for (const msg of recentHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
-            
-            prompt += `<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\nLet me think:\n`;
-            
-            return prompt;
-        }
-        
-        function buildAnswerPrompt(userMessage, reasoning, retrievedKnowledge = [], webResults = []) {
-            const answerSystemPrompt = `Based on your reasoning, web results, and knowledge base, provide a clear, accurate answer in Markdown format. Cite sources naturally.`;
-            
-            let prompt = `<|im_start|>system\n${answerSystemPrompt}`;
-            
-            if (webResults.length > 0) {
-                prompt += `\n\n=== WEB RESULTS ===\n`;
-                webResults.forEach((r, i) => {
-                    prompt += `[${i+1}] ${r.title}: ${r.snippet}\n`;
-                });
-            }
-            
-            if (retrievedKnowledge.length > 0) {
-                prompt += `\n\n=== KNOWLEDGE ===\n`;
-                retrievedKnowledge.forEach((kb, i) => {
-                    prompt += `[${i+1}] ${kb.content}\n`;
-                });
-            }
-            
-            prompt += `<|im_end|>\n`;
-            
-            const recentHistory = conversationHistory.slice(-10);
-            for (const msg of recentHistory) {
-                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
-            }
-            
-            prompt += `<|im_start|>user\nQuestion: ${userMessage}\n\nMy reasoning: ${reasoning}\n\nFinal answer:<|im_end|>\n<|im_start|>assistant\n`;
-            
-            return prompt;
         }
        
         async function handleChat() {
@@ -2301,11 +2120,14 @@ Core principles:
             const text = input.value.trim();
             if (!text) return;
             
+            console.log('=== HANDLE CHAT START ===');
+            console.log('User input:', text);
+            
             addMessage(text, 'user');
             input.value = ''; 
             input.style.height = 'auto';
             
-            const loader = addMessage("Processing...", 'ai', true);
+            const loader = addMessage("Thinking...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
@@ -2314,7 +2136,7 @@ Core principles:
             setupStopButton();
             
             try {
-                const result = await multiPassReasoning(text);
+                const result = await generateResponse(text);
                 
                 conversationHistory.push({ role: 'user', content: text });
                 conversationHistory.push({ role: 'assistant', content: result.answer });
@@ -2327,18 +2149,19 @@ Core principles:
                 
                 saveChatHistory();
                 
+                console.log('=== HANDLE CHAT SUCCESS ===');
+                
             } catch (e) {
                 console.error('Chat error:', e);
                 if (loader && loader.parentNode) {
                     loader.classList.remove('thinking');
-                    loader.innerText = abortController && abortController.signal.aborted ? "⏹️ Stopped" : "❌ Error occurred";
+                    loader.querySelector('.message-content').innerText = abortController && abortController.signal.aborted ? "⏹️ Stopped" : "❌ Error occurred. Please try again.";
                 }
             } finally { 
                 resetSendButton(); 
             }
         }
        
-        // Auto-resize textarea
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
