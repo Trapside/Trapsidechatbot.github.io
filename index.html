@@ -58,6 +58,7 @@
             background: linear-gradient(135deg, #00b4ff, #00ff96);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             animation: pulse 2s infinite;
         }
         
@@ -284,12 +285,18 @@
         }
         
         .streaming {
+            position: relative;
+        }
+        
+        .streaming::after {
+            content: '▋';
             animation: blink 1s infinite;
+            color: var(--accent);
         }
         
         @keyframes blink {
             0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.5; }
+            51%, 100% { opacity: 0; }
         }
         
         .reasoning-box {
@@ -426,31 +433,31 @@
         .input-area { 
             position: fixed; 
             bottom: 24px; 
-            left: 0; 
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
             padding: 0 20px; 
             display: flex;
             justify-content: center;
             align-items: flex-end; 
             gap: 10px; 
             max-width: 860px; 
-            margin: 0 auto;
+            width: calc(100% - 40px);
             z-index: 100;
         }
 
         .input-container { 
             display: flex; 
-            gap: 8px; 
+            gap: 0;
+            align-items: center;
             flex: 1; 
-            padding: 8px 12px; 
-            border-radius: 40px;
+            padding: 6px 6px 6px 12px;
+            border-radius: 30px;
             background: var(--glass);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             transition: all 0.3s ease;
-            align-items: center;
         }
         
         .input-container:focus-within {
@@ -462,7 +469,7 @@
             flex: 1; 
             background: transparent; 
             border: none; 
-            padding: 10px 12px; 
+            padding: 10px 8px;
             color: #fff; 
             font-size: 15px; 
             outline: none; 
@@ -470,11 +477,17 @@
             max-height: 120px;
             min-height: 24px;
             line-height: 1.5;
+            font-family: inherit;
         }
         
         .input-field::placeholder {
             color: rgba(255, 255, 255, 0.4);
-            opacity: 1;
+        }
+        
+        .input-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .web-search-toggle-btn, .voice-input-btn {
@@ -523,6 +536,11 @@
             flex-shrink: 0;
         }
         
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 180, 255, 0.5);
+        }
+        
         .send-btn:disabled { 
             opacity: 0.3; 
             cursor: not-allowed;
@@ -549,6 +567,10 @@
             transition: all 0.3s ease;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             flex-shrink: 0;
+        }
+        
+        .thinking-mode-btn:hover {
+            transform: scale(1.05);
         }
 
         .thinking-mode-btn.active {
@@ -672,6 +694,11 @@
             font-size: 16px;
             width: 100%;
             margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .close-modal:hover {
+            transform: scale(1.02);
         }
         
         .stats-box {
@@ -692,10 +719,10 @@
             color: white;
             font-size: 14px;
             margin-bottom: 15px;
+            outline: none;
         }
         
         .search-kb-input:focus {
-            outline: none;
             border-color: var(--accent);
         }
         
@@ -753,11 +780,16 @@
             margin-top: 15px;
             width: 48%;
             display: inline-block;
+            transition: all 0.3s ease;
         }
         
         .export-chat-btn {
             background: var(--accent);
             margin-left: 4%;
+        }
+        
+        .clear-chat-btn:hover, .export-chat-btn:hover {
+            transform: scale(1.02);
         }
         
         /* Export Modal */
@@ -792,14 +824,14 @@
 
         @media (max-width: 768px) {
             .message { max-width: 90%; padding: 14px 18px 38px 18px; font-size: 14px; }
-            .input-area { padding: 0 12px; bottom: 20px; }
+            .input-area { padding: 0 12px; bottom: 20px; width: calc(100% - 24px); }
             .thinking-mode-btn { width: 44px; height: 44px; }
             .modal-content { padding: 20px; }
             .header-btn { width: 40px; height: 40px; }
             .header-controls { right: 16px; gap: 8px; }
             .brand { font-size: 24px; }
             .send-btn { width: 38px; height: 38px; }
-            .web-search-toggle-btn, .voice-input-btn { width: 34px; height: 34px; }
+            .web-search-toggle-btn, .voice-input-btn { width: 32px; height: 32px; font-size: 14px; }
             .loading-logo { font-size: 36px; }
             .progress-bar-container { width: 250px; }
         }
@@ -831,25 +863,25 @@
         <div class="view" id="scroll-area"><div id="chat-box"></div></div>
         <div class="input-area">
             <div class="input-container">
-                <button id="web-search-toggle" class="web-search-toggle-btn active" title="Toggle Web Search">
-                    <i class="fas fa-globe"></i>
-                </button>
-                <button id="voice-input-btn" class="voice-input-btn" title="Voice Input">
-                    <i class="fas fa-microphone"></i>
-                </button>
                 <textarea id="user-input" class="input-field" placeholder="Ask anything..." rows="1"></textarea>
-                <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+                <div class="input-controls">
+                    <button id="web-search-toggle" class="web-search-toggle-btn active" title="Web Search">
+                        <i class="fas fa-globe"></i>
+                    </button>
+                    <button id="voice-input-btn" class="voice-input-btn" title="Voice Input">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
+                </div>
             </div>
-            <button id="thinking-mode-btn" class="thinking-mode-btn active" title="Toggle Thinking Mode"><i class="fas fa-brain"></i></button>
+            <button id="thinking-mode-btn" class="thinking-mode-btn active" title="Thinking Mode"><i class="fas fa-brain"></i></button>
         </div>
     </div>
 
     <!-- Knowledge Base Modal -->
     <div id="knowledge-modal" class="knowledge-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                📚 Knowledge Base
-            </div>
+            <div class="modal-header">📚 Knowledge Base</div>
             <div class="stats-box" id="stats-box">
                 <strong>Storage:</strong> <span id="storage-used">0 KB</span> / ~50 MB<br>
                 <strong>Total Chunks:</strong> <span id="total-chunks">0</span><br>
@@ -871,9 +903,7 @@
     <!-- Chat History Modal -->
     <div id="chat-history-modal" class="chat-history-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                💬 Chat History
-            </div>
+            <div class="modal-header">💬 Chat History</div>
             <div id="chat-history-list"></div>
             <button class="clear-chat-btn" id="clear-chat-btn">Clear History</button>
             <button class="export-chat-btn" id="export-chat-btn">Export Chat</button>
@@ -884,9 +914,7 @@
     <!-- Export Modal -->
     <div id="export-modal" class="export-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                📤 Export Conversation
-            </div>
+            <div class="modal-header">📤 Export Conversation</div>
             <div class="export-option" data-format="txt">
                 <i class="fas fa-file-alt"></i>
                 <div><strong>Plain Text</strong></div>
@@ -915,8 +943,16 @@
         
         // Conversation history
         let conversationHistory = [];
-        const MAX_HISTORY_LENGTH = 20; // Increased
-        let chatHistories = JSON.parse(localStorage.getItem('trapside_chat_histories') || '[]');
+        const MAX_HISTORY_LENGTH = 20;
+        let chatHistories = [];
+        
+        // Load chat histories from localStorage
+        try {
+            chatHistories = JSON.parse(localStorage.getItem('trapside_chat_histories') || '[]');
+        } catch (e) {
+            console.error('Error loading chat histories:', e);
+            chatHistories = [];
+        }
         
         // Feature toggles
         let thinkingModeEnabled = true;
@@ -931,7 +967,15 @@
         let globalWordFreq = {};
         let totalDocuments = 0;
         let webCacheCount = 0;
-        let knowledgeTags = JSON.parse(localStorage.getItem('trapside_knowledge_tags') || '{}');
+        let knowledgeTags = {};
+        
+        // Load knowledge tags from localStorage
+        try {
+            knowledgeTags = JSON.parse(localStorage.getItem('trapside_knowledge_tags') || '{}');
+        } catch (e) {
+            console.error('Error loading knowledge tags:', e);
+            knowledgeTags = {};
+        }
         
         const DB_NAME = 'TrapsideKnowledge';
         const DB_VERSION = 1;
@@ -945,14 +989,22 @@
         // =============== LOADING SCREEN ===============
         
         function updateLoadingProgress(percent, text) {
-            document.getElementById('progress-bar').style.width = percent + '%';
-            document.getElementById('loading-text').textContent = text;
+            const progressBar = document.getElementById('progress-bar');
+            const loadingText = document.getElementById('loading-text');
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (loadingText) loadingText.textContent = text;
         }
         
         function hideLoadingScreen() {
             const loadingScreen = document.getElementById('loading-screen');
-            loadingScreen.classList.add('hidden');
-            setTimeout(() => loadingScreen.remove(), 500);
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    if (loadingScreen.parentNode) {
+                        loadingScreen.remove();
+                    }
+                }, 500);
+            }
         }
 
         // =============== VOICE INPUT ===============
@@ -974,30 +1026,48 @@
                 recognition.onerror = (event) => {
                     console.error('Speech recognition error:', event.error);
                     stopVoiceInput();
+                    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                        addMessage("Voice input error: " + event.error, "ai");
+                    }
                 };
                 
                 recognition.onend = () => {
                     stopVoiceInput();
                 };
+                
+                console.log('Voice recognition initialized');
+            } else {
+                console.log('Voice recognition not supported');
             }
         }
         
         function startVoiceInput() {
             if (!recognition) {
-                addMessage("Voice input not supported in your browser.", "ai");
+                addMessage("❌ Voice input not supported in your browser.", "ai");
                 return;
             }
             
-            isRecording = true;
-            document.getElementById('voice-input-btn').classList.add('active');
-            recognition.start();
+            try {
+                isRecording = true;
+                document.getElementById('voice-input-btn').classList.add('active');
+                recognition.start();
+                console.log('Voice recording started');
+            } catch (e) {
+                console.error('Error starting voice input:', e);
+                stopVoiceInput();
+            }
         }
         
         function stopVoiceInput() {
             if (recognition && isRecording) {
                 isRecording = false;
                 document.getElementById('voice-input-btn').classList.remove('active');
-                recognition.stop();
+                try {
+                    recognition.stop();
+                    console.log('Voice recording stopped');
+                } catch (e) {
+                    console.error('Error stopping voice input:', e);
+                }
             }
         }
         
@@ -1015,7 +1085,6 @@
             const results = [];
             
             try {
-                // Wikipedia
                 const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
                 const wikiResponse = await fetch(wikiUrl);
                 
@@ -1034,7 +1103,6 @@
                 console.log('Wikipedia search failed:', e);
             }
             
-            // Try Wikidata for structured info
             try {
                 const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&origin=*`;
                 const wikidataResponse = await fetch(wikidataUrl);
@@ -1057,23 +1125,24 @@
                 console.log('Wikidata search failed:', e);
             }
             
-            // Try alternate Wikipedia search
             try {
                 const altQuery = query.split(' ').slice(0, 3).join(' ');
-                const wikiUrl2 = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(altQuery)}`;
-                const wikiResponse2 = await fetch(wikiUrl2);
-                
-                if (wikiResponse2.ok) {
-                    const wikiData2 = await wikiResponse2.json();
-                    if (wikiData2.extract && wikiData2.type !== 'disambiguation') {
-                        const isDuplicate = results.some(r => r.title === wikiData2.title);
-                        if (!isDuplicate) {
-                            results.push({
-                                title: wikiData2.title,
-                                snippet: wikiData2.extract,
-                                url: wikiData2.content_urls?.desktop?.page || '',
-                                source: 'Wikipedia'
-                            });
+                if (altQuery !== query) {
+                    const wikiUrl2 = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(altQuery)}`;
+                    const wikiResponse2 = await fetch(wikiUrl2);
+                    
+                    if (wikiResponse2.ok) {
+                        const wikiData2 = await wikiResponse2.json();
+                        if (wikiData2.extract && wikiData2.type !== 'disambiguation') {
+                            const isDuplicate = results.some(r => r.title === wikiData2.title);
+                            if (!isDuplicate) {
+                                results.push({
+                                    title: wikiData2.title,
+                                    snippet: wikiData2.extract,
+                                    url: wikiData2.content_urls?.desktop?.page || '',
+                                    source: 'Wikipedia'
+                                });
+                            }
                         }
                     }
                 }
@@ -1404,28 +1473,33 @@
         // =============== FILE PROCESSING ===============
         
         async function processFile(file) {
-            const text = await file.text();
-            const chunks = smartChunk(text);
-            
-            for (const chunkText of chunks) {
-                const { freq, total } = calculateWordFreq(chunkText);
-                const keywords = Object.keys(freq)
-                    .sort((a, b) => freq[b] - freq[a])
-                    .slice(0, 20);
+            try {
+                const text = await file.text();
+                const chunks = smartChunk(text);
                 
-                await saveKnowledge({
-                    filename: file.name,
-                    content: chunkText,
-                    wordFreq: freq,
-                    wordCount: total,
-                    keywords: keywords,
-                    timestamp: Date.now(),
-                    isWebCache: false
-                });
+                for (const chunkText of chunks) {
+                    const { freq, total } = calculateWordFreq(chunkText);
+                    const keywords = Object.keys(freq)
+                        .sort((a, b) => freq[b] - freq[a])
+                        .slice(0, 20);
+                    
+                    await saveKnowledge({
+                        filename: file.name,
+                        content: chunkText,
+                        wordFreq: freq,
+                        wordCount: total,
+                        keywords: keywords,
+                        timestamp: Date.now(),
+                        isWebCache: false
+                    });
+                }
+                
+                await loadKnowledgeIndex();
+                addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks indexed.`, "ai");
+            } catch (e) {
+                console.error('Error processing file:', e);
+                addMessage(`❌ Error processing "${file.name}": ${e.message}`, "ai");
             }
-            
-            await loadKnowledgeIndex();
-            addMessage(`📚 Learned from "${file.name}" - ${chunks.length} chunks indexed.`, "ai");
         }
 
         // =============== KB SEARCH & TAGS ===============
@@ -1437,7 +1511,11 @@
         
         function setKnowledgeTag(filename, tag) {
             knowledgeTags[filename] = tag;
-            localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            try {
+                localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            } catch (e) {
+                console.error('Error saving tag:', e);
+            }
             updateKnowledgeList();
         }
         
@@ -1544,9 +1622,12 @@
                 await deleteKnowledge(kb.id);
             }
             
-            // Remove tag
             delete knowledgeTags[filename];
-            localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            try {
+                localStorage.setItem('trapside_knowledge_tags', JSON.stringify(knowledgeTags));
+            } catch (e) {
+                console.error('Error saving tags:', e);
+            }
             
             addMessage(`🗑️ Removed "${filename}" from knowledge base.`, "ai");
         }
@@ -1599,7 +1680,7 @@
                 addMessage('🌐 Web search enabled.', 'ai');
             } else {
                 btn.classList.remove('active');
-                addMessage('📚 Web search disabled. Using local knowledge only.', 'ai');
+                addMessage('📚 Web search disabled. Local knowledge only.', 'ai');
             }
         });
 
@@ -1615,10 +1696,14 @@
                 };
                 
                 chatHistories.unshift(historyEntry);
-                if (chatHistories.length > 50) chatHistories = chatHistories.slice(0, 50); // Keep last 50
+                if (chatHistories.length > 50) chatHistories = chatHistories.slice(0, 50);
                 
-                localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
-                updateHistoryBadge();
+                try {
+                    localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
+                    updateHistoryBadge();
+                } catch (e) {
+                    console.error('Error saving chat history:', e);
+                }
             }
         }
         
@@ -1627,7 +1712,6 @@
             if (history) {
                 conversationHistory = [...history.messages];
                 
-                // Recreate chat display
                 document.getElementById('chat-box').innerHTML = '';
                 conversationHistory.forEach(msg => {
                     addMessage(msg.content, msg.role);
@@ -1641,7 +1725,11 @@
         function clearChatHistory() {
             if (confirm('Clear all chat history? This cannot be undone.')) {
                 chatHistories = [];
-                localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
+                try {
+                    localStorage.setItem('trapside_chat_histories', JSON.stringify(chatHistories));
+                } catch (e) {
+                    console.error('Error clearing history:', e);
+                }
                 updateHistoryBadge();
                 updateChatHistoryList();
                 addMessage('🗑️ Chat history cleared.', 'ai');
@@ -1752,7 +1840,7 @@
             document.getElementById('export-modal').classList.remove('active');
         });
 
-        // =============== CHAT FUNCTIONS WITH MARKDOWN ===============
+        // =============== CHAT FUNCTIONS ===============
         
         function speak(text, btn) {
             if (synth.speaking && activeBtn === btn) { 
@@ -1781,11 +1869,11 @@
             'multi-thread/wllama.wasm' : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.1/esm/multi-thread/wllama.wasm',
         });
 
-        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null, isStreaming = false) {
+        function addMessage(text, role, isThinking = false, reasoningText = null, knowledgeResults = null, webResults = null) {
             const row = document.createElement('div');
             row.className = `message-row ${role}-row`;
             const msg = document.createElement('div');
-            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''} ${isStreaming ? 'streaming' : ''}`;
+            msg.className = `message ${role}-message ${isThinking ? 'thinking' : ''}`;
             
             if (webResults && webResults.length > 0) {
                 const webBox = document.createElement('div');
@@ -1828,15 +1916,18 @@
             const textNode = document.createElement('div');
             textNode.className = 'message-content';
             
-            // Render markdown for AI messages
             if (role === 'ai' && !isThinking) {
-                const htmlContent = marked.parse(text);
-                textNode.innerHTML = htmlContent;
-                
-                // Highlight code blocks
-                textNode.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
+                try {
+                    const htmlContent = marked.parse(text);
+                    textNode.innerHTML = htmlContent;
+                    
+                    textNode.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                } catch (e) {
+                    console.error('Markdown parsing error:', e);
+                    textNode.innerText = text;
+                }
             } else {
                 textNode.innerText = text;
             }
@@ -1880,7 +1971,12 @@
             const sendBtn = document.getElementById('send-btn');
             sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
             sendBtn.className = 'stop-btn';
-            sendBtn.onclick = () => { if (abortController) abortController.abort(); };
+            sendBtn.onclick = () => { 
+                if (abortController) {
+                    abortController.abort();
+                    addMessage('⏹️ Response stopped.', 'ai');
+                }
+            };
         }
         
         function toggleThinkingMode() {
@@ -1915,16 +2011,16 @@
                 
                 setTimeout(() => {
                     hideLoadingScreen();
-                    addMessage("Trapside is online! I can search Wikipedia, use your knowledge base, and remember our conversation. Try asking me something!", "ai");
+                    addMessage("✨ **Trapside is online!**\n\nI can:\n- 🌐 Search Wikipedia for information\n- 📚 Use your knowledge base\n- 💬 Remember our conversation\n- 🎤 Accept voice input\n\nTry asking me anything!", "ai");
                     updateHistoryBadge();
                 }, 300);
                 
             } catch (e) { 
-                console.error(e);
+                console.error('Initialization error:', e);
                 updateLoadingProgress(100, 'Error: ' + e.message);
                 setTimeout(() => {
                     hideLoadingScreen();
-                    addMessage("System offline. Error: " + e.message, "ai");
+                    addMessage("❌ System offline. Error: " + e.message, "ai");
                 }, 1000);
             }
         }
@@ -1960,8 +2056,7 @@ Core principles:
             
             prompt += `<|im_end|>\n`;
             
-            // Smart context window: Keep recent messages and summarize old ones
-            const recentHistory = conversationHistory.slice(-10); // Last 10 messages
+            const recentHistory = conversationHistory.slice(-10);
             for (const msg of recentHistory) {
                 prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
             }
@@ -1989,25 +2084,28 @@ Core principles:
                 webResults = await searchWeb(userMessage);
                 console.log('Web search returned:', webResults.length, 'results');
                 
-                if (searchStatus) searchStatus.remove();
+                if (searchStatus && searchStatus.parentNode) searchStatus.remove();
                 
                 if (webResults.length > 0) {
                     searchStatus = addSearchStatus('Storing in knowledge base...');
                     await storeWebResults(userMessage, webResults);
-                    if (searchStatus) searchStatus.remove();
+                    if (searchStatus && searchStatus.parentNode) searchStatus.remove();
                     
                     searchStatus = addSearchStatus('Retrieving updated knowledge...');
                     await new Promise(resolve => setTimeout(resolve, 300));
                     retrievedKnowledge = await retrieveRelevantKnowledge(userMessage, 4);
                     console.log('Updated KB retrieval:', retrievedKnowledge.length, 'results');
-                    if (searchStatus) searchStatus.remove();
+                    if (searchStatus && searchStatus.parentNode) searchStatus.remove();
                 }
             }
             
             console.log('Final knowledge for prompt:', retrievedKnowledge.length, 'items');
             console.log('Web results for prompt:', webResults.length, 'items');
             
-            // STREAMING RESPONSE
+            // Create streaming message
+            let streamMsg = null;
+            let contentDiv = null;
+            
             if (thinkingModeEnabled) {
                 const thinkingPrompt = buildThinkingPrompt(userMessage, retrievedKnowledge, webResults);
                 
@@ -2028,6 +2126,8 @@ Core principles:
                 } catch (e) {
                     if (!abortController.signal.aborted) {
                         reasoningText = "Reasoning interrupted.";
+                    } else {
+                        throw e; // Re-throw if aborted
                     }
                 }
                 
@@ -2036,9 +2136,9 @@ Core principles:
                 try {
                     abortController = new AbortController();
                     
-                    // Create streaming message
-                    const streamMsg = addMessage('', 'ai', false, reasoningText, retrievedKnowledge, webResults, true);
-                    const contentDiv = streamMsg.querySelector('.message-content');
+                    streamMsg = addMessage('', 'ai', false, reasoningText, retrievedKnowledge, webResults);
+                    streamMsg.classList.add('streaming');
+                    contentDiv = streamMsg.querySelector('.message-content');
                     
                     let fullText = '';
                     for await (const chunk of wllama.createCompletionStream(answerPrompt, {
@@ -2052,20 +2152,27 @@ Core principles:
                         signal: abortController.signal
                     })) {
                         fullText += chunk;
-                        const htmlContent = marked.parse(fullText);
-                        contentDiv.innerHTML = htmlContent;
-                        contentDiv.querySelectorAll('pre code').forEach((block) => {
-                            hljs.highlightElement(block);
-                        });
+                        try {
+                            const htmlContent = marked.parse(fullText);
+                            contentDiv.innerHTML = htmlContent;
+                            contentDiv.querySelectorAll('pre code').forEach((block) => {
+                                hljs.highlightElement(block);
+                            });
+                        } catch (e) {
+                            contentDiv.innerText = fullText;
+                        }
                         document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
                     }
                     
-                    streamMsg.classList.remove('streaming');
+                    if (streamMsg) streamMsg.classList.remove('streaming');
                     finalAnswer = fullText.trim();
                     
                 } catch (e) {
                     if (!abortController.signal.aborted) {
+                        console.error('Error in answer generation:', e);
                         finalAnswer = "Error generating answer.";
+                    } else {
+                        throw e;
                     }
                 }
             } else {
@@ -2074,8 +2181,9 @@ Core principles:
                 try {
                     abortController = new AbortController();
                     
-                    const streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults, true);
-                    const contentDiv = streamMsg.querySelector('.message-content');
+                    streamMsg = addMessage('', 'ai', false, null, retrievedKnowledge, webResults);
+                    streamMsg.classList.add('streaming');
+                    contentDiv = streamMsg.querySelector('.message-content');
                     
                     let fullText = '';
                     for await (const chunk of wllama.createCompletionStream(prompt, {
@@ -2089,20 +2197,27 @@ Core principles:
                         signal: abortController.signal
                     })) {
                         fullText += chunk;
-                        const htmlContent = marked.parse(fullText);
-                        contentDiv.innerHTML = htmlContent;
-                        contentDiv.querySelectorAll('pre code').forEach((block) => {
-                            hljs.highlightElement(block);
-                        });
+                        try {
+                            const htmlContent = marked.parse(fullText);
+                            contentDiv.innerHTML = htmlContent;
+                            contentDiv.querySelectorAll('pre code').forEach((block) => {
+                                hljs.highlightElement(block);
+                            });
+                        } catch (e) {
+                            contentDiv.innerText = fullText;
+                        }
                         document.getElementById('scroll-area').scrollTop = document.getElementById('scroll-area').scrollHeight;
                     }
                     
-                    streamMsg.classList.remove('streaming');
+                    if (streamMsg) streamMsg.classList.remove('streaming');
                     finalAnswer = fullText.trim();
                     
                 } catch (e) {
                     if (!abortController.signal.aborted) {
+                        console.error('Error in response generation:', e);
                         finalAnswer = "Error generating response.";
+                    } else {
+                        throw e;
                     }
                 }
             }
@@ -2190,7 +2305,7 @@ Core principles:
             input.value = ''; 
             input.style.height = 'auto';
             
-            const loader = addMessage("Processing your request...", 'ai', true);
+            const loader = addMessage("Processing...", 'ai', true);
             
             document.getElementById('user-input').disabled = true;
             document.getElementById('thinking-mode-btn').disabled = true;
@@ -2204,28 +2319,29 @@ Core principles:
                 conversationHistory.push({ role: 'user', content: text });
                 conversationHistory.push({ role: 'assistant', content: result.answer });
                 
-                // Smart context management
                 if (conversationHistory.length > MAX_HISTORY_LENGTH * 2) {
                     conversationHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH * 2);
                 }
                 
-                loader.remove();
+                if (loader && loader.parentNode) loader.remove();
                 
-                // Save to history
                 saveChatHistory();
                 
             } catch (e) {
                 console.error('Chat error:', e);
-                loader.classList.remove('thinking');
-                loader.innerText = abortController.signal.aborted ? "[Stopped]" : "Error occurred.";
+                if (loader && loader.parentNode) {
+                    loader.classList.remove('thinking');
+                    loader.innerText = abortController && abortController.signal.aborted ? "⏹️ Stopped" : "❌ Error occurred";
+                }
             } finally { 
                 resetSendButton(); 
             }
         }
        
+        // Auto-resize textarea
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
        
         document.getElementById('send-btn').onclick = handleChat;
