@@ -19,8 +19,7 @@
   --accent: #00d4ff;
   --accent2: #7c6aff;
   --accent3: #ff6ab0;
-  --glow: rgba(0,212,255,0.15);
-  --glow2: rgba(124,106,255,0.12);
+  --accent4: #00ff88;
   --text: #dde4f0;
   --muted: #5a6080;
   --muted2: #7a84a8;
@@ -48,35 +47,28 @@ body::before {
   height: 100vh; max-width: 900px; margin: 0 auto; padding: 0 20px;
 }
 
+/* HEADER */
 header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 0 12px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  padding: 16px 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-
 .header-brand { display: flex; align-items: center; gap: 10px; }
-
 .logo {
   width: 34px; height: 34px; border-radius: 9px;
   background: linear-gradient(135deg, #00d4ff22, #7c6aff22);
   border: 1px solid rgba(0,212,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
   box-shadow: 0 0 16px rgba(0,212,255,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
 }
-
 .brand-text-main { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: #fff; letter-spacing: -0.2px; }
 .brand-text-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-top: 1px; }
-
 .header-right { display: flex; align-items: center; gap: 10px; }
 
 .status-badge {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 10px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface);
-  font-size: 10px; color: var(--muted); letter-spacing: 0.3px;
-  transition: all 0.3s;
+  font-size: 10px; color: var(--muted); letter-spacing: 0.3px; transition: all 0.3s;
 }
 .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
 .status-badge.ready { border-color: rgba(0,255,120,0.2); }
@@ -90,36 +82,31 @@ header {
 .token-display {
   font-size: 10px; color: var(--muted); padding: 4px 10px;
   border: 1px solid var(--border); border-radius: 999px;
-  background: var(--surface); display: none;
-  transition: all 0.3s;
+  background: var(--surface); display: none; transition: all 0.3s;
 }
 .token-display.warn { color: #ffc800; border-color: rgba(255,200,0,0.25); }
 .token-display.danger { color: #ff5050; border-color: rgba(255,80,80,0.25); }
 
+/* LOAD SCREEN */
 #load-screen {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 20px;
 }
-
 .load-card {
   background: var(--surface); border: 1px solid var(--border2);
   border-radius: 20px; padding: 36px 44px; max-width: 460px; width: 100%;
   box-shadow: 0 0 60px rgba(0,212,255,0.04);
 }
-
 .load-glyph { font-size: 44px; margin-bottom: 14px; display: block; }
 .load-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
 .load-desc { color: var(--muted2); font-size: 12px; line-height: 1.8; margin-bottom: 24px; }
 .load-desc code { color: var(--accent); background: rgba(0,212,255,0.08); padding: 1px 5px; border-radius: 4px; }
-
 .load-btn {
   width: 100%; padding: 13px;
   background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,106,255,0.15));
-  border: 1px solid rgba(0,212,255,0.3);
-  border-radius: var(--radius);
+  border: 1px solid rgba(0,212,255,0.3); border-radius: var(--radius);
   color: var(--accent); font-family: var(--font-ui); font-weight: 500; font-size: 13px;
-  cursor: pointer; transition: all 0.2s;
-  letter-spacing: 0.3px;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
 }
 .load-btn:hover { background: linear-gradient(135deg, rgba(0,212,255,0.22), rgba(124,106,255,0.22)); border-color: rgba(0,212,255,0.5); color: #fff; box-shadow: 0 0 20px rgba(0,212,255,0.1); }
 .load-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -129,13 +116,12 @@ header {
 .prog-track { width: 100%; height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
 .prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.4s ease; box-shadow: 0 0 8px var(--accent); }
 
+/* MODE BAR */
 #mode-bar {
   display: none; align-items: center; gap: 6px;
   padding: 10px 0 6px; flex-shrink: 0; flex-wrap: wrap;
 }
-
 .mode-label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; margin-right: 4px; }
-
 .mode-btn {
   padding: 5px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: transparent;
@@ -145,22 +131,22 @@ header {
 }
 .mode-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
 .mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.07); box-shadow: 0 0 10px rgba(0,212,255,0.08); }
-.mode-btn.active.math { border-color: #ffc800; color: #ffc800; background: rgba(255,200,0,0.07); box-shadow: 0 0 10px rgba(255,200,0,0.08); }
-.mode-btn.active.code { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.07); box-shadow: 0 0 10px rgba(0,255,136,0.08); }
-.mode-btn.active.creative { border-color: var(--accent3); color: var(--accent3); background: rgba(255,106,176,0.07); box-shadow: 0 0 10px rgba(255,106,176,0.08); }
+.mode-btn.active.math { border-color: #ffc800; color: #ffc800; background: rgba(255,200,0,0.07); }
+.mode-btn.active.code { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.07); }
+.mode-btn.active.creative { border-color: var(--accent3); color: var(--accent3); background: rgba(255,106,176,0.07); }
+.mode-btn.active.web { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.07); box-shadow: 0 0 14px rgba(0,255,136,0.15); }
 
 .mode-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
-
 .clear-btn {
   margin-left: auto; padding: 5px 10px; border-radius: 999px;
   border: 1px solid var(--border); background: transparent;
   color: var(--muted); font-family: var(--font-ui); font-size: 10px;
-  cursor: pointer; transition: all 0.18s; letter-spacing: 0.3px;
+  cursor: pointer; transition: all 0.18s;
 }
 .clear-btn:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
 
+/* CHAT */
 #chat-area { display: none; flex-direction: column; flex: 1; overflow: hidden; }
-
 #messages {
   flex: 1; overflow-y: auto; padding: 18px 0; display: flex; flex-direction: column; gap: 18px;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
@@ -176,7 +162,6 @@ header {
 .empty-glyph { font-size: 32px; opacity: 0.3; margin-bottom: 6px; }
 .empty-title { font-family: var(--font-display); font-size: 14px; color: rgba(255,255,255,0.2); font-weight: 500; }
 .empty-hint { font-size: 11px; opacity: 0.4; }
-
 .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
 .chip {
   padding: 5px 12px; border-radius: 999px;
@@ -186,10 +171,10 @@ header {
 }
 .chip:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
 
+/* MESSAGES */
 .msg { display: flex; gap: 10px; align-items: flex-start; animation: slideIn 0.22s ease; }
 @keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .msg.user { flex-direction: row-reverse; }
-
 .av {
   width: 28px; height: 28px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
@@ -198,32 +183,18 @@ header {
 .msg.user .av { background: var(--surface3); border: 1px solid rgba(124,106,255,0.2); }
 .msg.ai .av {
   background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,106,255,0.2));
-  border: 1px solid rgba(0,212,255,0.25);
-  box-shadow: 0 0 10px rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 0 10px rgba(0,212,255,0.1);
 }
-
 .msg-wrap { display: flex; flex-direction: column; max-width: 75%; }
 .msg.user .msg-wrap { align-items: flex-end; }
-
 .bubble {
   padding: 11px 14px; border-radius: 14px;
   line-height: 1.65; font-size: 13px; white-space: pre-wrap; word-break: break-word;
 }
-.msg.user .bubble {
-  background: var(--surface3); border: 1px solid rgba(124,106,255,0.15);
-  border-top-right-radius: 3px;
-}
-.msg.ai .bubble {
-  background: var(--surface); border: 1px solid var(--border);
-  border-top-left-radius: 3px;
-}
-
-.msg-meta {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 10px; color: var(--muted); margin-top: 4px; padding: 0 2px;
-}
+.msg.user .bubble { background: var(--surface3); border: 1px solid rgba(124,106,255,0.15); border-top-right-radius: 3px; }
+.msg.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 3px; }
+.msg-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--muted); margin-top: 4px; padding: 0 2px; }
 .msg.user .msg-meta { flex-direction: row-reverse; }
-
 .msg-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
 .msg:hover .msg-actions { opacity: 1; }
 .action-btn {
@@ -243,6 +214,28 @@ header {
 .mode-tag.math { background: rgba(255,200,0,0.1); color: rgba(255,200,0,0.6); }
 .mode-tag.code { background: rgba(0,255,136,0.1); color: rgba(0,255,136,0.6); }
 .mode-tag.creative { background: rgba(255,106,176,0.1); color: rgba(255,106,176,0.6); }
+.mode-tag.web { background: rgba(0,255,136,0.12); color: rgba(0,255,136,0.8); }
+
+/* Web search status bar */
+.web-status {
+  font-size: 10px; color: var(--accent4); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; background: rgba(0,255,136,0.05);
+  border: 1px solid rgba(0,255,136,0.12); border-radius: 6px;
+}
+.web-status.searching { color: #ffc800; border-color: rgba(255,200,0,0.15); background: rgba(255,200,0,0.05); animation: pulse 1s infinite; }
+.web-status.error { color: #ff5050; border-color: rgba(255,80,80,0.15); background: rgba(255,80,80,0.05); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Source chips */
+.sources-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.source-chip {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  background: rgba(0,255,136,0.07); border: 1px solid rgba(0,255,136,0.15);
+  color: rgba(0,255,136,0.7); text-decoration: none; letter-spacing: 0.2px;
+  transition: all 0.15s; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.source-chip:hover { background: rgba(0,255,136,0.12); color: var(--accent4); }
 
 .typing { display: flex; gap: 4px; padding: 4px 0; }
 .typing span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: tdot 1.1s infinite; opacity: 0.6; }
@@ -250,48 +243,59 @@ header {
 .typing span:nth-child(3) { animation-delay: 0.36s; }
 @keyframes tdot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 
-#input-area {
-  padding: 12px 0 18px; border-top: 1px solid var(--border); flex-shrink: 0;
-}
-
+/* INPUT */
+#input-area { padding: 12px 0 18px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .input-shell {
   display: flex; gap: 8px; align-items: flex-end;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 9px 9px 9px 14px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.input-shell:focus-within {
-  border-color: rgba(0,212,255,0.3);
-  box-shadow: 0 0 0 3px rgba(0,212,255,0.06);
-}
+.input-shell:focus-within { border-color: rgba(0,212,255,0.3); box-shadow: 0 0 0 3px rgba(0,212,255,0.06); }
+.input-shell.web-mode { border-color: rgba(0,255,136,0.25); box-shadow: 0 0 0 3px rgba(0,255,136,0.05); }
 
 #user-input {
   flex: 1; background: transparent; border: none; outline: none;
   color: var(--text); font-family: var(--font-ui); font-size: 13px;
-  line-height: 1.5; resize: none; max-height: 130px; min-height: 20px;
-  scrollbar-width: none;
+  line-height: 1.5; resize: none; max-height: 130px; min-height: 20px; scrollbar-width: none;
 }
 #user-input::placeholder { color: var(--muted); }
+
+/* Web search toggle button */
+.web-toggle {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s; font-size: 14px; position: relative;
+}
+.web-toggle:hover { border-color: rgba(0,255,136,0.3); color: var(--accent4); background: rgba(0,255,136,0.05); }
+.web-toggle.on { border-color: rgba(0,255,136,0.4); color: var(--accent4); background: rgba(0,255,136,0.08); box-shadow: 0 0 10px rgba(0,255,136,0.12); }
+.web-toggle .tooltip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border2);
+  padding: 4px 8px; border-radius: 6px; font-size: 10px; color: var(--text);
+  white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s;
+}
+.web-toggle:hover .tooltip { opacity: 1; }
 
 .send-btn {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,106,255,0.2));
-  border: 1px solid rgba(0,212,255,0.25);
-  color: var(--accent); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.18s;
+  border: 1px solid rgba(0,212,255,0.25); color: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.18s;
 }
 .send-btn:hover { background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,106,255,0.3)); color: #fff; box-shadow: 0 0 12px rgba(0,212,255,0.15); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .send-btn svg { width: 14px; height: 14px; }
 
-.input-footer {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 6px; padding: 0 2px;
-}
+.input-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding: 0 2px; }
 .input-hint { font-size: 10px; color: var(--muted); opacity: 0.5; }
+.right-hints { display: flex; align-items: center; gap: 10px; }
 .temp-display { font-size: 10px; color: var(--muted); }
 .temp-display span { color: var(--muted2); }
+.web-indicator { font-size: 10px; color: var(--accent4); display: none; }
+.web-indicator.show { display: block; }
 
 #toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
@@ -324,16 +328,15 @@ header {
     </div>
   </header>
 
+  <!-- LOAD SCREEN -->
   <div id="load-screen">
     <div class="load-card">
       <span class="load-glyph">⚡</span>
       <div class="load-title">Load Your Fine-Tuned Model</div>
       <div class="load-desc">
-        Runs <code>100% on your device</code>. Downloads <code>Smol_Architect_Elite_v4.gguf</code> once (~300MB), then cached forever in your browser. No server. No API key. Nothing leaves your machine.
+        Runs <code>100% on your device</code>. Downloads <code>Smol_Architect_Elite_v4.gguf</code> once (~300MB), cached forever. No server. No API key. Nothing leaves your machine.
       </div>
-      <button class="load-btn" id="load-btn" onclick="loadModel()">
-        ↓ Download & Run Model
-      </button>
+      <button class="load-btn" id="load-btn" onclick="loadModel()">↓ Download & Run Model</button>
     </div>
     <div id="progress-box">
       <div class="prog-row">
@@ -344,6 +347,7 @@ header {
     </div>
   </div>
 
+  <!-- MODE BAR -->
   <div id="mode-bar">
     <span class="mode-label">Mode</span>
     <button class="mode-btn active" id="mode-chat" onclick="setMode('chat')">💬 Chat</button>
@@ -354,20 +358,25 @@ header {
     <button class="clear-btn" onclick="clearChat()">↺ Reset</button>
   </div>
 
+  <!-- CHAT -->
   <div id="chat-area">
     <div id="messages">
       <div id="empty-state">
         <div class="empty-glyph">🧠</div>
         <div class="empty-title">Ready — pick a mode or just start typing</div>
-        <div class="empty-hint">Your model is running locally on this device</div>
+        <div class="empty-hint">Toggle 🌐 in the input bar to add web search context</div>
         <div class="suggestion-chips" id="chips"></div>
       </div>
     </div>
 
     <div id="input-area">
-      <div class="input-shell">
+      <div class="input-shell" id="input-shell">
         <textarea id="user-input" placeholder="Message Smol Architect..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="web-toggle" id="web-toggle" onclick="toggleWeb()" title="">
+          🌐
+          <span class="tooltip">Web search: OFF</span>
+        </button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -376,7 +385,10 @@ header {
       </div>
       <div class="input-footer">
         <span class="input-hint">Enter to send · Shift+Enter for newline</span>
-        <span class="temp-display">temp: <span id="temp-label">0.7</span></span>
+        <div class="right-hints">
+          <span class="web-indicator" id="web-indicator">🌐 web search on</span>
+          <span class="temp-display">temp: <span id="temp-label">0.7</span></span>
+        </div>
       </div>
     </div>
   </div>
@@ -389,67 +401,55 @@ const MODEL_URL = "https://huggingface.co/Trapside/Trapside/resolve/main/Smol_Ar
 const WLLAMA_VER = "2.3.0";
 const BASE = `https://esm.sh/@wllama/wllama@${WLLAMA_VER}`;
 const MAX_CTX = 2048;
-const HISTORY_TURNS = 12;
+const HISTORY_TURNS = 10;
 
 let wllama = null;
 let generating = false;
 let currentMode = 'chat';
+let webSearchOn = false;
 let history = [];
 let lastAiMsgEl = null;
-let lastAiText = '';
 
+// ── MODES ──
 const MODES = {
   chat: {
-    label: 'chat',
-    temp: 0.72, top_p: 0.9, top_k: 40, rep_pen: 1.1,
-    maxTokens: 450,
+    temp: 0.72, top_p: 0.9, top_k: 40, rep_pen: 1.1, maxTokens: 450,
     system: `You are Smol Architect Elite, a helpful, honest, and friendly assistant.
-You remember everything said earlier in the conversation and refer back to it naturally when relevant.
-You answer questions clearly and concisely. You are warm, curious, and never make things up.
-If you are unsure about something, you say so honestly rather than guessing.
-Keep responses focused and avoid unnecessary padding.`,
+You remember everything said earlier in the conversation and refer back to it naturally.
+You answer clearly and concisely. You are warm and never make things up.
+If unsure, say so honestly.`,
     placeholder: "Ask me anything...",
     suggestions: ["What's the difference between affect and effect?", "Tell me a fun space fact", "Help me understand black holes"]
   },
   math: {
-    label: 'math',
-    temp: 0.2, top_p: 0.8, top_k: 20, rep_pen: 1.05,
-    maxTokens: 500,
-    system: `You are Smol Architect Elite in Math Mode. You are a precise, step-by-step math solver.
-ALWAYS show your working clearly, step by step, before giving the final answer.
-Format: label each step (Step 1:, Step 2:, etc.), then state "Answer: X" at the end.
-Double-check arithmetic. Use exact values unless told otherwise.
-Never skip steps. If a problem is ambiguous, state your assumption first.`,
+    temp: 0.2, top_p: 0.8, top_k: 20, rep_pen: 1.05, maxTokens: 500,
+    system: `You are Smol Architect Elite in Math Mode. You are a precise step-by-step math solver.
+ALWAYS show working clearly. Label each step (Step 1:, Step 2:, etc.) then state "Answer: X" at the end.
+Never skip steps. State assumptions if a problem is ambiguous.`,
     placeholder: "Enter a math problem...",
     suggestions: ["A baker makes 48 cookies, sells 3/4, gives 6 away. How many left?", "What is 15% of 240?", "Solve: 2x + 7 = 19"]
   },
   code: {
-    label: 'code',
-    temp: 0.25, top_p: 0.85, top_k: 30, rep_pen: 1.08,
-    maxTokens: 600,
-    system: `You are Smol Architect Elite in Code Mode. You are a precise Python programming assistant.
-When writing code: always use proper Python syntax, include comments on non-obvious lines, and use descriptive variable names.
-Format code in triple backtick blocks with the language tag: \`\`\`python
-Always explain WHAT the code does and WHY the key parts work the way they do.
-If debugging: identify the root cause first, then show the fixed code, then explain the fix.
-Prefer simple, readable solutions over clever one-liners unless asked.`,
+    temp: 0.25, top_p: 0.85, top_k: 30, rep_pen: 1.08, maxTokens: 600,
+    system: `You are Smol Architect Elite in Code Mode. You are a precise Python assistant.
+Always use proper syntax, include comments, use descriptive names.
+Format code in triple backtick python blocks.
+Explain what the code does and why key parts work that way.
+If debugging: identify root cause first, show fixed code, then explain the fix.`,
     placeholder: "Describe a coding problem or paste code to debug...",
     suggestions: ["Write a function to find duplicates in a list", "Explain list comprehensions with examples", "Debug: why does dividing by zero crash my program?"]
   },
   creative: {
-    label: 'creative',
-    temp: 0.92, top_p: 0.95, top_k: 60, rep_pen: 1.15,
-    maxTokens: 500,
-    system: `You are Smol Architect Elite in Creative Mode. You are an imaginative, expressive writing assistant.
-Be vivid, original, and engaging. Use varied sentence structure and unexpected angles.
-Avoid cliches. Surprise the reader. Write with personality and voice.
-When given a prompt, commit fully to the creative direction and do not hedge or be bland.
-If writing a story, use concrete sensory details. If writing humor, commit to the bit.`,
+    temp: 0.92, top_p: 0.95, top_k: 60, rep_pen: 1.15, maxTokens: 500,
+    system: `You are Smol Architect Elite in Creative Mode. You are an imaginative writing assistant.
+Be vivid, original, and engaging. Avoid cliches. Surprise the reader.
+Commit fully to the creative direction. Use concrete sensory details.`,
     placeholder: "Give me a creative writing prompt...",
     suggestions: ["Write a short story opening about a library after midnight", "Explain the internet as if it's a medieval kingdom", "Write a poem about debugging code"]
   }
 };
 
+// ── EXPOSE GLOBALS ──
 window.loadModel = loadModel;
 window.sendMessage = sendMessage;
 window.handleKey = handleKey;
@@ -458,7 +458,9 @@ window.setMode = setMode;
 window.clearChat = clearChat;
 window.regenLast = regenLast;
 window.copyMsg = copyMsg;
+window.toggleWeb = toggleWeb;
 
+// ── SUGGESTIONS ──
 function renderSuggestions() {
   const chips = document.getElementById('chips');
   if (!chips) return;
@@ -473,10 +475,100 @@ function renderSuggestions() {
 }
 renderSuggestions();
 
+// ── WEB SEARCH TOGGLE ──
+function toggleWeb() {
+  webSearchOn = !webSearchOn;
+  const btn = document.getElementById('web-toggle');
+  const indicator = document.getElementById('web-indicator');
+  const shell = document.getElementById('input-shell');
+  const tooltip = btn.querySelector('.tooltip');
+
+  if (webSearchOn) {
+    btn.classList.add('on');
+    shell.classList.add('web-mode');
+    indicator.classList.add('show');
+    tooltip.textContent = 'Web search: ON';
+    showToast('🌐 Web search ON — results will be injected as context');
+  } else {
+    btn.classList.remove('on');
+    shell.classList.remove('web-mode');
+    indicator.classList.remove('show');
+    tooltip.textContent = 'Web search: OFF';
+    showToast('Web search OFF');
+  }
+}
+
+// ── WEB SEARCH via DuckDuckGo Instant Answer API (no CORS issues) ──
+async function fetchWebContext(query) {
+  // We use DuckDuckGo's open instant answer API — no key needed, no CORS block
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+
+    const snippets = [];
+    const sources = [];
+
+    // Abstract (main summary)
+    if (data.Abstract && data.Abstract.length > 20) {
+      snippets.push(data.Abstract);
+      if (data.AbstractURL) sources.push({ title: data.AbstractSource || 'Source', url: data.AbstractURL });
+    }
+
+    // Definition
+    if (data.Definition && data.Definition.length > 10) {
+      snippets.push(data.Definition);
+      if (data.DefinitionURL) sources.push({ title: data.DefinitionSource || 'Definition', url: data.DefinitionURL });
+    }
+
+    // Related topics — grab first 3 summaries
+    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+      let added = 0;
+      for (const t of data.RelatedTopics) {
+        if (added >= 3) break;
+        if (t.Text && t.Text.length > 20) {
+          snippets.push(t.Text);
+          if (t.FirstURL) sources.push({ title: t.Text.substring(0, 40) + '...', url: t.FirstURL });
+          added++;
+        }
+        // handle grouped topics
+        if (t.Topics) {
+          for (const sub of t.Topics) {
+            if (added >= 3) break;
+            if (sub.Text && sub.Text.length > 20) {
+              snippets.push(sub.Text);
+              added++;
+            }
+          }
+        }
+      }
+    }
+
+    // Answer (short fact answers)
+    if (data.Answer && data.Answer.length > 2) {
+      snippets.unshift('Quick answer: ' + data.Answer);
+    }
+
+    if (snippets.length === 0) return null;
+
+    return {
+      context: snippets.slice(0, 5).join('\n\n'),
+      sources: sources.slice(0, 4)
+    };
+
+  } catch (e) {
+    console.warn('Web search failed:', e);
+    return null;
+  }
+}
+
+// ── MODE ──
 function setMode(mode) {
   currentMode = mode;
   const cfg = MODES[mode];
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active', 'math', 'code', 'creative'));
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','math','code','creative','web'));
   const btn = document.getElementById('mode-' + mode);
   btn.classList.add('active');
   if (mode !== 'chat') btn.classList.add(mode);
@@ -486,6 +578,7 @@ function setMode(mode) {
   showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1) + ' — temp ' + cfg.temp);
 }
 
+// ── LOAD MODEL ──
 async function loadModel() {
   const btn = document.getElementById('load-btn');
   const box = document.getElementById('progress-box');
@@ -500,7 +593,6 @@ async function loadModel() {
 
   try {
     const { Wllama } = await import(BASE + '/src/index.js');
-
     const config = {
       'single-thread/wllama.js':        BASE + '/src/single-thread/wllama.js',
       'single-thread/wllama.wasm':      BASE + '/src/single-thread/wllama.wasm',
@@ -517,8 +609,8 @@ async function loadModel() {
         const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
         document.getElementById('prog-fill').style.width = pct + '%';
         document.getElementById('prog-pct').textContent = pct + '%';
-        const mb = (loaded / 1024 / 1024).toFixed(0);
-        const tot = (total / 1024 / 1024).toFixed(0);
+        const mb = (loaded/1024/1024).toFixed(0);
+        const tot = (total/1024/1024).toFixed(0);
         document.getElementById('prog-label').textContent = 'Downloading... ' + mb + ' / ' + tot + ' MB';
       },
       n_ctx: MAX_CTX,
@@ -544,16 +636,13 @@ async function loadModel() {
   }
 }
 
-function estimateTokens(text) {
-  return Math.ceil(text.length / 3.8);
-}
-
+// ── TOKEN DISPLAY ──
+function estimateTokens(text) { return Math.ceil(text.length / 3.8); }
 function getHistoryTokens() {
-  let total = 0;
-  for (const m of history) total += estimateTokens(m.content);
-  return total;
+  let t = 0;
+  for (const m of history) t += estimateTokens(m.content);
+  return t;
 }
-
 function updateTokenDisplay() {
   const el = document.getElementById('token-display');
   const used = getHistoryTokens();
@@ -564,10 +653,18 @@ function updateTokenDisplay() {
   else if (pct > 0.65) el.classList.add('warn');
 }
 
-function buildPrompt() {
+// ── BUILD PROMPT ──
+function buildPrompt(webContext) {
   const cfg = MODES[currentMode];
+  let sys = cfg.system;
+
+  // If web context provided, append it to the system prompt
+  if (webContext) {
+    sys += `\n\nThe user has web search enabled. Here is real web information retrieved for this query:\n\n---\n${webContext}\n---\n\nUse this information to help answer the user's question accurately. Summarize and explain it in your own words at a level appropriate for the conversation. Do not copy it verbatim. If the information doesn't fully answer the question, say so and share what you do know.`;
+  }
+
   let msgs = history.slice(-HISTORY_TURNS);
-  let prompt = '<|im_start|>system\n' + cfg.system + '<|im_end|>\n';
+  let prompt = '<|im_start|>system\n' + sys + '<|im_end|>\n';
   for (const m of msgs) {
     prompt += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
   }
@@ -575,6 +672,7 @@ function buildPrompt() {
   return prompt;
 }
 
+// ── SEND MESSAGE ──
 async function sendMessage() {
   if (generating || !wllama) return;
   const input = document.getElementById('user-input');
@@ -591,10 +689,12 @@ async function sendMessage() {
   addMessage('user', text);
   history.push({ role: 'user', content: text });
   updateTokenDisplay();
-  await generate();
+
+  await generate(text);
 }
 
-async function generate() {
+// ── GENERATE ──
+async function generate(userText) {
   generating = true;
   document.getElementById('send-btn').disabled = true;
 
@@ -603,11 +703,49 @@ async function generate() {
   lastAiMsgEl = aiEl;
   const bubble = aiEl.querySelector('.bubble');
 
-  const tag = document.createElement('div');
-  tag.className = 'mode-tag ' + currentMode;
-  tag.textContent = currentMode;
+  // Build bubble structure
   bubble.innerHTML = '';
+
+  const tag = document.createElement('div');
+  tag.className = 'mode-tag ' + (webSearchOn ? 'web' : currentMode);
+  tag.textContent = webSearchOn ? '🌐 web' : currentMode;
   bubble.appendChild(tag);
+
+  let webResult = null;
+
+  // If web search on, fetch and show status
+  if (webSearchOn && userText) {
+    const statusBar = document.createElement('div');
+    statusBar.className = 'web-status searching';
+    statusBar.textContent = '🔍 Searching the web for: "' + userText.substring(0, 50) + (userText.length > 50 ? '...' : '') + '"';
+    bubble.appendChild(statusBar);
+
+    webResult = await fetchWebContext(userText);
+
+    if (webResult && webResult.context) {
+      statusBar.className = 'web-status';
+      statusBar.textContent = '✓ Web context loaded — generating response...';
+
+      // Show source chips if we have them
+      if (webResult.sources && webResult.sources.length > 0) {
+        const sourcesRow = document.createElement('div');
+        sourcesRow.className = 'sources-row';
+        webResult.sources.forEach(s => {
+          const chip = document.createElement('a');
+          chip.className = 'source-chip';
+          chip.href = s.url;
+          chip.target = '_blank';
+          chip.rel = 'noopener';
+          chip.textContent = '↗ ' + s.title;
+          sourcesRow.appendChild(chip);
+        });
+        bubble.appendChild(sourcesRow);
+      }
+    } else {
+      statusBar.className = 'web-status error';
+      statusBar.textContent = '⚠ No web results found — answering from model knowledge';
+    }
+  }
 
   const textNode = document.createElement('span');
   bubble.appendChild(textNode);
@@ -618,7 +756,7 @@ async function generate() {
   bubble.appendChild(dots);
 
   try {
-    const prompt = buildPrompt();
+    const prompt = buildPrompt(webResult ? webResult.context : null);
     let fullText = '';
 
     await wllama.createCompletion(prompt, {
@@ -637,9 +775,8 @@ async function generate() {
       },
     });
 
-    lastAiText = fullText;
     if (!fullText.trim()) {
-      textNode.textContent = '(no response — try rephrasing or switching mode)';
+      textNode.textContent = '(no response — try rephrasing)';
     } else {
       textNode.textContent = fullText;
     }
@@ -659,15 +796,16 @@ async function generate() {
   }
 }
 
+// ── REGEN ──
 async function regenLast() {
   if (generating || !wllama) return;
-  if (history.length > 0 && history[history.length - 1].role === 'assistant') {
-    history.pop();
-  }
+  if (history.length > 0 && history[history.length-1].role === 'assistant') history.pop();
+  const userMsg = history.length > 0 ? history[history.length-1].content : '';
   if (lastAiMsgEl) lastAiMsgEl.remove();
-  await generate();
+  await generate(userMsg);
 }
 
+// ── COPY ──
 function copyMsg(btn) {
   const bubble = btn.closest('.msg').querySelector('.bubble span');
   if (bubble) {
@@ -677,6 +815,7 @@ function copyMsg(btn) {
   }
 }
 
+// ── CLEAR ──
 function clearChat() {
   history = [];
   const msgs = document.getElementById('messages');
@@ -684,7 +823,7 @@ function clearChat() {
     <div id="empty-state">
       <div class="empty-glyph">🧠</div>
       <div class="empty-title">Conversation cleared — start fresh</div>
-      <div class="empty-hint">Your model is still loaded and ready</div>
+      <div class="empty-hint">Toggle 🌐 in the input bar to add web search context</div>
       <div class="suggestion-chips" id="chips"></div>
     </div>`;
   renderSuggestions();
@@ -692,12 +831,12 @@ function clearChat() {
   lastAiMsgEl = null;
 }
 
+// ── HELPERS ──
 function addMessage(role, text, typing) {
   const msgs = document.getElementById('messages');
   const el = document.createElement('div');
   el.className = 'msg ' + role;
-  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+  const now = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   const actionsHtml = role === 'ai'
     ? '<div class="msg-actions"><button class="action-btn regen" onclick="regenLast()">↺ regen</button><button class="action-btn" onclick="copyMsg(this)">copy</button></div>'
     : '';
@@ -706,7 +845,7 @@ function addMessage(role, text, typing) {
     el.innerHTML =
       '<div class="av">🧠</div>' +
       '<div class="msg-wrap">' +
-        '<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>' +
+        '<div class="bubble"></div>' +
         '<div class="msg-meta"><span>' + now + '</span>' + actionsHtml + '</div>' +
       '</div>';
   } else {
