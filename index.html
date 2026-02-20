@@ -84,7 +84,7 @@ header {
   border: 1px solid var(--border); border-radius: 999px;
   background: var(--surface); display: none; transition: all 0.3s;
 }
-.token-display.warn { color: #ffc800; border-color: rgba(255,200,0,0.25); }
+.token-display.warn   { color: #ffc800; border-color: rgba(255,200,0,0.25); }
 .token-display.danger { color: #ff5050; border-color: rgba(255,80,80,0.25); }
 
 .memory-badge {
@@ -105,9 +105,9 @@ header {
   background: var(--surface); border: 1px solid var(--border2);
   border-radius: 20px; padding: 36px 44px; max-width: 460px; width: 100%;
 }
-.load-glyph { font-size: 44px; margin-bottom: 14px; display: block; }
-.load-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
-.load-desc { color: var(--muted2); font-size: 12px; line-height: 1.8; margin-bottom: 24px; }
+.load-glyph  { font-size: 44px; margin-bottom: 14px; display: block; }
+.load-title  { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+.load-desc   { color: var(--muted2); font-size: 12px; line-height: 1.8; margin-bottom: 24px; }
 .load-desc code { color: var(--accent); background: rgba(0,212,255,0.08); padding: 1px 5px; border-radius: 4px; }
 .load-btn {
   width: 100%; padding: 13px;
@@ -116,13 +116,13 @@ header {
   color: var(--accent); font-family: var(--font-ui); font-weight: 500; font-size: 13px;
   cursor: pointer; transition: all 0.2s;
 }
-.load-btn:hover { background: linear-gradient(135deg, rgba(0,212,255,0.22), rgba(124,106,255,0.22)); border-color: rgba(0,212,255,0.5); color: #fff; }
+.load-btn:hover    { background: linear-gradient(135deg, rgba(0,212,255,0.22), rgba(124,106,255,0.22)); border-color: rgba(0,212,255,0.5); color: #fff; }
 .load-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #progress-box { width: 100%; max-width: 460px; display: none; flex-direction: column; gap: 8px; }
-.prog-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.prog-row   { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
 .prog-track { width: 100%; height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
-.prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.4s ease; }
+.prog-fill  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.4s ease; }
 
 #mode-bar {
   display: none; align-items: center; gap: 6px;
@@ -133,20 +133,18 @@ header {
   padding: 5px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: transparent;
   color: var(--muted2); font-family: var(--font-ui); font-size: 11px;
-  cursor: pointer; transition: all 0.18s;
-  display: flex; align-items: center; gap: 5px;
+  cursor: pointer; transition: all 0.18s; display: flex; align-items: center; gap: 5px;
 }
 .mode-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
-.mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.07); }
-.mode-btn.active.math { border-color: #ffc800; color: #ffc800; background: rgba(255,200,0,0.07); }
-.mode-btn.active.code { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.07); }
+.mode-btn.active          { border-color: var(--accent);  color: var(--accent);  background: rgba(0,212,255,0.07); }
+.mode-btn.active.math     { border-color: #ffc800; color: #ffc800; background: rgba(255,200,0,0.07); }
+.mode-btn.active.code     { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.07); }
 .mode-btn.active.creative { border-color: var(--accent3); color: var(--accent3); background: rgba(255,106,176,0.07); }
 .mode-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
 .clear-btn {
   margin-left: auto; padding: 5px 10px; border-radius: 999px;
   border: 1px solid var(--border); background: transparent;
-  color: var(--muted); font-family: var(--font-ui); font-size: 10px;
-  cursor: pointer; transition: all 0.18s;
+  color: var(--muted); font-family: var(--font-ui); font-size: 10px; cursor: pointer; transition: all 0.18s;
 }
 .clear-btn:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
 
@@ -165,7 +163,7 @@ header {
 }
 .empty-glyph { font-size: 32px; opacity: 0.3; margin-bottom: 6px; }
 .empty-title { font-family: var(--font-display); font-size: 14px; color: rgba(255,255,255,0.2); font-weight: 500; }
-.empty-hint { font-size: 11px; opacity: 0.4; }
+.empty-hint  { font-size: 11px; opacity: 0.4; }
 .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
 .chip {
   padding: 5px 12px; border-radius: 999px;
@@ -184,7 +182,7 @@ header {
   font-size: 12px; flex-shrink: 0; margin-top: 3px;
 }
 .msg.user .av { background: var(--surface3); border: 1px solid rgba(124,106,255,0.2); }
-.msg.ai .av {
+.msg.ai   .av {
   background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,106,255,0.2));
   border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 0 10px rgba(0,212,255,0.1);
 }
@@ -195,7 +193,7 @@ header {
   line-height: 1.65; font-size: 13px; white-space: pre-wrap; word-break: break-word;
 }
 .msg.user .bubble { background: var(--surface3); border: 1px solid rgba(124,106,255,0.15); border-top-right-radius: 3px; }
-.msg.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 3px; }
+.msg.ai   .bubble { background: var(--surface);  border: 1px solid var(--border);            border-top-left-radius:  3px; }
 .msg-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--muted); margin-top: 4px; padding: 0 2px; }
 .msg.user .msg-meta { flex-direction: row-reverse; }
 .msg-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
@@ -203,23 +201,22 @@ header {
 .action-btn {
   padding: 2px 7px; border-radius: 5px;
   border: 1px solid var(--border); background: var(--surface2);
-  color: var(--muted); font-family: var(--font-ui); font-size: 10px;
-  cursor: pointer; transition: all 0.15s;
+  color: var(--muted); font-family: var(--font-ui); font-size: 10px; cursor: pointer; transition: all 0.15s;
 }
-.action-btn:hover { border-color: var(--border2); color: var(--text); }
-.action-btn.regen:hover { border-color: rgba(0,212,255,0.3); color: var(--accent); }
+.action-btn:hover        { border-color: var(--border2); color: var(--text); }
+.action-btn.regen:hover  { border-color: rgba(0,212,255,0.3); color: var(--accent); }
 
 .mode-tag {
   display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 4px;
   margin-bottom: 5px; letter-spacing: 0.4px; text-transform: uppercase;
 }
-.mode-tag.chat    { background: rgba(0,212,255,0.1);  color: rgba(0,212,255,0.6); }
-.mode-tag.math    { background: rgba(255,200,0,0.1);  color: rgba(255,200,0,0.6); }
-.mode-tag.code    { background: rgba(0,255,136,0.1);  color: rgba(0,255,136,0.6); }
-.mode-tag.creative{ background: rgba(255,106,176,0.1);color: rgba(255,106,176,0.6); }
-.mode-tag.web     { background: rgba(0,255,136,0.12); color: rgba(0,255,136,0.8); }
-.mode-tag.memory  { background: rgba(255,170,0,0.12); color: rgba(255,170,0,0.85); }
-.mode-tag.cached  { background: rgba(124,106,255,0.12); color: rgba(180,160,255,0.9); }
+.mode-tag.chat     { background: rgba(0,212,255,0.1);   color: rgba(0,212,255,0.6); }
+.mode-tag.math     { background: rgba(255,200,0,0.1);   color: rgba(255,200,0,0.6); }
+.mode-tag.code     { background: rgba(0,255,136,0.1);   color: rgba(0,255,136,0.6); }
+.mode-tag.creative { background: rgba(255,106,176,0.1); color: rgba(255,106,176,0.6); }
+.mode-tag.web      { background: rgba(0,255,136,0.12);  color: rgba(0,255,136,0.8); }
+.mode-tag.memory   { background: rgba(255,170,0,0.12);  color: rgba(255,170,0,0.85); }
+.mode-tag.cached   { background: rgba(124,106,255,0.12);color: rgba(180,160,255,0.9); }
 
 .web-status {
   font-size: 10px; padding: 5px 9px; border-radius: 6px; margin-bottom: 6px;
@@ -229,10 +226,8 @@ header {
 .web-status.found       { color: var(--accent4); border: 1px solid rgba(0,255,136,0.2); background: rgba(0,255,136,0.05); }
 .web-status.failed      { color: #ff8050; border: 1px solid rgba(255,80,50,0.2);  background: rgba(255,80,50,0.05); }
 .web-status.memory-hit  { color: var(--accent5); border: 1px solid rgba(255,170,0,0.25); background: rgba(255,170,0,0.05); }
-.web-status.memory-miss { color: var(--muted2); border: 1px solid var(--border); background: transparent; }
-/* new: used when serving from cached web result */
+.web-status.memory-miss { color: var(--muted2);  border: 1px solid var(--border); background: transparent; }
 .web-status.cache-hit   { color: rgba(180,160,255,0.9); border: 1px solid rgba(124,106,255,0.25); background: rgba(124,106,255,0.06); }
-/* new: tiny "saved to memory" pill that fades in */
 .web-status.saved       { color: var(--accent5); border: 1px solid rgba(255,170,0,0.2); background: rgba(255,170,0,0.04); animation: fadeInSaved 0.4s ease; }
 @keyframes fadeInSaved  { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
 
@@ -247,14 +242,12 @@ header {
 .memory-source-chip {
   font-size: 9px; padding: 2px 8px; border-radius: 4px;
   background: rgba(255,170,0,0.07); border: 1px solid rgba(255,170,0,0.2);
-  color: rgba(255,170,0,0.75); max-width: 220px; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; display: inline-block;
+  color: rgba(255,170,0,0.75); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;
 }
 .cached-source-chip {
   font-size: 9px; padding: 2px 8px; border-radius: 4px;
   background: rgba(124,106,255,0.08); border: 1px solid rgba(124,106,255,0.2);
-  color: rgba(180,160,255,0.8); max-width: 220px; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; display: inline-block;
+  color: rgba(180,160,255,0.8); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;
 }
 
 .typing { display: flex; gap: 4px; padding: 4px 0; }
@@ -269,19 +262,18 @@ header {
   color: #ff5050; cursor: pointer; display: none; align-items: center; justify-content: center;
   transition: all 0.18s; font-size: 13px;
 }
-.stop-btn:hover { background: rgba(255,80,80,0.2); box-shadow: 0 0 10px rgba(255,80,80,0.2); }
-.stop-btn.visible { display: flex; }
+.stop-btn:hover    { background: rgba(255,80,80,0.2); box-shadow: 0 0 10px rgba(255,80,80,0.2); }
+.stop-btn.visible  { display: flex; }
 
 #input-area { padding: 12px 0 18px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .input-shell {
   display: flex; gap: 8px; align-items: flex-end;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 14px; padding: 9px 9px 9px 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 14px; padding: 9px 9px 9px 14px; transition: border-color 0.2s, box-shadow 0.2s;
 }
 .input-shell:focus-within { border-color: rgba(0,212,255,0.3); box-shadow: 0 0 0 3px rgba(0,212,255,0.06); }
-.input-shell.web-mode   { border-color: rgba(0,255,136,0.3);  box-shadow: 0 0 0 3px rgba(0,255,136,0.05); }
-.input-shell.generating { border-color: rgba(255,80,80,0.25); box-shadow: 0 0 0 3px rgba(255,80,80,0.05); }
+.input-shell.web-mode     { border-color: rgba(0,255,136,0.3); box-shadow: 0 0 0 3px rgba(0,255,136,0.05); }
+.input-shell.generating   { border-color: rgba(255,80,80,0.25); box-shadow: 0 0 0 3px rgba(255,80,80,0.05); }
 
 #user-input {
   flex: 1; background: transparent; border: none; outline: none;
@@ -293,8 +285,7 @@ header {
 .icon-btn {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   background: transparent; border: 1px solid var(--border);
-  color: var(--muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all 0.18s; font-size: 15px; position: relative;
 }
 .icon-btn .tip {
@@ -304,9 +295,9 @@ header {
   white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; font-family: var(--font-ui);
 }
 .icon-btn:hover .tip { opacity: 1; }
-.web-toggle:hover    { border-color: rgba(0,255,136,0.35); color: var(--accent4); background: rgba(0,255,136,0.06); }
-.web-toggle.on       { border-color: rgba(0,255,136,0.45); color: var(--accent4); background: rgba(0,255,136,0.1); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
-.memory-toggle:hover { border-color: rgba(255,170,0,0.4); color: var(--accent5); background: rgba(255,170,0,0.07); }
+.web-toggle:hover     { border-color: rgba(0,255,136,0.35); color: var(--accent4); background: rgba(0,255,136,0.06); }
+.web-toggle.on        { border-color: rgba(0,255,136,0.45); color: var(--accent4); background: rgba(0,255,136,0.1); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+.memory-toggle:hover  { border-color: rgba(255,170,0,0.4);  color: var(--accent5); background: rgba(255,170,0,0.07); }
 .memory-toggle.has-docs { border-color: rgba(255,170,0,0.4); color: var(--accent5); background: rgba(255,170,0,0.1); box-shadow: 0 0 12px rgba(255,170,0,0.12); }
 
 .send-btn {
@@ -315,13 +306,13 @@ header {
   border: 1px solid rgba(0,212,255,0.25); color: var(--accent); cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all 0.18s;
 }
-.send-btn:hover { background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,106,255,0.3)); color: #fff; box-shadow: 0 0 12px rgba(0,212,255,0.15); }
+.send-btn:hover    { background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,106,255,0.3)); color: #fff; box-shadow: 0 0 12px rgba(0,212,255,0.15); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .send-btn svg { width: 14px; height: 14px; }
 
 .input-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding: 0 2px; }
-.input-hint { font-size: 10px; color: var(--muted); opacity: 0.5; }
-.right-hints { display: flex; align-items: center; gap: 10px; }
+.input-hint   { font-size: 10px; color: var(--muted); opacity: 0.5; }
+.right-hints  { display: flex; align-items: center; gap: 10px; }
 .web-on-label { font-size: 10px; color: var(--accent4); display: none; }
 .web-on-label.show { display: block; }
 .mem-on-label { font-size: 10px; color: var(--accent5); display: none; }
@@ -331,7 +322,6 @@ header {
 .gen-indicator { font-size: 10px; color: #ff5050; display: none; animation: blink 0.9s infinite; }
 .gen-indicator.show { display: block; }
 
-/* ── MEMORY PANEL ── */
 #memory-panel {
   display: none; position: fixed; top: 0; right: 0; bottom: 0;
   width: 340px; background: var(--surface); border-left: 1px solid var(--border2);
@@ -347,18 +337,15 @@ header {
 }
 .panel-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
 .panel-close {
-  width: 28px; height: 28px; border-radius: 7px;
-  border: 1px solid var(--border); background: transparent;
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: transparent;
   color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-size: 14px; transition: all 0.15s;
 }
 .panel-close:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
-
 .panel-body {
   flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
-
 .drop-zone {
   border: 2px dashed rgba(255,170,0,0.25); border-radius: 14px;
   padding: 28px 20px; text-align: center; cursor: pointer;
@@ -372,7 +359,7 @@ header {
 .drop-zone-sub   { font-size: 10px; color: var(--muted); pointer-events: none; }
 
 #mem-progress { display: none; flex-direction: column; gap: 6px; }
-.mem-prog-row  { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.mem-prog-row   { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
 .mem-prog-track { width: 100%; height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
 .mem-prog-fill  { height: 100%; background: linear-gradient(90deg, var(--accent5), #ff8800); border-radius: 99px; width: 0%; transition: width 0.3s; }
 
@@ -381,24 +368,18 @@ header {
   background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.15);
   font-size: 10px; color: var(--accent5);
 }
-
-/* section headings inside panel */
 .panel-section-title {
   font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
   color: var(--muted); padding: 0 2px; margin-bottom: -6px;
 }
-
 .doc-list { display: flex; flex-direction: column; gap: 8px; }
 .doc-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
   background: var(--surface2); border: 1px solid var(--border); transition: all 0.15s;
 }
-.doc-item:hover { border-color: rgba(255,170,0,0.2); }
-/* web-cached docs get a purple tint */
-.doc-item.web-cached { border-color: rgba(124,106,255,0.15); }
+.doc-item:hover            { border-color: rgba(255,170,0,0.2); }
+.doc-item.web-cached       { border-color: rgba(124,106,255,0.15); }
 .doc-item.web-cached:hover { border-color: rgba(124,106,255,0.3); }
-
 .doc-icon { font-size: 18px; flex-shrink: 0; }
 .doc-info { flex: 1; min-width: 0; }
 .doc-name { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -410,13 +391,11 @@ header {
   font-size: 11px; transition: all 0.15s;
 }
 .doc-remove:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
-
 .panel-empty { text-align: center; color: var(--muted); font-size: 11px; padding: 20px 0; line-height: 1.8; }
 .clear-mem-btn {
   width: 100%; padding: 9px; border-radius: 9px;
   border: 1px solid rgba(255,80,80,0.2); background: transparent;
-  color: #ff6060; font-family: var(--font-ui); font-size: 11px;
-  cursor: pointer; transition: all 0.18s;
+  color: #ff6060; font-family: var(--font-ui); font-size: 11px; cursor: pointer; transition: all 0.18s;
 }
 .clear-mem-btn:hover { background: rgba(255,80,80,0.06); border-color: rgba(255,80,80,0.4); }
 
@@ -492,7 +471,6 @@ header {
         <div class="suggestion-chips" id="chips"></div>
       </div>
     </div>
-
     <div id="input-area">
       <div class="input-shell" id="input-shell">
         <textarea id="user-input" placeholder="Message Smol Architect..." rows="1"
@@ -523,7 +501,6 @@ header {
   </div>
 </div>
 
-<!-- Memory Panel -->
 <div id="memory-panel">
   <div class="panel-header">
     <div class="panel-title">📚 Memory Base</div>
@@ -536,7 +513,6 @@ header {
       <div class="drop-zone-sub">PDF & TXT · Web results auto-save here too</div>
     </div>
     <input type="file" id="file-input" accept=".pdf,.txt" multiple style="display:none">
-
     <div id="mem-progress">
       <div class="mem-prog-row">
         <span id="mem-prog-label">Processing...</span>
@@ -544,28 +520,20 @@ header {
       </div>
       <div class="mem-prog-track"><div class="mem-prog-fill" id="mem-prog-fill"></div></div>
     </div>
-
     <div id="mem-stats"></div>
-
-    <!-- Uploaded docs section -->
     <div id="uploaded-section" style="display:none">
       <div class="panel-section-title">📄 Uploaded documents</div>
       <div class="doc-list" id="uploaded-list"></div>
     </div>
-
-    <!-- Web-cached docs section -->
     <div id="webcache-section" style="display:none">
       <div class="panel-section-title">🌐 Cached web results</div>
       <div class="doc-list" id="webcache-list"></div>
     </div>
-
-    <!-- Empty state -->
     <div class="panel-empty" id="doc-empty">
       No documents loaded yet.<br>
       Upload a PDF/TXT or enable 🌐 web search —<br>
       results will be saved here automatically.
     </div>
-
     <button class="clear-mem-btn" id="clear-mem-btn" style="display:none">✕ Clear all memory</button>
   </div>
 </div>
@@ -573,9 +541,6 @@ header {
 <div id="toast"></div>
 
 <script type="module">
-// ─────────────────────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────────────────────
 const WLLAMA_VER  = "2.3.0";
 const WLLAMA_CDNS = [
   `https://esm.sh/@wllama/wllama@${WLLAMA_VER}`,
@@ -589,30 +554,23 @@ const CHUNK_OVERLAP = 80;
 const TOP_K_CHUNKS  = 4;
 const MEM_CTX_LIMIT = 1400;
 
-// ─────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────
-let wllama       = null;
-let generating   = false;
-let currentMode  = 'chat';
-let webSearchOn  = false;
-let history      = [];
-let lastAiMsgEl  = null;
-let shouldStop   = false;
-let pdfJsReady   = false;
+let wllama        = null;
+let generating    = false;
+let currentMode   = 'chat';
+let webSearchOn   = false;
+let history       = [];
+let lastAiMsgEl   = null;
+let shouldStop    = false;
+let pdfJsReady    = false;
+let uploadedDocs  = [];
+let webCacheDocs  = [];
+let memoryChunks  = [];
 
-// Memory docs split into two buckets so the panel can display them separately
-// but retrieval works across both uniformly.
-let uploadedDocs  = [];   // { id, name, type:'pdf'|'txt', chunkCount, charCount }
-let webCacheDocs  = [];   // { id, name, type:'web', chunkCount, charCount, url, savedAt }
-let memoryChunks  = [];   // flat: { text, docName, docType }
-
-// ─────────────────────────────────────────────────────────────
-// MODES
-// ─────────────────────────────────────────────────────────────
 const MODES = {
   chat: {
-    temp: 0.72, top_p: 0.9, top_k: 40, rep_pen: 1.1, maxTokens: 450,
+    temp: 0.72, top_p: 0.9, top_k: 40,
+    rep_pen: 1.35, pen_freq: 0.15, pen_present: 0.10,
+    maxTokens: 450,
     system: `You are Smol Architect Elite, a helpful, honest, and friendly assistant.
 You remember everything said earlier in the conversation and refer back to it naturally.
 You answer clearly and concisely. You are warm and never make things up. If unsure, say so honestly.`,
@@ -620,7 +578,9 @@ You answer clearly and concisely. You are warm and never make things up. If unsu
     suggestions: ["What is machine learning?", "Tell me a fun space fact", "Explain black holes simply"]
   },
   math: {
-    temp: 0.2, top_p: 0.8, top_k: 20, rep_pen: 1.05, maxTokens: 500,
+    temp: 0.2, top_p: 0.8, top_k: 20,
+    rep_pen: 1.30, pen_freq: 0.15, pen_present: 0.10,
+    maxTokens: 500,
     system: `You are Smol Architect Elite in Math Mode. You are a precise step-by-step math solver.
 ALWAYS show working clearly. Label each step (Step 1:, Step 2:, etc.) then state "Answer: X" at the end.
 Never skip steps. State assumptions if a problem is ambiguous.`,
@@ -628,7 +588,9 @@ Never skip steps. State assumptions if a problem is ambiguous.`,
     suggestions: ["48 cookies, sell 3/4, give 6 away. How many left?", "What is 15% of 240?", "Solve: 2x + 7 = 19"]
   },
   code: {
-    temp: 0.25, top_p: 0.85, top_k: 30, rep_pen: 1.08, maxTokens: 600,
+    temp: 0.25, top_p: 0.85, top_k: 30,
+    rep_pen: 1.30, pen_freq: 0.15, pen_present: 0.10,
+    maxTokens: 600,
     system: `You are Smol Architect Elite in Code Mode. You are a precise Python assistant.
 Always use proper syntax, include comments, and descriptive names. Format code in triple backtick python blocks.
 Explain what the code does and why. If debugging: root cause first, then fixed code, then explanation.`,
@@ -636,7 +598,9 @@ Explain what the code does and why. If debugging: root cause first, then fixed c
     suggestions: ["Write a function to find duplicates in a list", "Explain list comprehensions", "Why does dividing by zero crash Python?"]
   },
   creative: {
-    temp: 0.92, top_p: 0.95, top_k: 60, rep_pen: 1.15, maxTokens: 500,
+    temp: 0.92, top_p: 0.95, top_k: 60,
+    rep_pen: 1.40, pen_freq: 0.15, pen_present: 0.10,
+    maxTokens: 500,
     system: `You are Smol Architect Elite in Creative Mode. You are an imaginative writing assistant.
 Be vivid, original, and engaging. Avoid cliches. Surprise the reader.
 Commit fully to the creative direction. Use concrete sensory details.`,
@@ -645,44 +609,35 @@ Commit fully to the creative direction. Use concrete sensory details.`,
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// PDF.JS — lazy loaded on first PDF upload
-// ─────────────────────────────────────────────────────────────
 function loadPdfJs() {
   return new Promise((resolve, reject) => {
     if (pdfJsReady && typeof pdfjsLib !== 'undefined') { resolve(pdfjsLib); return; }
-    const PDFJS_CDN    = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const script = document.createElement('script');
-    script.src = PDFJS_CDN;
-    script.onload = () => {
-      try {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-        pdfJsReady = true;
-        resolve(window.pdfjsLib);
-      } catch (e) { reject(new Error('PDF.js worker config failed: ' + e.message)); }
+    const CDN    = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    const WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const s = document.createElement('script');
+    s.src = CDN;
+    s.onload = () => {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER; pdfJsReady = true; resolve(window.pdfjsLib); }
+      catch(e) { reject(new Error('PDF.js worker config failed: ' + e.message)); }
     };
-    script.onerror = () => reject(new Error('Failed to load PDF.js — check your internet connection.'));
-    document.head.appendChild(script);
+    s.onerror = () => reject(new Error('Failed to load PDF.js — check your internet connection.'));
+    document.head.appendChild(s);
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// FILE READING
-// ─────────────────────────────────────────────────────────────
 function readAsText(file) {
-  return new Promise((resolve, reject) => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload  = e => resolve(e.target.result);
-    r.onerror = () => reject(new Error('Could not read ' + file.name));
+    r.onload  = e => res(e.target.result);
+    r.onerror = () => rej(new Error('Could not read ' + file.name));
     r.readAsText(file, 'UTF-8');
   });
 }
 function readAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload  = e => resolve(e.target.result);
-    r.onerror = () => reject(new Error('Could not read ' + file.name));
+    r.onload  = e => res(e.target.result);
+    r.onerror = () => rej(new Error('Could not read ' + file.name));
     r.readAsArrayBuffer(file);
   });
 }
@@ -700,7 +655,7 @@ async function parsePdf(file) {
   const buf = await readAsArrayBuffer(file);
   let pdf;
   try { pdf = await lib.getDocument({ data: buf }).promise; }
-  catch (e) { throw new Error('Cannot parse PDF: ' + e.message); }
+  catch(e) { throw new Error('Cannot parse PDF: ' + e.message); }
   let text = '';
   const total = pdf.numPages;
   for (let i = 1; i <= total; i++) {
@@ -710,15 +665,12 @@ async function parsePdf(file) {
     setMemProgress(5 + Math.round((i / total) * 90), `Page ${i} / ${total}...`);
   }
   if (!text.trim() || text.trim().length < 20)
-    throw new Error(file.name + ' has no extractable text (may be scanned image).');
+    throw new Error(file.name + ' has no extractable text (may be a scanned image PDF).');
   return text;
 }
 
-// ─────────────────────────────────────────────────────────────
-// CHUNKING
-// ─────────────────────────────────────────────────────────────
 function chunkText(text, docName, docType = 'file') {
-  const clean  = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const clean  = text.replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
   const chunks = [];
   let start = 0;
   while (start < clean.length) {
@@ -739,9 +691,6 @@ function chunkText(text, docName, docType = 'file') {
   return chunks;
 }
 
-// ─────────────────────────────────────────────────────────────
-// RETRIEVAL — TF-IDF keyword scoring
-// ─────────────────────────────────────────────────────────────
 const STOP_WORDS = new Set([
   'a','an','the','is','it','in','on','at','to','of','and','or','but','for',
   'with','this','that','are','was','were','be','been','have','has','had',
@@ -751,25 +700,20 @@ const STOP_WORDS = new Set([
   'his','its','our','their','can','just','also','about','than','then',
   'there','here','all','one','more','some','any','no','up','out','get'
 ]);
-
 function tokenize(text) {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
     .filter(w => w.length > 2 && !STOP_WORDS.has(w));
 }
-
 function buildIDF(chunks) {
   const df = {};
   for (const c of chunks) for (const t of new Set(tokenize(c.text))) df[t] = (df[t]||0)+1;
-  const N = chunks.length || 1;
-  const idf = {};
+  const N = chunks.length || 1; const idf = {};
   for (const [t,f] of Object.entries(df)) idf[t] = Math.log((N+1)/(f+1))+1;
   return idf;
 }
-
 function retrieveChunks(query, topK = TOP_K_CHUNKS) {
   if (!memoryChunks.length) return [];
-  const idf = buildIDF(memoryChunks);
-  const qT  = tokenize(query);
+  const idf = buildIDF(memoryChunks); const qT = tokenize(query);
   if (!qT.length) return [];
   return memoryChunks
     .map(c => {
@@ -783,9 +727,6 @@ function retrieveChunks(query, topK = TOP_K_CHUNKS) {
     .map(s => s.c);
 }
 
-// ─────────────────────────────────────────────────────────────
-// MEMORY PANEL — UI wiring
-// ─────────────────────────────────────────────────────────────
 function openMemoryPanel()  { document.getElementById('memory-panel').classList.add('open'); }
 function closeMemoryPanel() { document.getElementById('memory-panel').classList.remove('open'); }
 
@@ -816,18 +757,17 @@ async function processFiles(files) {
     try {
       setMemProgress(0, 'Starting...');
       let raw = '';
-      if (ext === 'txt') { setMemProgress(30, 'Reading...'); raw = await parseTxt(file); setMemProgress(90,'Chunking...'); }
+      if (ext === 'txt') { setMemProgress(30,'Reading...'); raw = await parseTxt(file); setMemProgress(90,'Chunking...'); }
       else               { raw = await parsePdf(file); setMemProgress(95,'Chunking...'); }
       const chunks = chunkText(raw, file.name, ext);
       if (!chunks.length) throw new Error('No usable text extracted.');
-      setMemProgress(100,'Done!');
-      setTimeout(hideMemProgress, 600);
+      setMemProgress(100,'Done!'); setTimeout(hideMemProgress, 600);
       const id = Date.now() + Math.random();
       uploadedDocs.push({ id, name: file.name, type: ext, chunkCount: chunks.length, charCount: raw.length });
       memoryChunks.push(...chunks);
       renderDocList(); updateMemoryUI();
       showToast('📚 Loaded "' + file.name + '" — ' + chunks.length + ' chunks');
-    } catch (err) {
+    } catch(err) {
       console.error(err); hideMemProgress();
       showToast('❌ ' + (err.message || 'Failed to parse ' + file.name));
     }
@@ -836,13 +776,8 @@ async function processFiles(files) {
 
 function removeDoc(id, bucket) {
   let doc;
-  if (bucket === 'upload') {
-    doc = uploadedDocs.find(d => d.id === id);
-    if (doc) uploadedDocs = uploadedDocs.filter(d => d.id !== id);
-  } else {
-    doc = webCacheDocs.find(d => d.id === id);
-    if (doc) webCacheDocs = webCacheDocs.filter(d => d.id !== id);
-  }
+  if (bucket === 'upload') { doc = uploadedDocs.find(d => d.id === id); if (doc) uploadedDocs = uploadedDocs.filter(d => d.id !== id); }
+  else                     { doc = webCacheDocs.find(d => d.id === id);  if (doc) webCacheDocs  = webCacheDocs.filter(d => d.id !== id); }
   if (!doc) return;
   memoryChunks = memoryChunks.filter(c => c.docName !== doc.name);
   renderDocList(); updateMemoryUI();
@@ -862,54 +797,39 @@ function renderDocList() {
   const cacheSection  = document.getElementById('webcache-section');
   const emptyEl       = document.getElementById('doc-empty');
   const clearBtn      = document.getElementById('clear-mem-btn');
-
   uploadedList.innerHTML = '';
   webcacheList.innerHTML = '';
-
   const hasUploads = uploadedDocs.length > 0;
   const hasCache   = webCacheDocs.length > 0;
   const hasAny     = hasUploads || hasCache;
-
-  uploadSection.style.display = hasUploads ? 'flex' : 'none';
-  uploadSection.style.flexDirection = 'column';
-  uploadSection.style.gap = '8px';
-  cacheSection.style.display  = hasCache   ? 'flex' : 'none';
-  cacheSection.style.flexDirection = 'column';
-  cacheSection.style.gap = '8px';
-  emptyEl.style.display   = hasAny    ? 'none' : 'block';
-  clearBtn.style.display  = hasAny    ? 'block' : 'none';
-
+  uploadSection.style.cssText = hasUploads ? 'display:flex;flex-direction:column;gap:8px' : 'display:none';
+  cacheSection.style.cssText  = hasCache   ? 'display:flex;flex-direction:column;gap:8px' : 'display:none';
+  emptyEl.style.display  = hasAny ? 'none'  : 'block';
+  clearBtn.style.display = hasAny ? 'block' : 'none';
   const buildItem = (doc, bucket) => {
     const el = document.createElement('div');
     el.className = 'doc-item' + (bucket === 'web' ? ' web-cached' : '');
     const icons = { pdf:'📕', txt:'📄', web:'🌐' };
-    const icon  = icons[doc.type] || '📄';
     const kb    = (doc.charCount / 1024).toFixed(1);
     const meta  = doc.type === 'web'
       ? doc.chunkCount + ' chunks · ' + kb + ' KB · ' + new Date(doc.savedAt).toLocaleDateString()
       : doc.chunkCount + ' chunks · ' + kb + ' KB';
-
-    const iconEl = document.createElement('div');
-    iconEl.className = 'doc-icon'; iconEl.textContent = icon;
-
-    const info = document.createElement('div'); info.className = 'doc-info';
+    const iconEl = document.createElement('div'); iconEl.className = 'doc-icon'; iconEl.textContent = icons[doc.type]||'📄';
+    const info   = document.createElement('div'); info.className = 'doc-info';
     const nameEl = document.createElement('div'); nameEl.className = 'doc-name'; nameEl.textContent = doc.name;
     const metaEl = document.createElement('div'); metaEl.className = 'doc-meta'; metaEl.textContent = meta;
     info.appendChild(nameEl); info.appendChild(metaEl);
-
     const btn = document.createElement('button'); btn.className = 'doc-remove'; btn.title = 'Remove'; btn.textContent = '✕';
     btn.addEventListener('click', () => removeDoc(doc.id, bucket === 'web' ? 'web' : 'upload'));
-
     el.appendChild(iconEl); el.appendChild(info); el.appendChild(btn);
     return el;
   };
-
   for (const doc of uploadedDocs) uploadedList.appendChild(buildItem(doc, 'upload'));
   for (const doc of webCacheDocs)  webcacheList.appendChild(buildItem(doc, 'web'));
 }
 
 function updateMemoryUI() {
-  const hasDoc   = memoryChunks.length > 0;
+  const hasDoc = memoryChunks.length > 0;
   document.getElementById('memory-badge').classList.toggle('active', hasDoc);
   document.getElementById('memory-badge-text').textContent = memoryChunks.length + ' chunks';
   document.getElementById('memory-toggle-btn').classList.toggle('has-docs', hasDoc);
@@ -922,55 +842,24 @@ function updateMemoryUI() {
     if (webCacheDocs.length) parts.push(webCacheDocs.length + ' web cache' + (webCacheDocs.length > 1 ? 's' : ''));
     stats.style.display = 'block';
     stats.textContent = '📚 ' + parts.join(' · ') + ' · ' + memoryChunks.length + ' chunks · ' + totalKb + ' KB';
-  } else {
-    stats.style.display = 'none';
-  }
+  } else { stats.style.display = 'none'; }
 }
-
 renderDocList();
 
-// ─────────────────────────────────────────────────────────────
-// SAVE WEB RESULT TO MEMORY
-// Called automatically after a successful Wikipedia fetch.
-// ─────────────────────────────────────────────────────────────
 function saveWebResultToMemory(result, queryTitle) {
-  // Build a clean docName from the primary Wikipedia title
   const docName = '🌐 ' + queryTitle;
-
-  // Avoid saving duplicates — check if we already have this doc
   if (webCacheDocs.find(d => d.name === docName)) return false;
-
-  // Compose the full text: article extract + source URLs for provenance
-  const sourceLines = result.sources
-    .map(s => s.title + ' — ' + s.url)
-    .join('\n');
-  const fullText =
-    '=== ' + queryTitle + ' ===\n\n' +
-    result.context + '\n\n' +
-    '--- Sources ---\n' + sourceLines;
-
+  const sourceLines = result.sources.map(s => s.title + ' — ' + s.url).join('\n');
+  const fullText = '=== ' + queryTitle + ' ===\n\n' + result.context + '\n\n--- Sources ---\n' + sourceLines;
   const chunks = chunkText(fullText, docName, 'web');
   if (!chunks.length) return false;
-
   const id = Date.now() + Math.random();
-  webCacheDocs.push({
-    id,
-    name: docName,
-    type: 'web',
-    chunkCount: chunks.length,
-    charCount: fullText.length,
-    url: result.sources[0]?.url || '',
-    savedAt: Date.now()
-  });
+  webCacheDocs.push({ id, name: docName, type: 'web', chunkCount: chunks.length, charCount: fullText.length, url: result.sources[0]?.url || '', savedAt: Date.now() });
   memoryChunks.push(...chunks);
-  renderDocList();
-  updateMemoryUI();
+  renderDocList(); updateMemoryUI();
   return true;
 }
 
-// ─────────────────────────────────────────────────────────────
-// WEB SEARCH — Wikipedia + auto-save to memory
-// ─────────────────────────────────────────────────────────────
 function toggleWeb() {
   webSearchOn = !webSearchOn;
   const btn   = document.getElementById('web-toggle');
@@ -986,26 +875,20 @@ function toggleWeb() {
 
 async function fetchWebContext(query) {
   try {
-    const searchURL = 'https://en.wikipedia.org/w/api.php?' + new URLSearchParams({
+    const res = await fetch('https://en.wikipedia.org/w/api.php?' + new URLSearchParams({
       action:'query', list:'search', srsearch: query, srlimit:'3', format:'json', origin:'*'
-    });
-    const res = await fetch(searchURL);
+    }));
     if (!res.ok) throw new Error('status ' + res.status);
     const data    = await res.json();
     const results = data?.query?.search;
     if (!results?.length) return null;
-
-    const topTitle  = results[0].title;
-    const summRes   = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(topTitle));
+    const topTitle = results[0].title;
+    const summRes  = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(topTitle));
     if (!summRes.ok) throw new Error('summary ' + summRes.status);
-    const summData  = await summRes.json();
-    const extract   = summData?.extract;
+    const summData = await summRes.json();
+    const extract  = summData?.extract;
     if (!extract || extract.length < 30) return null;
-
-    const extra = results.slice(1,3)
-      .map(r => r.snippet.replace(/<[^>]+>/g,'').trim())
-      .filter(s => s.length > 20).join('\n\n');
-
+    const extra = results.slice(1,3).map(r => r.snippet.replace(/<[^>]+>/g,'').trim()).filter(s => s.length > 20).join('\n\n');
     return {
       context: (extract + (extra ? '\n\nRelated:\n' + extra : '')).substring(0,1200),
       topTitle,
@@ -1014,15 +897,9 @@ async function fetchWebContext(query) {
         ...results.slice(1,3).map(r => ({ title: r.title, url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(r.title.replace(/ /g,'_')) }))
       ]
     };
-  } catch(err) {
-    console.error('Web search error:', err);
-    return null;
-  }
+  } catch(err) { console.error('Web search error:', err); return null; }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MODE
-// ─────────────────────────────────────────────────────────────
 function renderSuggestions() {
   const chips = document.getElementById('chips');
   if (!chips) return;
@@ -1039,17 +916,13 @@ function setMode(mode) {
   currentMode = mode;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','math','code','creative'));
   const btn = document.getElementById('mode-' + mode);
-  btn.classList.add('active');
-  if (mode !== 'chat') btn.classList.add(mode);
+  btn.classList.add('active'); if (mode !== 'chat') btn.classList.add(mode);
   document.getElementById('user-input').placeholder = MODES[mode].placeholder;
   document.getElementById('temp-label').textContent  = MODES[mode].temp;
   renderSuggestions();
   showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1) + ' — temp ' + MODES[mode].temp);
 }
 
-// ─────────────────────────────────────────────────────────────
-// LOAD MODEL
-// ─────────────────────────────────────────────────────────────
 async function loadModel() {
   const btn = document.getElementById('load-btn');
   const box = document.getElementById('progress-box');
@@ -1058,7 +931,6 @@ async function loadModel() {
   btn.disabled = true; btn.textContent = 'Initializing...';
   box.style.display = 'flex';
   badge.className = 'status-badge loading'; statusText.textContent = 'Loading...';
-
   let Wllama = null;
   for (const base of WLLAMA_CDNS) {
     try { const mod = await import(base + '/src/index.js'); Wllama = mod.Wllama; if (Wllama) break; }
@@ -1089,9 +961,9 @@ async function loadModel() {
       },
       n_ctx: MAX_CTX, n_threads: navigator.hardwareConcurrency || 4,
     });
-    document.getElementById('load-screen').style.display  = 'none';
-    document.getElementById('mode-bar').style.display     = 'flex';
-    document.getElementById('chat-area').style.display    = 'flex';
+    document.getElementById('load-screen').style.display   = 'none';
+    document.getElementById('mode-bar').style.display      = 'flex';
+    document.getElementById('chat-area').style.display     = 'flex';
     document.getElementById('token-display').style.display = 'block';
     badge.className = 'status-badge ready'; statusText.textContent = 'Ready';
     document.getElementById('user-input').focus();
@@ -1104,9 +976,6 @@ async function loadModel() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// TOKEN DISPLAY
-// ─────────────────────────────────────────────────────────────
 function estimateTokens(t) { return Math.ceil(t.length / 3.8); }
 function getHistoryTokens() { return history.reduce((n,m) => n + estimateTokens(m.content), 0); }
 function updateTokenDisplay() {
@@ -1116,9 +985,6 @@ function updateTokenDisplay() {
   el.className = 'token-display' + (pct > 0.85 ? ' danger' : pct > 0.65 ? ' warn' : '');
 }
 
-// ─────────────────────────────────────────────────────────────
-// PROMPT SANITIZE + BUILD
-// ─────────────────────────────────────────────────────────────
 const SPECIAL_TOKEN_RE = /<\|im_(start|end)\|>/g;
 function sanitize(text) { return text.replace(SPECIAL_TOKEN_RE,'').replace(/\u0000/g,''); }
 
@@ -1129,7 +995,7 @@ function buildPrompt(userText, webContext, memContext) {
     p += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
   if (memContext)
     p += '<|im_start|>user\n[MEMORY BASE — primary source from documents/cached web. Lead with this, refine with own knowledge if needed.]\n' +
-         memContext + '<|im_end|>\n<|im_start|>assistant\nUnderstood, I have the context.<|im_end|>\n';
+         memContext + '<|im_end|>\n<|im_start|>assistant\nUnderstood, I have the document context.<|im_end|>\n';
   if (webContext)
     p += '<|im_start|>user\n[LIVE WEB CONTEXT — fresh Wikipedia info.]\n' +
          webContext + '<|im_end|>\n<|im_start|>assistant\nUnderstood, I have the web context.<|im_end|>\n';
@@ -1137,17 +1003,12 @@ function buildPrompt(userText, webContext, memContext) {
   return p;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SEND
-// ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (generating || !wllama) return;
   const input = document.getElementById('user-input');
-  const raw   = input.value.trim();
-  if (!raw) return;
+  const raw   = input.value.trim(); if (!raw) return;
   input.value = ''; input.style.height = 'auto';
-  const es = document.getElementById('empty-state');
-  if (es) es.remove();
+  const es = document.getElementById('empty-state'); if (es) es.remove();
   const safe = sanitize(raw);
   addMessage('user', raw);
   history.push({ role:'user', content: safe });
@@ -1166,25 +1027,18 @@ function setGeneratingUI(on) {
   document.getElementById('input-shell').classList.toggle('generating', on);
 }
 
-// ─────────────────────────────────────────────────────────────
-// GENERATE — core loop with web→memory pipeline
-// ─────────────────────────────────────────────────────────────
 async function generate(sanitizedText) {
   generating = true; shouldStop = false;
   setGeneratingUI(true);
-
   const cfg    = MODES[currentMode];
   const aiEl   = addMessage('ai', null, true);
   lastAiMsgEl  = aiEl;
   const bubble = aiEl.querySelector('.bubble');
   bubble.innerHTML = '';
-
   const hasMemory = memoryChunks.length > 0;
 
-  // ── Step 1: Memory retrieval (runs even when web is on, from previously cached results) ──
-  let memContext     = null;
-  let matchedChunks  = [];
-
+  let memContext    = null;
+  let matchedChunks = [];
   if (hasMemory) {
     matchedChunks = retrieveChunks(sanitizedText, TOP_K_CHUNKS);
     if (matchedChunks.length > 0) {
@@ -1198,32 +1052,19 @@ async function generate(sanitizedText) {
     }
   }
 
-  // ── Step 2: Decide tag and show initial status ──
-  // Priority: live web > cached web in memory > uploaded doc > plain
-  let webResult    = null;
-  let usedCached   = false;
+  let webResult  = null;
+  let usedCached = false;
 
   if (webSearchOn) {
-    // Check if we already have a cached result for this topic before hitting the network
-    const cached = matchedChunks.filter(c => c.docType === 'web');
-
-    // Show live search indicator
     const webBar = document.createElement('div');
     webBar.className = 'web-status searching';
     webBar.textContent = '🔍 Searching Wikipedia...';
-    bubble.appendChild(webBar);
-    scrollBottom();
-
+    bubble.appendChild(webBar); scrollBottom();
     webResult = await fetchWebContext(sanitizedText);
-
     if (webResult && webResult.context) {
-      // ── Auto-save to memory base ──
       const saved = saveWebResultToMemory(webResult, webResult.topTitle);
-
       webBar.className = 'web-status found';
       webBar.textContent = '✓ Wikipedia found' + (saved ? ' · 💾 saved to memory' : ' · already cached');
-
-      // Source chips
       const row = document.createElement('div'); row.className = 'sources-row';
       webResult.sources.forEach(s => {
         const a = document.createElement('a'); a.className = 'source-chip';
@@ -1231,24 +1072,12 @@ async function generate(sanitizedText) {
         a.textContent = '↗ ' + s.title; row.appendChild(a);
       });
       bubble.appendChild(row);
-
-      // If memory also found relevant chunks, merge them (memory first, web second)
-      // so the model has the richest possible context
-      if (memContext) {
-        const webCtxTrunc = webResult.context.substring(0, Math.max(200, MEM_CTX_LIMIT - memContext.length));
-        // webResult.context is passed separately to buildPrompt, no changes needed
-      }
-
     } else {
-      // Network failed — fall back gracefully to memory cache
-      webBar.className = 'web-status failed';
-
+      const cached = matchedChunks.filter(c => c.docType === 'web');
       if (cached.length > 0) {
         usedCached = true;
-        webBar.textContent = '⚡ Offline — serving from memory cache';
         webBar.className = 'web-status cache-hit';
-
-        // Show which cached docs are being used
+        webBar.textContent = '⚡ Offline — serving from memory cache';
         const cachedDocs = [...new Set(cached.map(c => c.docName))];
         const row = document.createElement('div'); row.className = 'sources-row';
         cachedDocs.forEach(name => {
@@ -1257,26 +1086,20 @@ async function generate(sanitizedText) {
         });
         bubble.appendChild(row);
       } else {
+        webBar.className = 'web-status failed';
         webBar.textContent = '⚠ No web access & no cache — using model knowledge';
       }
     }
-
   } else if (memContext) {
-    // ── Pure memory mode (no web toggle) ──
-    const isFromWeb   = matchedChunks.some(c => c.docType === 'web');
-    const isFromUpload = matchedChunks.some(c => c.docType !== 'web');
-    const tagClass    = isFromWeb ? 'cached' : 'memory';
-    const tagLabel    = isFromWeb ? '📚 cached web' : '📚 memory';
-
+    const isFromWeb = matchedChunks.some(c => c.docType === 'web');
     const tag = document.createElement('div');
-    tag.className = 'mode-tag ' + tagClass; tag.textContent = tagLabel;
+    tag.className = 'mode-tag ' + (isFromWeb ? 'cached' : 'memory');
+    tag.textContent = isFromWeb ? '📚 cached web' : '📚 memory';
     bubble.appendChild(tag);
-
     const memBar = document.createElement('div');
     memBar.className = 'web-status memory-hit';
     memBar.textContent = '✓ Found ' + matchedChunks.length + ' relevant passage' + (matchedChunks.length > 1 ? 's' : '');
     bubble.appendChild(memBar);
-
     const matchedDocs = [...new Set(matchedChunks.map(c => c.docName))];
     const row = document.createElement('div'); row.className = 'sources-row';
     matchedDocs.forEach(name => {
@@ -1285,13 +1108,10 @@ async function generate(sanitizedText) {
       chip.textContent = name; row.appendChild(chip);
     });
     bubble.appendChild(row);
-
   } else {
-    // Plain mode tag
     const tag = document.createElement('div');
     tag.className = 'mode-tag ' + currentMode; tag.textContent = currentMode;
     bubble.appendChild(tag);
-
     if (hasMemory) {
       const miss = document.createElement('div');
       miss.className = 'web-status memory-miss';
@@ -1300,7 +1120,6 @@ async function generate(sanitizedText) {
     }
   }
 
-  // Web mode tag (shown when web is on, regardless of hit/miss)
   if (webSearchOn) {
     const tag = document.createElement('div');
     tag.className = 'mode-tag ' + (usedCached ? 'cached' : 'web');
@@ -1308,7 +1127,6 @@ async function generate(sanitizedText) {
     bubble.prepend(tag);
   }
 
-  // ── Step 3: Text generation ──
   const textNode = document.createElement('span');
   bubble.appendChild(textNode);
   const dots = document.createElement('div');
@@ -1316,12 +1134,18 @@ async function generate(sanitizedText) {
   bubble.appendChild(dots);
 
   try {
-    const prompt   = buildPrompt(sanitizedText, webResult?.context || null, memContext);
-    let   fullText = '';
-
+    const prompt = buildPrompt(sanitizedText, webResult?.context || null, memContext);
+    let fullText = '';
     await wllama.createCompletion(prompt, {
       nPredict: cfg.maxTokens,
-      sampling: { temp: cfg.temp, top_p: cfg.top_p, top_k: cfg.top_k, penalty_repeat: cfg.rep_pen },
+      sampling: {
+        temp:            cfg.temp,
+        top_p:           cfg.top_p,
+        top_k:           cfg.top_k,
+        penalty_repeat:  cfg.rep_pen,
+        penalty_freq:    cfg.pen_freq,
+        penalty_present: cfg.pen_present,
+      },
       onNewToken: (_t, _p, cur) => {
         fullText = cur;
         if (dots.parentNode) dots.remove();
@@ -1329,14 +1153,16 @@ async function generate(sanitizedText) {
         if (shouldStop) return false;
       },
     });
-
     const final = fullText.trim() || '(no response — try rephrasing)';
     textNode.textContent = final;
     history.push({ role:'assistant', content: shouldStop ? final + ' [stopped]' : final });
     updateTokenDisplay();
-
   } catch(err) {
-    if (!shouldStop) { console.error(err); textNode.textContent = 'Generation error — check console.'; showToast('Error during generation'); }
+    if (!shouldStop) {
+      console.error(err);
+      textNode.textContent = 'Generation error — check console.';
+      showToast('Error during generation');
+    }
   } finally {
     generating = false; shouldStop = false; setGeneratingUI(false);
     if (dots.parentNode) dots.remove();
@@ -1344,9 +1170,6 @@ async function generate(sanitizedText) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// REGEN / COPY / CLEAR
-// ─────────────────────────────────────────────────────────────
 async function regenLast() {
   if (generating || !wllama) return;
   if (history.length > 0 && history[history.length-1].role === 'assistant') history.pop();
@@ -1377,9 +1200,6 @@ function clearChat() {
   renderSuggestions(); updateTokenDisplay();
 }
 
-// ─────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────
 function setMemProgress(pct, label) {
   document.getElementById('mem-progress').style.display = 'flex';
   document.getElementById('mem-prog-fill').style.width  = pct + '%';
@@ -1403,7 +1223,7 @@ function addMessage(role, text, typing) {
       '</div></div></div>';
   } else {
     el.innerHTML =
-      '<div class="av">' + (role === 'user' ? '👤' : '🧠') + '</div>' +
+      '<div class="av">' + (role==='user'?'👤':'🧠') + '</div>' +
       '<div class="msg-wrap"><div class="bubble"></div>' +
       '<div class="msg-meta"><span>' + now + '</span></div></div>';
     el.querySelector('.bubble').textContent = text;
@@ -1412,17 +1232,14 @@ function addMessage(role, text, typing) {
 }
 
 function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
-function handleKey(e)   { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight,130) + 'px'; }
-function showToast(msg, dur = 2800) {
+function handleKey(e)   { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
+function showToast(msg, dur=2800) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), dur);
 }
 
-// ─────────────────────────────────────────────────────────────
-// EXPOSE globals for inline onclick handlers
-// ─────────────────────────────────────────────────────────────
 window.loadModel       = loadModel;
 window.sendMessage     = sendMessage;
 window.handleKey       = handleKey;
@@ -1434,7 +1251,6 @@ window.copyMsg         = copyMsg;
 window.toggleWeb       = toggleWeb;
 window.stopGeneration  = stopGeneration;
 window.openMemoryPanel = openMemoryPanel;
-
 </script>
 </body>
 </html>
