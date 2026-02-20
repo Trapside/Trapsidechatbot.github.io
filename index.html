@@ -232,6 +232,16 @@ header {
 .typing span:nth-child(3) { animation-delay: 0.36s; }
 @keyframes tdot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 
+.stop-btn {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(255,80,80,0.1);
+  border: 1px solid rgba(255,80,80,0.3); color: #ff5050; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  transition: all 0.18s; font-size: 13px;
+}
+.stop-btn:hover { background: rgba(255,80,80,0.2); box-shadow: 0 0 10px rgba(255,80,80,0.2); }
+.stop-btn.visible { display: flex; }
+
 #input-area { padding: 12px 0 18px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .input-shell {
   display: flex; gap: 8px; align-items: flex-end;
@@ -241,6 +251,7 @@ header {
 }
 .input-shell:focus-within { border-color: rgba(0,212,255,0.3); box-shadow: 0 0 0 3px rgba(0,212,255,0.06); }
 .input-shell.web-mode { border-color: rgba(0,255,136,0.3); box-shadow: 0 0 0 3px rgba(0,255,136,0.05); }
+.input-shell.generating { border-color: rgba(255,80,80,0.25); box-shadow: 0 0 0 3px rgba(255,80,80,0.05); }
 
 #user-input {
   flex: 1; background: transparent; border: none; outline: none;
@@ -283,6 +294,8 @@ header {
 .web-on-label.show { display: block; }
 .temp-display { font-size: 10px; color: var(--muted); }
 .temp-display span { color: var(--muted2); }
+.gen-indicator { font-size: 10px; color: #ff5050; display: none; animation: blink 0.9s infinite; }
+.gen-indicator.show { display: block; }
 
 #toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
@@ -361,6 +374,7 @@ header {
           🌐
           <span class="tip">Web search: OFF</span>
         </button>
+        <button class="stop-btn" id="stop-btn" onclick="stopGeneration()" title="Stop generation">■</button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -370,6 +384,7 @@ header {
       <div class="input-footer">
         <span class="input-hint">Enter to send · Shift+Enter for newline</span>
         <div class="right-hints">
+          <span class="gen-indicator" id="gen-indicator">● generating</span>
           <span class="web-on-label" id="web-on-label">🌐 web on</span>
           <span class="temp-display">temp: <span id="temp-label">0.72</span></span>
         </div>
@@ -381,9 +396,14 @@ header {
 <div id="toast"></div>
 
 <script type="module">
-const MODEL_URL = "https://huggingface.co/Trapside/Trapside/resolve/main/Smol_Architect_Elite_v4.gguf";
+
 const WLLAMA_VER = "2.3.0";
-const BASE = `https://esm.sh/@wllama/wllama@${WLLAMA_VER}`;
+const WLLAMA_CDNS = [
+  `https://esm.sh/@wllama/wllama@${WLLAMA_VER}`,
+  `https://cdn.jsdelivr.net/npm/@wllama/wllama@${WLLAMA_VER}/dist`
+];
+
+const MODEL_URL = "https://huggingface.co/Trapside/Trapside/resolve/main/Smol_Architect_Elite_v4.gguf";
 const MAX_CTX = 2048;
 const HISTORY_TURNS = 10;
 
@@ -393,8 +413,8 @@ let currentMode = 'chat';
 let webSearchOn = false;
 let history = [];
 let lastAiMsgEl = null;
+let shouldStop = false;
 
-// ── MODES ──
 const MODES = {
   chat: {
     temp: 0.72, top_p: 0.9, top_k: 40, rep_pen: 1.1, maxTokens: 450,
@@ -432,18 +452,17 @@ Commit fully to the creative direction. Use concrete sensory details.`,
   }
 };
 
-// expose globals
-window.loadModel  = loadModel;
-window.sendMessage = sendMessage;
-window.handleKey  = handleKey;
-window.autoResize = autoResize;
-window.setMode    = setMode;
-window.clearChat  = clearChat;
-window.regenLast  = regenLast;
-window.copyMsg    = copyMsg;
-window.toggleWeb  = toggleWeb;
+window.loadModel      = loadModel;
+window.sendMessage    = sendMessage;
+window.handleKey      = handleKey;
+window.autoResize     = autoResize;
+window.setMode        = setMode;
+window.clearChat      = clearChat;
+window.regenLast      = regenLast;
+window.copyMsg        = copyMsg;
+window.toggleWeb      = toggleWeb;
+window.stopGeneration = stopGeneration;
 
-// ── SUGGESTIONS ──
 function renderSuggestions() {
   const chips = document.getElementById('chips');
   if (!chips) return;
@@ -458,10 +477,9 @@ function renderSuggestions() {
 }
 renderSuggestions();
 
-// ── WEB SEARCH TOGGLE ──
 function toggleWeb() {
   webSearchOn = !webSearchOn;
-  const btn  = document.getElementById('web-toggle');
+  const btn   = document.getElementById('web-toggle');
   const label = document.getElementById('web-on-label');
   const shell = document.getElementById('input-shell');
   const tip   = btn.querySelector('.tip');
@@ -480,30 +498,20 @@ function toggleWeb() {
   }
 }
 
-// ── WEB SEARCH — Wikipedia API (proper CORS support, no key needed) ──
 async function fetchWebContext(query) {
   try {
-    // Step 1: Search Wikipedia for the best matching article title
     const searchURL = 'https://en.wikipedia.org/w/api.php?' + new URLSearchParams({
-      action: 'query',
-      list: 'search',
-      srsearch: query,
-      srlimit: '3',
-      format: 'json',
-      origin: '*'   // <-- this is what makes CORS work
+      action: 'query', list: 'search', srsearch: query,
+      srlimit: '3', format: 'json', origin: '*'
     });
-
     const searchRes = await fetch(searchURL);
     if (!searchRes.ok) throw new Error('Wikipedia search failed: ' + searchRes.status);
     const searchData = await searchRes.json();
-
     const results = searchData?.query?.search;
     if (!results || results.length === 0) return null;
 
-    // Step 2: Fetch the summary of the top result
     const topTitle = results[0].title;
     const summaryURL = 'https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(topTitle);
-
     const summaryRes = await fetch(summaryURL);
     if (!summaryRes.ok) throw new Error('Wikipedia summary failed: ' + summaryRes.status);
     const summaryData = await summaryRes.json();
@@ -511,36 +519,27 @@ async function fetchWebContext(query) {
     const extract = summaryData?.extract;
     if (!extract || extract.length < 30) return null;
 
-    // Step 3: Also grab snippets from results 2 and 3 for extra context
-    const extraSnippets = results
-      .slice(1, 3)
-      .map(r => r.snippet.replace(/<[^>]+>/g, '').trim()) // strip HTML tags
-      .filter(s => s.length > 20)
-      .join('\n\n');
-
+    const extraSnippets = results.slice(1, 3)
+      .map(r => r.snippet.replace(/<[^>]+>/g, '').trim())
+      .filter(s => s.length > 20).join('\n\n');
     const fullContext = extract + (extraSnippets ? '\n\nRelated:\n' + extraSnippets : '');
 
     return {
-      context: fullContext.substring(0, 1200), // cap at 1200 chars to not blow context window
+      context: fullContext.substring(0, 1200),
       sources: [
-        {
-          title: topTitle,
-          url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(topTitle.replace(/ /g, '_'))
-        },
+        { title: topTitle, url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(topTitle.replace(/ /g, '_')) },
         ...results.slice(1, 3).map(r => ({
           title: r.title,
           url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(r.title.replace(/ /g, '_'))
         }))
       ]
     };
-
   } catch (err) {
     console.error('Web search error:', err);
     return null;
   }
 }
 
-// ── MODE ──
 function setMode(mode) {
   currentMode = mode;
   const cfg = MODES[mode];
@@ -554,11 +553,10 @@ function setMode(mode) {
   showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1) + ' — temp ' + cfg.temp);
 }
 
-// ── LOAD MODEL ──
 async function loadModel() {
-  const btn = document.getElementById('load-btn');
-  const box = document.getElementById('progress-box');
-  const badge = document.getElementById('status-badge');
+  const btn        = document.getElementById('load-btn');
+  const box        = document.getElementById('progress-box');
+  const badge      = document.getElementById('status-badge');
   const statusText = document.getElementById('status-text');
 
   btn.disabled = true;
@@ -567,14 +565,35 @@ async function loadModel() {
   badge.className = 'status-badge loading';
   statusText.textContent = 'Loading...';
 
+  // FIX 6: Try each CDN in order
+  let Wllama = null;
+  for (const base of WLLAMA_CDNS) {
+    try {
+      const mod = await import(base + '/src/index.js');
+      Wllama = mod.Wllama;
+      if (Wllama) break;
+    } catch (e) {
+      console.warn('CDN failed:', base, e);
+    }
+  }
+
+  if (!Wllama) {
+    badge.className = 'status-badge error';
+    statusText.textContent = 'Error';
+    btn.disabled = false;
+    btn.textContent = '↺ Retry';
+    showToast('Could not load wllama — check your network/firewall');
+    return;
+  }
+
   try {
-    const { Wllama } = await import(BASE + '/src/index.js');
+    const base = WLLAMA_CDNS[0];
     const config = {
-      'single-thread/wllama.js':        BASE + '/src/single-thread/wllama.js',
-      'single-thread/wllama.wasm':      BASE + '/src/single-thread/wllama.wasm',
-      'multi-thread/wllama.js':         BASE + '/src/multi-thread/wllama.js',
-      'multi-thread/wllama.wasm':       BASE + '/src/multi-thread/wllama.wasm',
-      'multi-thread/wllama.worker.mjs': BASE + '/src/multi-thread/wllama.worker.mjs',
+      'single-thread/wllama.js':        base + '/src/single-thread/wllama.js',
+      'single-thread/wllama.wasm':      base + '/src/single-thread/wllama.wasm',
+      'multi-thread/wllama.js':         base + '/src/multi-thread/wllama.js',
+      'multi-thread/wllama.wasm':       base + '/src/multi-thread/wllama.wasm',
+      'multi-thread/wllama.worker.mjs': base + '/src/multi-thread/wllama.worker.mjs',
     };
 
     wllama = new Wllama(config);
@@ -587,7 +606,7 @@ async function loadModel() {
         document.getElementById('prog-pct').textContent = pct + '%';
         const mb  = (loaded / 1024 / 1024).toFixed(0);
         const tot = (total  / 1024 / 1024).toFixed(0);
-        document.getElementById('prog-label').textContent = 'Downloading... ' + mb + ' / ' + tot + ' MB';
+        document.getElementById('prog-label').textContent = `Downloading... ${mb} / ${tot} MB`;
       },
       n_ctx: MAX_CTX,
       n_threads: navigator.hardwareConcurrency || 4,
@@ -612,13 +631,14 @@ async function loadModel() {
   }
 }
 
-// ── TOKEN DISPLAY ──
 function estimateTokens(t) { return Math.ceil(t.length / 3.8); }
 function getHistoryTokens() {
-  let n = 0; for (const m of history) n += estimateTokens(m.content); return n;
+  let n = 0;
+  for (const m of history) n += estimateTokens(m.content);
+  return n;
 }
 function updateTokenDisplay() {
-  const el = document.getElementById('token-display');
+  const el   = document.getElementById('token-display');
   const used = getHistoryTokens();
   const pct  = used / MAX_CTX;
   el.textContent = used + ' / ' + MAX_CTX + ' tokens';
@@ -627,31 +647,46 @@ function updateTokenDisplay() {
   else if (pct > 0.65) el.classList.add('warn');
 }
 
-// ── BUILD PROMPT ──
-function buildPrompt(webContext) {
+// FIX 1: Strip ChatML control tokens from user input before it touches the prompt
+const SPECIAL_TOKEN_RE = /<\|im_(start|end)\|>/g;
+function sanitizeForPrompt(text) {
+  return text
+    .replace(SPECIAL_TOKEN_RE, '')
+    .replace(/\u0000/g, '');
+}
+
+// FIX 2: Web context goes in its own turn, not the system prompt
+function buildPrompt(sanitizedUserText, webContext) {
   const cfg = MODES[currentMode];
-  let sys = cfg.system;
-  if (webContext) {
-    sys += '\n\nWEB SEARCH RESULTS (use this real information to answer the question):\n---\n' +
-           webContext +
-           '\n---\nSummarise and explain the above in your own words to answer the user. ' +
-           'If it does not fully answer the question, say so and add what you know.';
-  }
-  let msgs = history.slice(-HISTORY_TURNS);
-  let prompt = '<|im_start|>system\n' + sys + '<|im_end|>\n';
-  for (const m of msgs) {
+
+  let prompt = '<|im_start|>system\n' + cfg.system + '<|im_end|>\n';
+
+  const turns = history.slice(-(HISTORY_TURNS * 2));
+  for (const m of turns) {
     prompt += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
   }
+
+  if (webContext) {
+    prompt +=
+      '<|im_start|>user\n' +
+      '[WEB_CONTEXT — use the following Wikipedia information to answer the next question. ' +
+      'Summarise it in your own words. If it does not fully answer the question say so.]\n' +
+      webContext +
+      '<|im_end|>\n' +
+      '<|im_start|>assistant\nUnderstood. I will use the provided context to answer.<|im_end|>\n';
+  }
+
+  prompt += '<|im_start|>user\n' + sanitizedUserText + '<|im_end|>\n';
   prompt += '<|im_start|>assistant\n';
+
   return prompt;
 }
 
-// ── SEND ──
 async function sendMessage() {
   if (generating || !wllama) return;
   const input = document.getElementById('user-input');
-  const text  = input.value.trim();
-  if (!text) return;
+  const raw   = input.value.trim();
+  if (!raw) return;
 
   input.value = '';
   input.style.height = 'auto';
@@ -660,16 +695,44 @@ async function sendMessage() {
   const es = document.getElementById('empty-state');
   if (es) es.remove();
 
-  addMessage('user', text);
-  history.push({ role: 'user', content: text });
+  const safe = sanitizeForPrompt(raw);
+
+  addMessage('user', raw);
+  history.push({ role: 'user', content: safe });
   updateTokenDisplay();
-  await generate(text);
+  await generate(safe);
 }
 
-// ── GENERATE ──
-async function generate(userText) {
+// FIX 5: Stop button
+function stopGeneration() {
+  if (!generating) return;
+  shouldStop = true;
+  showToast('⏹ Generation stopped');
+}
+
+function setGeneratingUI(isGenerating) {
+  const sendBtn = document.getElementById('send-btn');
+  const stopBtn = document.getElementById('stop-btn');
+  const genInd  = document.getElementById('gen-indicator');
+  const shell   = document.getElementById('input-shell');
+  if (isGenerating) {
+    sendBtn.style.display = 'none';
+    stopBtn.classList.add('visible');
+    genInd.classList.add('show');
+    shell.classList.add('generating');
+  } else {
+    sendBtn.style.display = 'flex';
+    sendBtn.disabled = false;
+    stopBtn.classList.remove('visible');
+    genInd.classList.remove('show');
+    shell.classList.remove('generating');
+  }
+}
+
+async function generate(sanitizedText) {
   generating = true;
-  document.getElementById('send-btn').disabled = true;
+  shouldStop = false;
+  setGeneratingUI(true);
 
   const cfg  = MODES[currentMode];
   const aiEl = addMessage('ai', null, true);
@@ -677,7 +740,6 @@ async function generate(userText) {
   const bubble = aiEl.querySelector('.bubble');
   bubble.innerHTML = '';
 
-  // mode tag
   const tag = document.createElement('div');
   tag.className = 'mode-tag ' + (webSearchOn ? 'web' : currentMode);
   tag.textContent = webSearchOn ? '🌐 web' : currentMode;
@@ -685,20 +747,19 @@ async function generate(userText) {
 
   let webResult = null;
 
-  // ── WEB SEARCH PHASE ──
-  if (webSearchOn && userText) {
+  if (webSearchOn && sanitizedText) {
     const bar = document.createElement('div');
     bar.className = 'web-status searching';
-    bar.textContent = '🔍 Searching Wikipedia for: "' + userText.substring(0, 55) + (userText.length > 55 ? '...' : '') + '"';
+    bar.textContent = '🔍 Searching Wikipedia for: "' + sanitizedText.substring(0, 55) +
+      (sanitizedText.length > 55 ? '...' : '') + '"';
     bubble.appendChild(bar);
     scrollBottom();
 
-    webResult = await fetchWebContext(userText);
+    webResult = await fetchWebContext(sanitizedText);
 
     if (webResult && webResult.context) {
       bar.className = 'web-status found';
       bar.textContent = '✓ Found context from Wikipedia — generating answer...';
-
       if (webResult.sources && webResult.sources.length > 0) {
         const row = document.createElement('div');
         row.className = 'sources-row';
@@ -715,11 +776,11 @@ async function generate(userText) {
       }
     } else {
       bar.className = 'web-status failed';
-      bar.textContent = '⚠ No Wikipedia results found — using model knowledge only';
+      bar.textContent = '⚠ No Wikipedia results — using model knowledge only';
     }
   }
 
-  // text output node
+  // FIX 3: textContent only — never innerHTML for AI output
   const textNode = document.createElement('span');
   bubble.appendChild(textNode);
 
@@ -729,7 +790,7 @@ async function generate(userText) {
   bubble.appendChild(dots);
 
   try {
-    const prompt = buildPrompt(webResult ? webResult.context : null);
+    const prompt = buildPrompt(sanitizedText, webResult ? webResult.context : null);
     let fullText = '';
 
     await wllama.createCompletion(prompt, {
@@ -740,40 +801,61 @@ async function generate(userText) {
         top_k:          cfg.top_k,
         penalty_repeat: cfg.rep_pen,
       },
-      onNewToken: (token, piece, currentText) => {
+      onNewToken: (_token, _piece, currentText) => {
         fullText = currentText;
         if (dots.parentNode) dots.remove();
         textNode.textContent = currentText;
         scrollBottom();
+        // FIX 5: return false to halt generation
+        if (shouldStop) return false;
       },
     });
 
-    textNode.textContent = fullText.trim() || '(no response — try rephrasing)';
-    history.push({ role: 'assistant', content: fullText });
+    const finalText = fullText.trim() || '(no response — try rephrasing)';
+    textNode.textContent = finalText;
+    history.push({ role: 'assistant', content: shouldStop ? finalText + ' [stopped]' : finalText });
     updateTokenDisplay();
 
   } catch (err) {
-    console.error(err);
-    textNode.textContent = 'Generation error — check console.';
-    showToast('Error during generation');
+    if (!shouldStop) {
+      console.error(err);
+      textNode.textContent = 'Generation error — check console.';
+      showToast('Error during generation');
+    }
   } finally {
     generating = false;
-    document.getElementById('send-btn').disabled = false;
+    shouldStop = false;
+    setGeneratingUI(false);
+    if (dots.parentNode) dots.remove();
     document.getElementById('user-input').focus();
     scrollBottom();
   }
 }
 
-// ── REGEN ──
+// FIX 4: Reliable regen — DOM fallback if lastAiMsgEl is stale
 async function regenLast() {
   if (generating || !wllama) return;
-  if (history.length > 0 && history[history.length - 1].role === 'assistant') history.pop();
-  const userMsg = history.length > 0 ? history[history.length - 1].content : '';
-  if (lastAiMsgEl) lastAiMsgEl.remove();
-  await generate(userMsg);
+
+  if (history.length > 0 && history[history.length - 1].role === 'assistant') {
+    history.pop();
+  }
+
+  const userMsg = history.length > 0 && history[history.length - 1].role === 'user'
+    ? history[history.length - 1].content
+    : '';
+
+  if (lastAiMsgEl && lastAiMsgEl.parentNode) {
+    lastAiMsgEl.remove();
+  } else {
+    const msgs  = document.getElementById('messages');
+    const allAI = msgs.querySelectorAll('.msg.ai');
+    if (allAI.length > 0) allAI[allAI.length - 1].remove();
+  }
+
+  lastAiMsgEl = null;
+  if (userMsg) await generate(userMsg);
 }
 
-// ── COPY ──
 function copyMsg(btn) {
   const span = btn.closest('.msg').querySelector('.bubble span');
   if (span) {
@@ -783,9 +865,9 @@ function copyMsg(btn) {
   }
 }
 
-// ── CLEAR ──
 function clearChat() {
   history = [];
+  lastAiMsgEl = null;
   document.getElementById('messages').innerHTML = `
     <div id="empty-state">
       <div class="empty-glyph">🧠</div>
@@ -795,45 +877,56 @@ function clearChat() {
     </div>`;
   renderSuggestions();
   updateTokenDisplay();
-  lastAiMsgEl = null;
 }
 
-// ── HELPERS ──
 function addMessage(role, text, typing) {
   const msgs = document.getElementById('messages');
   const el   = document.createElement('div');
   el.className = 'msg ' + role;
   const now  = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const acts = role === 'ai'
-    ? '<div class="msg-actions"><button class="action-btn regen" onclick="regenLast()">↺ regen</button><button class="action-btn" onclick="copyMsg(this)">copy</button></div>'
-    : '';
 
   if (typing) {
     el.innerHTML =
       '<div class="av">🧠</div>' +
       '<div class="msg-wrap"><div class="bubble"></div>' +
-      '<div class="msg-meta"><span>' + now + '</span>' + acts + '</div></div>';
+      '<div class="msg-meta"><span>' + now + '</span>' +
+      '<div class="msg-actions">' +
+        '<button class="action-btn regen" onclick="regenLast()">↺ regen</button>' +
+        '<button class="action-btn" onclick="copyMsg(this)">copy</button>' +
+      '</div></div></div>';
   } else {
     const av = role === 'user' ? '👤' : '🧠';
     el.innerHTML =
       '<div class="av">' + av + '</div>' +
-      '<div class="msg-wrap"><div class="bubble">' + escHtml(text) + '</div>' +
-      '<div class="msg-meta"><span>' + now + '</span>' + acts + '</div></div>';
+      '<div class="msg-wrap"><div class="bubble"></div>' +
+      '<div class="msg-meta"><span>' + now + '</span></div></div>';
+    // FIX 3: set user bubble text safely via textContent
+    el.querySelector('.bubble').textContent = text;
   }
+
   msgs.appendChild(el);
   scrollBottom();
   return el;
 }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
-function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 130) + 'px'; }
+function scrollBottom() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+}
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  t.textContent = msg;
+  t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+
 </script>
 </body>
 </html>
