@@ -20,6 +20,7 @@
   --accent2: #7c6aff;
   --accent3: #ff6ab0;
   --accent4: #00ff88;
+  --accent5: #ffaa00;
   --text: #dde4f0;
   --muted: #5a6080;
   --muted2: #7a84a8;
@@ -85,6 +86,19 @@ header {
 }
 .token-display.warn { color: #ffc800; border-color: rgba(255,200,0,0.25); }
 .token-display.danger { color: #ff5050; border-color: rgba(255,80,80,0.25); }
+
+/* ── MEMORY BADGE in header ── */
+.memory-badge {
+  display: none; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,170,0,0.3);
+  background: rgba(255,170,0,0.07);
+  font-size: 10px; color: var(--accent5);
+  cursor: pointer; transition: all 0.2s;
+}
+.memory-badge:hover { background: rgba(255,170,0,0.13); }
+.memory-badge.active { display: flex; }
+.memory-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent5); box-shadow: 0 0 6px var(--accent5); }
 
 #load-screen {
   flex: 1; display: flex; flex-direction: column;
@@ -208,6 +222,7 @@ header {
 .mode-tag.code { background: rgba(0,255,136,0.1); color: rgba(0,255,136,0.6); }
 .mode-tag.creative { background: rgba(255,106,176,0.1); color: rgba(255,106,176,0.6); }
 .mode-tag.web { background: rgba(0,255,136,0.12); color: rgba(0,255,136,0.8); }
+.mode-tag.memory { background: rgba(255,170,0,0.12); color: rgba(255,170,0,0.85); }
 
 .web-status {
   font-size: 10px; padding: 5px 9px; border-radius: 6px; margin-bottom: 6px;
@@ -216,6 +231,8 @@ header {
 .web-status.searching { color: #ffc800; border: 1px solid rgba(255,200,0,0.2); background: rgba(255,200,0,0.05); animation: blink 0.9s infinite; }
 .web-status.found { color: var(--accent4); border: 1px solid rgba(0,255,136,0.2); background: rgba(0,255,136,0.05); }
 .web-status.failed { color: #ff8050; border: 1px solid rgba(255,80,50,0.2); background: rgba(255,80,50,0.05); }
+.web-status.memory-hit { color: var(--accent5); border: 1px solid rgba(255,170,0,0.25); background: rgba(255,170,0,0.05); }
+.web-status.memory-miss { color: var(--muted2); border: 1px solid var(--border); background: transparent; }
 
 .sources-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .source-chip {
@@ -225,6 +242,12 @@ header {
   transition: all 0.15s; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;
 }
 .source-chip:hover { background: rgba(0,255,136,0.14); color: var(--accent4); }
+.memory-source-chip {
+  font-size: 9px; padding: 2px 8px; border-radius: 4px;
+  background: rgba(255,170,0,0.07); border: 1px solid rgba(255,170,0,0.2);
+  color: rgba(255,170,0,0.75);
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;
+}
 
 .typing { display: flex; gap: 4px; padding: 4px 0; }
 .typing span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: tdot 1.1s infinite; opacity: 0.6; }
@@ -234,9 +257,8 @@ header {
 
 .stop-btn {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
-  background: rgba(255,80,80,0.1);
-  border: 1px solid rgba(255,80,80,0.3); color: #ff5050; cursor: pointer;
-  display: none; align-items: center; justify-content: center;
+  background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3);
+  color: #ff5050; cursor: pointer; display: none; align-items: center; justify-content: center;
   transition: all 0.18s; font-size: 13px;
 }
 .stop-btn:hover { background: rgba(255,80,80,0.2); box-shadow: 0 0 10px rgba(255,80,80,0.2); }
@@ -260,22 +282,26 @@ header {
 }
 #user-input::placeholder { color: var(--muted); }
 
-.web-toggle {
+.icon-btn {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   background: transparent; border: 1px solid var(--border);
   color: var(--muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.18s; font-size: 15px; position: relative;
 }
-.web-toggle:hover { border-color: rgba(0,255,136,0.35); color: var(--accent4); background: rgba(0,255,136,0.06); }
-.web-toggle.on { border-color: rgba(0,255,136,0.45); color: var(--accent4); background: rgba(0,255,136,0.1); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
-.web-toggle .tip {
+.icon-btn .tip {
   position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
   background: var(--surface2); border: 1px solid var(--border2);
   padding: 3px 8px; border-radius: 5px; font-size: 10px; color: var(--text);
   white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; font-family: var(--font-ui);
 }
-.web-toggle:hover .tip { opacity: 1; }
+.icon-btn:hover .tip { opacity: 1; }
+
+.web-toggle:hover { border-color: rgba(0,255,136,0.35); color: var(--accent4); background: rgba(0,255,136,0.06); }
+.web-toggle.on { border-color: rgba(0,255,136,0.45); color: var(--accent4); background: rgba(0,255,136,0.1); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+
+.memory-toggle:hover { border-color: rgba(255,170,0,0.4); color: var(--accent5); background: rgba(255,170,0,0.07); }
+.memory-toggle.has-docs { border-color: rgba(255,170,0,0.4); color: var(--accent5); background: rgba(255,170,0,0.1); box-shadow: 0 0 12px rgba(255,170,0,0.12); }
 
 .send-btn {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
@@ -292,16 +318,106 @@ header {
 .right-hints { display: flex; align-items: center; gap: 10px; }
 .web-on-label { font-size: 10px; color: var(--accent4); display: none; }
 .web-on-label.show { display: block; }
+.mem-on-label { font-size: 10px; color: var(--accent5); display: none; }
+.mem-on-label.show { display: block; }
 .temp-display { font-size: 10px; color: var(--muted); }
 .temp-display span { color: var(--muted2); }
 .gen-indicator { font-size: 10px; color: #ff5050; display: none; animation: blink 0.9s infinite; }
 .gen-indicator.show { display: block; }
 
+/* ── MEMORY PANEL ── */
+#memory-panel {
+  display: none; position: fixed; top: 0; right: 0; bottom: 0;
+  width: 340px; background: var(--surface); border-left: 1px solid var(--border2);
+  z-index: 50; flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  animation: slidePanel 0.22s ease;
+}
+#memory-panel.open { display: flex; }
+@keyframes slidePanel { from{transform:translateX(100%)} to{transform:translateX(0)} }
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.panel-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+.panel-close {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all 0.15s;
+}
+.panel-close:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
+
+.panel-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed rgba(255,170,0,0.25); border-radius: 14px;
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: rgba(255,170,0,0.03);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: rgba(255,170,0,0.55); background: rgba(255,170,0,0.07);
+}
+.drop-zone-icon { font-size: 26px; }
+.drop-zone-label { font-size: 12px; color: var(--muted2); line-height: 1.6; }
+.drop-zone-label strong { color: var(--accent5); }
+.drop-zone-sub { font-size: 10px; color: var(--muted); }
+#file-input { display: none; }
+
+/* Processing bar */
+#mem-progress { display: none; flex-direction: column; gap: 6px; }
+.mem-prog-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.mem-prog-track { width: 100%; height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+.mem-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent5), #ff8800); border-radius: 99px; width: 0%; transition: width 0.3s; }
+
+/* Stats bar */
+#mem-stats {
+  display: none; padding: 10px 12px; border-radius: 10px;
+  background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.15);
+  font-size: 10px; color: var(--accent5);
+}
+
+/* Doc list */
+.doc-list { display: flex; flex-direction: column; gap: 8px; }
+.doc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.doc-item:hover { border-color: rgba(255,170,0,0.2); }
+.doc-icon { font-size: 18px; flex-shrink: 0; }
+.doc-info { flex: 1; min-width: 0; }
+.doc-name { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.doc-remove {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all 0.15s;
+}
+.doc-remove:hover { border-color: rgba(255,80,80,0.3); color: #ff5050; background: rgba(255,80,80,0.05); }
+
+.panel-empty { text-align: center; color: var(--muted); font-size: 11px; padding: 20px 0; line-height: 1.8; }
+
+/* Clear all button */
+.clear-mem-btn {
+  width: 100%; padding: 9px; border-radius: 9px;
+  border: 1px solid rgba(255,80,80,0.2); background: transparent;
+  color: #ff6060; font-family: var(--font-ui); font-size: 11px;
+  cursor: pointer; transition: all 0.18s;
+}
+.clear-mem-btn:hover { background: rgba(255,80,80,0.06); border-color: rgba(255,80,80,0.4); }
+
 #toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
   background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 9px; padding: 8px 16px; font-size: 12px; color: var(--text);
-  transition: transform 0.3s ease; z-index: 100; white-space: nowrap;
+  transition: transform 0.3s ease; z-index: 200; white-space: nowrap;
 }
 #toast.show { transform: translateX(-50%) translateY(0); }
 </style>
@@ -321,6 +437,11 @@ header {
     </div>
     <div class="header-right">
       <div class="token-display" id="token-display">0 / 2048 tokens</div>
+      <!-- Memory badge shows chunk count once docs loaded -->
+      <div class="memory-badge" id="memory-badge" onclick="openMemoryPanel()">
+        <div class="memory-badge-dot"></div>
+        <span id="memory-badge-text">0 chunks</span>
+      </div>
       <div class="status-badge" id="status-badge">
         <div class="status-dot"></div>
         <span id="status-text">Not loaded</span>
@@ -361,7 +482,7 @@ header {
       <div id="empty-state">
         <div class="empty-glyph">🧠</div>
         <div class="empty-title">Ready — pick a mode or start typing</div>
-        <div class="empty-hint">Press 🌐 to enable Wikipedia-powered web context</div>
+        <div class="empty-hint">Press 📚 to load a PDF/TXT into Memory Base · 🌐 for Wikipedia</div>
         <div class="suggestion-chips" id="chips"></div>
       </div>
     </div>
@@ -370,9 +491,15 @@ header {
       <div class="input-shell" id="input-shell">
         <textarea id="user-input" placeholder="Message Smol Architect..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-        <button class="web-toggle" id="web-toggle" onclick="toggleWeb()">
+        <!-- Web toggle -->
+        <button class="icon-btn web-toggle" id="web-toggle" onclick="toggleWeb()">
           🌐
           <span class="tip">Web search: OFF</span>
+        </button>
+        <!-- Memory toggle -->
+        <button class="icon-btn memory-toggle" id="memory-toggle-btn" onclick="openMemoryPanel()">
+          📚
+          <span class="tip">Memory Base</span>
         </button>
         <button class="stop-btn" id="stop-btn" onclick="stopGeneration()" title="Stop generation">■</button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">
@@ -386,6 +513,7 @@ header {
         <div class="right-hints">
           <span class="gen-indicator" id="gen-indicator">● generating</span>
           <span class="web-on-label" id="web-on-label">🌐 web on</span>
+          <span class="mem-on-label" id="mem-on-label">📚 memory on</span>
           <span class="temp-display">temp: <span id="temp-label">0.72</span></span>
         </div>
       </div>
@@ -393,20 +521,72 @@ header {
   </div>
 </div>
 
+<!-- ── MEMORY PANEL ── -->
+<div id="memory-panel">
+  <div class="panel-header">
+    <div class="panel-title">📚 Memory Base</div>
+    <button class="panel-close" onclick="closeMemoryPanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div class="drop-zone-icon">📄</div>
+      <div class="drop-zone-label"><strong>Click to upload</strong> or drag & drop</div>
+      <div class="drop-zone-sub">Supports .pdf and .txt files</div>
+    </div>
+    <input type="file" id="file-input" accept=".pdf,.txt" multiple onchange="handleFileSelect(event)">
+
+    <!-- Processing progress -->
+    <div id="mem-progress">
+      <div class="mem-prog-row">
+        <span id="mem-prog-label">Processing...</span>
+        <span id="mem-prog-pct">0%</span>
+      </div>
+      <div class="mem-prog-track"><div class="mem-prog-fill" id="mem-prog-fill"></div></div>
+    </div>
+
+    <!-- Stats -->
+    <div id="mem-stats"></div>
+
+    <!-- Doc list -->
+    <div class="doc-list" id="doc-list">
+      <div class="panel-empty" id="doc-empty">No documents loaded yet.<br>Upload a PDF or TXT and the model<br>will use it to answer your questions.</div>
+    </div>
+
+    <!-- Clear all -->
+    <button class="clear-mem-btn" id="clear-mem-btn" style="display:none" onclick="clearMemory()">✕ Clear all documents</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script type="module">
 
-const WLLAMA_VER = "2.3.0";
+// ── PDF.js worker ──
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── Config ──
+const WLLAMA_VER  = "2.3.0";
 const WLLAMA_CDNS = [
   `https://esm.sh/@wllama/wllama@${WLLAMA_VER}`,
   `https://cdn.jsdelivr.net/npm/@wllama/wllama@${WLLAMA_VER}/dist`
 ];
-
-const MODEL_URL = "https://huggingface.co/Trapside/Trapside/resolve/main/Smol_Architect_Elite_v4.gguf";
-const MAX_CTX = 2048;
+const MODEL_URL   = "https://huggingface.co/Trapside/Trapside/resolve/main/Smol_Architect_Elite_v4.gguf";
+const MAX_CTX     = 2048;
 const HISTORY_TURNS = 10;
 
+// ── Memory Base config ──
+const CHUNK_SIZE     = 400;   // chars per chunk (~100 tokens)
+const CHUNK_OVERLAP  = 80;    // overlap between chunks
+const TOP_K_CHUNKS   = 4;     // how many chunks to inject
+const MEM_CTX_LIMIT  = 1400;  // max chars of memory context injected
+
+// ── State ──
 let wllama = null;
 let generating = false;
 let currentMode = 'chat';
@@ -415,6 +595,34 @@ let history = [];
 let lastAiMsgEl = null;
 let shouldStop = false;
 
+// ── Memory Base state ──
+// memoryDocs: [{ id, name, type, chunkCount, chunks: [{text, docName}] }]
+let memoryDocs  = [];
+let memoryChunks = []; // flat array of all chunks across all docs
+
+// ── Expose globals ──
+window.loadModel        = loadModel;
+window.sendMessage      = sendMessage;
+window.handleKey        = handleKey;
+window.autoResize       = autoResize;
+window.setMode          = setMode;
+window.clearChat        = clearChat;
+window.regenLast        = regenLast;
+window.copyMsg          = copyMsg;
+window.toggleWeb        = toggleWeb;
+window.stopGeneration   = stopGeneration;
+window.openMemoryPanel  = openMemoryPanel;
+window.closeMemoryPanel = closeMemoryPanel;
+window.handleDragOver   = handleDragOver;
+window.handleDragLeave  = handleDragLeave;
+window.handleDrop       = handleDrop;
+window.handleFileSelect = handleFileSelect;
+window.removeDoc        = removeDoc;
+window.clearMemory      = clearMemory;
+
+// ─────────────────────────────────────────────────────────────
+// MODES
+// ─────────────────────────────────────────────────────────────
 const MODES = {
   chat: {
     temp: 0.72, top_p: 0.9, top_k: 40, rep_pen: 1.1, maxTokens: 450,
@@ -452,17 +660,307 @@ Commit fully to the creative direction. Use concrete sensory details.`,
   }
 };
 
-window.loadModel      = loadModel;
-window.sendMessage    = sendMessage;
-window.handleKey      = handleKey;
-window.autoResize     = autoResize;
-window.setMode        = setMode;
-window.clearChat      = clearChat;
-window.regenLast      = regenLast;
-window.copyMsg        = copyMsg;
-window.toggleWeb      = toggleWeb;
-window.stopGeneration = stopGeneration;
+// ─────────────────────────────────────────────────────────────
+// MEMORY BASE — FILE PARSING
+// ─────────────────────────────────────────────────────────────
 
+// Chunk raw text into overlapping segments
+function chunkText(text, docName) {
+  // Normalise whitespace
+  const clean = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const chunks = [];
+  let start = 0;
+  while (start < clean.length) {
+    const end = Math.min(start + CHUNK_SIZE, clean.length);
+    let slice = clean.slice(start, end);
+    // Try to break at a sentence boundary to keep chunks coherent
+    if (end < clean.length) {
+      const lastPeriod = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('.\n'), slice.lastIndexOf('? '), slice.lastIndexOf('! '));
+      if (lastPeriod > CHUNK_SIZE * 0.5) {
+        slice = clean.slice(start, start + lastPeriod + 1);
+      }
+    }
+    chunks.push({ text: slice.trim(), docName });
+    start += slice.length - CHUNK_OVERLAP;
+    if (start >= clean.length) break;
+  }
+  return chunks;
+}
+
+async function parseTxt(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+async function parsePdf(file) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js not loaded');
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  const total = pdf.numPages;
+  for (let i = 1; i <= total; i++) {
+    const page    = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n\n';
+    // Update progress
+    const pct = Math.round((i / total) * 100);
+    document.getElementById('mem-prog-fill').style.width = pct + '%';
+    document.getElementById('mem-prog-pct').textContent = pct + '%';
+    document.getElementById('mem-prog-label').textContent = `Reading page ${i} / ${total}...`;
+  }
+  return fullText;
+}
+
+async function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let rawText = '';
+
+  document.getElementById('mem-progress').style.display = 'flex';
+  document.getElementById('mem-prog-fill').style.width = '0%';
+  document.getElementById('mem-prog-pct').textContent = '0%';
+  document.getElementById('mem-prog-label').textContent = 'Reading file...';
+
+  if (ext === 'txt') {
+    document.getElementById('mem-prog-fill').style.width = '50%';
+    rawText = await parseTxt(file);
+    document.getElementById('mem-prog-fill').style.width = '100%';
+  } else if (ext === 'pdf') {
+    rawText = await parsePdf(file);
+  } else {
+    throw new Error('Unsupported file type: ' + ext);
+  }
+
+  document.getElementById('mem-prog-label').textContent = 'Chunking text...';
+  const chunks = chunkText(rawText, file.name);
+
+  document.getElementById('mem-prog-fill').style.width = '100%';
+  document.getElementById('mem-prog-pct').textContent = '100%';
+  document.getElementById('mem-progress').style.display = 'none';
+
+  return { chunks, charCount: rawText.length };
+}
+
+// ─────────────────────────────────────────────────────────────
+// MEMORY BASE — RETRIEVAL
+// Simple keyword overlap scoring (TF-style) — no embedding model needed.
+// Scores each chunk by how many unique query tokens appear in it,
+// weighted by rarity across the corpus (basic IDF).
+// ─────────────────────────────────────────────────────────────
+
+// Build a simple stop-word list for noise reduction
+const STOP_WORDS = new Set([
+  'a','an','the','is','it','in','on','at','to','of','and','or','but','for',
+  'with','this','that','are','was','were','be','been','have','has','had',
+  'do','does','did','will','would','could','should','may','might','not',
+  'from','by','as','if','so','what','how','when','where','who','which',
+  'i','you','he','she','we','they','me','him','her','us','them','my','your',
+  'his','its','our','their','can','just','also','about','than','then',
+  'there','here','all','one','more','some','any','no','up','out','get'
+]);
+
+function tokenize(text) {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+// Pre-compute IDF weights across the corpus
+function buildIDF(chunks) {
+  const docFreq = {};
+  for (const chunk of chunks) {
+    const uniqueTokens = new Set(tokenize(chunk.text));
+    for (const t of uniqueTokens) {
+      docFreq[t] = (docFreq[t] || 0) + 1;
+    }
+  }
+  const N = chunks.length || 1;
+  const idf = {};
+  for (const [term, df] of Object.entries(docFreq)) {
+    idf[term] = Math.log((N + 1) / (df + 1)) + 1; // smoothed IDF
+  }
+  return idf;
+}
+
+// Score a single chunk against the query using TF-IDF overlap
+function scoreChunk(chunkTokens, queryTokens, idf) {
+  let score = 0;
+  const chunkSet = new Set(chunkTokens);
+  for (const qt of queryTokens) {
+    if (chunkSet.has(qt)) {
+      score += (idf[qt] || 1);
+    }
+  }
+  // Normalise by sqrt of chunk length to avoid favouring very long chunks
+  return score / Math.sqrt(chunkTokens.length + 1);
+}
+
+function retrieveChunks(query, topK = TOP_K_CHUNKS) {
+  if (memoryChunks.length === 0) return [];
+
+  const idf = buildIDF(memoryChunks);
+  const qTokens = tokenize(query);
+  if (qTokens.length === 0) return [];
+
+  const scored = memoryChunks.map(chunk => ({
+    chunk,
+    score: scoreChunk(tokenize(chunk.text), qTokens, idf)
+  }));
+
+  // Sort descending, keep topK with score > 0
+  scored.sort((a, b) => b.score - a.score);
+  return scored
+    .filter(s => s.score > 0)
+    .slice(0, topK)
+    .map(s => s.chunk);
+}
+
+// ─────────────────────────────────────────────────────────────
+// MEMORY BASE — UI
+// ─────────────────────────────────────────────────────────────
+
+function openMemoryPanel() {
+  document.getElementById('memory-panel').classList.add('open');
+}
+function closeMemoryPanel() {
+  document.getElementById('memory-panel').classList.remove('open');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function handleDragLeave() {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files);
+  if (files.length) processFiles(files);
+}
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  if (files.length) processFiles(files);
+  e.target.value = '';
+}
+
+async function processFiles(files) {
+  for (const file of files) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf','txt'].includes(ext)) {
+      showToast('⚠ ' + file.name + ' — only PDF and TXT supported');
+      continue;
+    }
+    // Check for duplicate
+    if (memoryDocs.find(d => d.name === file.name)) {
+      showToast('⚠ "' + file.name + '" already loaded');
+      continue;
+    }
+    try {
+      const { chunks, charCount } = await processFile(file);
+      const id = Date.now() + Math.random();
+      memoryDocs.push({ id, name: file.name, type: ext, chunkCount: chunks.length, charCount });
+      memoryChunks.push(...chunks);
+      renderDocList();
+      updateMemoryUI();
+      showToast('📚 Loaded: ' + file.name + ' — ' + chunks.length + ' chunks');
+    } catch (err) {
+      console.error(err);
+      document.getElementById('mem-progress').style.display = 'none';
+      showToast('❌ Failed to parse ' + file.name + ': ' + err.message);
+    }
+  }
+}
+
+function removeDoc(id) {
+  const doc = memoryDocs.find(d => d.id === id);
+  if (!doc) return;
+  memoryDocs = memoryDocs.filter(d => d.id !== id);
+  memoryChunks = memoryChunks.filter(c => c.docName !== doc.name);
+  renderDocList();
+  updateMemoryUI();
+  showToast('🗑 Removed: ' + doc.name);
+}
+
+function clearMemory() {
+  memoryDocs = [];
+  memoryChunks = [];
+  renderDocList();
+  updateMemoryUI();
+  showToast('Memory Base cleared');
+}
+
+function renderDocList() {
+  const list  = document.getElementById('doc-list');
+  const empty = document.getElementById('doc-empty');
+  const clearBtn = document.getElementById('clear-mem-btn');
+
+  if (memoryDocs.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty || (() => {
+      const d = document.createElement('div');
+      d.className = 'panel-empty';
+      d.id = 'doc-empty';
+      d.innerHTML = 'No documents loaded yet.<br>Upload a PDF or TXT and the model<br>will use it to answer your questions.';
+      return d;
+    })());
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = '';
+  clearBtn.style.display = 'block';
+
+  for (const doc of memoryDocs) {
+    const el = document.createElement('div');
+    el.className = 'doc-item';
+    const icon = doc.type === 'pdf' ? '📕' : '📄';
+    const kb = (doc.charCount / 1024).toFixed(1);
+    el.innerHTML =
+      '<div class="doc-icon">' + icon + '</div>' +
+      '<div class="doc-info">' +
+        '<div class="doc-name"></div>' +
+        '<div class="doc-meta">' + doc.chunkCount + ' chunks · ' + kb + ' KB</div>' +
+      '</div>' +
+      '<button class="doc-remove" title="Remove">✕</button>';
+    el.querySelector('.doc-name').textContent = doc.name;
+    el.querySelector('.doc-remove').onclick = () => removeDoc(doc.id);
+    list.appendChild(el);
+  }
+}
+
+function updateMemoryUI() {
+  const hasDoc = memoryChunks.length > 0;
+  const badge  = document.getElementById('memory-badge');
+  const memBtn = document.getElementById('memory-toggle-btn');
+  const memLabel = document.getElementById('mem-on-label');
+  const stats  = document.getElementById('mem-stats');
+
+  badge.classList.toggle('active', hasDoc);
+  document.getElementById('memory-badge-text').textContent = memoryChunks.length + ' chunks';
+
+  memBtn.classList.toggle('has-docs', hasDoc);
+  memLabel.classList.toggle('show', hasDoc);
+
+  if (hasDoc) {
+    const totalKb = (memoryChunks.reduce((a, c) => a + c.text.length, 0) / 1024).toFixed(1);
+    stats.style.display = 'block';
+    stats.textContent = '📚 ' + memoryDocs.length + ' doc' + (memoryDocs.length > 1 ? 's' : '') +
+      ' · ' + memoryChunks.length + ' chunks · ' + totalKb + ' KB indexed';
+  } else {
+    stats.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODES
+// ─────────────────────────────────────────────────────────────
 function renderSuggestions() {
   const chips = document.getElementById('chips');
   if (!chips) return;
@@ -488,7 +986,7 @@ function toggleWeb() {
     shell.classList.add('web-mode');
     label.classList.add('show');
     tip.textContent = 'Web search: ON';
-    showToast('🌐 Web search ON — Wikipedia context will be injected');
+    showToast('🌐 Web search ON');
   } else {
     btn.classList.remove('on');
     shell.classList.remove('web-mode');
@@ -498,6 +996,9 @@ function toggleWeb() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// WEB SEARCH
+// ─────────────────────────────────────────────────────────────
 async function fetchWebContext(query) {
   try {
     const searchURL = 'https://en.wikipedia.org/w/api.php?' + new URLSearchParams({
@@ -505,7 +1006,7 @@ async function fetchWebContext(query) {
       srlimit: '3', format: 'json', origin: '*'
     });
     const searchRes = await fetch(searchURL);
-    if (!searchRes.ok) throw new Error('Wikipedia search failed: ' + searchRes.status);
+    if (!searchRes.ok) throw new Error('Wikipedia search failed');
     const searchData = await searchRes.json();
     const results = searchData?.query?.search;
     if (!results || results.length === 0) return null;
@@ -513,9 +1014,8 @@ async function fetchWebContext(query) {
     const topTitle = results[0].title;
     const summaryURL = 'https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(topTitle);
     const summaryRes = await fetch(summaryURL);
-    if (!summaryRes.ok) throw new Error('Wikipedia summary failed: ' + summaryRes.status);
+    if (!summaryRes.ok) throw new Error('Wikipedia summary failed');
     const summaryData = await summaryRes.json();
-
     const extract = summaryData?.extract;
     if (!extract || extract.length < 30) return null;
 
@@ -540,6 +1040,9 @@ async function fetchWebContext(query) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// MODE
+// ─────────────────────────────────────────────────────────────
 function setMode(mode) {
   currentMode = mode;
   const cfg = MODES[mode];
@@ -553,6 +1056,9 @@ function setMode(mode) {
   showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1) + ' — temp ' + cfg.temp);
 }
 
+// ─────────────────────────────────────────────────────────────
+// LOAD MODEL
+// ─────────────────────────────────────────────────────────────
 async function loadModel() {
   const btn        = document.getElementById('load-btn');
   const box        = document.getElementById('progress-box');
@@ -565,16 +1071,13 @@ async function loadModel() {
   badge.className = 'status-badge loading';
   statusText.textContent = 'Loading...';
 
-  // FIX 6: Try each CDN in order
   let Wllama = null;
   for (const base of WLLAMA_CDNS) {
     try {
       const mod = await import(base + '/src/index.js');
       Wllama = mod.Wllama;
       if (Wllama) break;
-    } catch (e) {
-      console.warn('CDN failed:', base, e);
-    }
+    } catch (e) { console.warn('CDN failed:', base, e); }
   }
 
   if (!Wllama) {
@@ -595,7 +1098,6 @@ async function loadModel() {
       'multi-thread/wllama.wasm':       base + '/src/multi-thread/wllama.wasm',
       'multi-thread/wllama.worker.mjs': base + '/src/multi-thread/wllama.worker.mjs',
     };
-
     wllama = new Wllama(config);
     statusText.textContent = 'Downloading...';
 
@@ -620,7 +1122,6 @@ async function loadModel() {
     statusText.textContent = 'Ready';
     document.getElementById('user-input').focus();
     updateTokenDisplay();
-
   } catch (err) {
     console.error(err);
     badge.className = 'status-badge error';
@@ -631,6 +1132,9 @@ async function loadModel() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// TOKEN DISPLAY
+// ─────────────────────────────────────────────────────────────
 function estimateTokens(t) { return Math.ceil(t.length / 3.8); }
 function getHistoryTokens() {
   let n = 0;
@@ -647,33 +1151,50 @@ function updateTokenDisplay() {
   else if (pct > 0.65) el.classList.add('warn');
 }
 
-// FIX 1: Strip ChatML control tokens from user input before it touches the prompt
+// ─────────────────────────────────────────────────────────────
+// FIX 1: Prompt injection protection
+// ─────────────────────────────────────────────────────────────
 const SPECIAL_TOKEN_RE = /<\|im_(start|end)\|>/g;
 function sanitizeForPrompt(text) {
-  return text
-    .replace(SPECIAL_TOKEN_RE, '')
-    .replace(/\u0000/g, '');
+  return text.replace(SPECIAL_TOKEN_RE, '').replace(/\u0000/g, '');
 }
 
-// FIX 2: Web context goes in its own turn, not the system prompt
-function buildPrompt(sanitizedUserText, webContext) {
+// ─────────────────────────────────────────────────────────────
+// BUILD PROMPT
+// Injects memory context and/or web context as separate turns.
+// ─────────────────────────────────────────────────────────────
+function buildPrompt(sanitizedUserText, webContext, memContext) {
   const cfg = MODES[currentMode];
 
   let prompt = '<|im_start|>system\n' + cfg.system + '<|im_end|>\n';
 
+  // Conversation history
   const turns = history.slice(-(HISTORY_TURNS * 2));
   for (const m of turns) {
     prompt += '<|im_start|>' + m.role + '\n' + m.content + '<|im_end|>\n';
   }
 
+  // Memory Base context — injected as a separate turn before the user message
+  if (memContext) {
+    prompt +=
+      '<|im_start|>user\n' +
+      '[MEMORY BASE — The following is relevant content retrieved from the user\'s uploaded documents. ' +
+      'Use it as your primary source to answer the next question. ' +
+      'If the memory context answers it, lead with that and refine with your own knowledge. ' +
+      'If it is not directly relevant, rely on your own knowledge instead.]\n' +
+      memContext +
+      '<|im_end|>\n' +
+      '<|im_start|>assistant\nUnderstood. I have the document context and will use it to answer.<|im_end|>\n';
+  }
+
+  // Web context
   if (webContext) {
     prompt +=
       '<|im_start|>user\n' +
-      '[WEB_CONTEXT — use the following Wikipedia information to answer the next question. ' +
-      'Summarise it in your own words. If it does not fully answer the question say so.]\n' +
+      '[WEB CONTEXT — Wikipedia information to supplement your answer.]\n' +
       webContext +
       '<|im_end|>\n' +
-      '<|im_start|>assistant\nUnderstood. I will use the provided context to answer.<|im_end|>\n';
+      '<|im_start|>assistant\nUnderstood. I have the web context.<|im_end|>\n';
   }
 
   prompt += '<|im_start|>user\n' + sanitizedUserText + '<|im_end|>\n';
@@ -682,6 +1203,9 @@ function buildPrompt(sanitizedUserText, webContext) {
   return prompt;
 }
 
+// ─────────────────────────────────────────────────────────────
+// SEND
+// ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (generating || !wllama) return;
   const input = document.getElementById('user-input');
@@ -703,7 +1227,9 @@ async function sendMessage() {
   await generate(safe);
 }
 
-// FIX 5: Stop button
+// ─────────────────────────────────────────────────────────────
+// STOP
+// ─────────────────────────────────────────────────────────────
 function stopGeneration() {
   if (!generating) return;
   shouldStop = true;
@@ -729,6 +1255,9 @@ function setGeneratingUI(isGenerating) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// GENERATE
+// ─────────────────────────────────────────────────────────────
 async function generate(sanitizedText) {
   generating = true;
   shouldStop = false;
@@ -740,18 +1269,65 @@ async function generate(sanitizedText) {
   const bubble = aiEl.querySelector('.bubble');
   bubble.innerHTML = '';
 
+  // ── Determine context sources active ──
+  const hasMemory = memoryChunks.length > 0;
+  const tagMode   = webSearchOn ? 'web' : (hasMemory ? 'memory' : currentMode);
   const tag = document.createElement('div');
-  tag.className = 'mode-tag ' + (webSearchOn ? 'web' : currentMode);
-  tag.textContent = webSearchOn ? '🌐 web' : currentMode;
+  tag.className = 'mode-tag ' + tagMode;
+  tag.textContent = webSearchOn ? '🌐 web' : (hasMemory ? '📚 memory' : currentMode);
   bubble.appendChild(tag);
 
   let webResult = null;
+  let memContext = null;
+  let matchedChunks = [];
 
-  if (webSearchOn && sanitizedText) {
+  // ── Memory Retrieval ──
+  if (hasMemory) {
+    const memBar = document.createElement('div');
+    memBar.className = 'web-status searching';
+    memBar.textContent = '📚 Searching memory base...';
+    bubble.appendChild(memBar);
+    scrollBottom();
+
+    matchedChunks = retrieveChunks(sanitizedText, TOP_K_CHUNKS);
+
+    if (matchedChunks.length > 0) {
+      // Build the memory context block, respecting the char limit
+      let ctxText = '';
+      for (const chunk of matchedChunks) {
+        const section = `[From: ${chunk.docName}]\n${chunk.text}\n\n`;
+        if (ctxText.length + section.length > MEM_CTX_LIMIT) break;
+        ctxText += section;
+      }
+      memContext = ctxText.trim();
+
+      memBar.className = 'web-status memory-hit';
+      memBar.textContent = '✓ Found ' + matchedChunks.length + ' relevant passage' +
+        (matchedChunks.length > 1 ? 's' : '') + ' in memory base';
+
+      // Show which docs were matched
+      const matchedDocs = [...new Set(matchedChunks.map(c => c.docName))];
+      const row = document.createElement('div');
+      row.className = 'sources-row';
+      matchedDocs.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className = 'memory-source-chip';
+        chip.textContent = '📚 ' + name;
+        row.appendChild(chip);
+      });
+      bubble.appendChild(row);
+    } else {
+      memBar.className = 'web-status memory-miss';
+      memBar.textContent = '○ Nothing relevant in memory — using model knowledge';
+    }
+  }
+
+  // ── Web Search ──
+  if (webSearchOn) {
     const bar = document.createElement('div');
     bar.className = 'web-status searching';
-    bar.textContent = '🔍 Searching Wikipedia for: "' + sanitizedText.substring(0, 55) +
-      (sanitizedText.length > 55 ? '...' : '') + '"';
+    bar.textContent = '🔍 Searching Wikipedia for: "' + sanitizedText.substring(0, 50) +
+      (sanitizedText.length > 50 ? '...' : '') + '"';
     bubble.appendChild(bar);
     scrollBottom();
 
@@ -759,16 +1335,14 @@ async function generate(sanitizedText) {
 
     if (webResult && webResult.context) {
       bar.className = 'web-status found';
-      bar.textContent = '✓ Found context from Wikipedia — generating answer...';
+      bar.textContent = '✓ Wikipedia context found';
       if (webResult.sources && webResult.sources.length > 0) {
         const row = document.createElement('div');
         row.className = 'sources-row';
         webResult.sources.forEach(s => {
           const a = document.createElement('a');
           a.className = 'source-chip';
-          a.href = s.url;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
+          a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
           a.textContent = '↗ ' + s.title;
           row.appendChild(a);
         });
@@ -780,7 +1354,6 @@ async function generate(sanitizedText) {
     }
   }
 
-  // FIX 3: textContent only — never innerHTML for AI output
   const textNode = document.createElement('span');
   bubble.appendChild(textNode);
 
@@ -790,7 +1363,7 @@ async function generate(sanitizedText) {
   bubble.appendChild(dots);
 
   try {
-    const prompt = buildPrompt(sanitizedText, webResult ? webResult.context : null);
+    const prompt   = buildPrompt(sanitizedText, webResult ? webResult.context : null, memContext);
     let fullText = '';
 
     await wllama.createCompletion(prompt, {
@@ -806,7 +1379,6 @@ async function generate(sanitizedText) {
         if (dots.parentNode) dots.remove();
         textNode.textContent = currentText;
         scrollBottom();
-        // FIX 5: return false to halt generation
         if (shouldStop) return false;
       },
     });
@@ -832,18 +1404,14 @@ async function generate(sanitizedText) {
   }
 }
 
-// FIX 4: Reliable regen — DOM fallback if lastAiMsgEl is stale
+// ─────────────────────────────────────────────────────────────
+// REGEN
+// ─────────────────────────────────────────────────────────────
 async function regenLast() {
   if (generating || !wllama) return;
-
-  if (history.length > 0 && history[history.length - 1].role === 'assistant') {
-    history.pop();
-  }
-
+  if (history.length > 0 && history[history.length - 1].role === 'assistant') history.pop();
   const userMsg = history.length > 0 && history[history.length - 1].role === 'user'
-    ? history[history.length - 1].content
-    : '';
-
+    ? history[history.length - 1].content : '';
   if (lastAiMsgEl && lastAiMsgEl.parentNode) {
     lastAiMsgEl.remove();
   } else {
@@ -851,7 +1419,6 @@ async function regenLast() {
     const allAI = msgs.querySelectorAll('.msg.ai');
     if (allAI.length > 0) allAI[allAI.length - 1].remove();
   }
-
   lastAiMsgEl = null;
   if (userMsg) await generate(userMsg);
 }
@@ -872,13 +1439,16 @@ function clearChat() {
     <div id="empty-state">
       <div class="empty-glyph">🧠</div>
       <div class="empty-title">Conversation cleared — start fresh</div>
-      <div class="empty-hint">Press 🌐 to enable Wikipedia-powered web context</div>
+      <div class="empty-hint">Press 📚 to load documents · 🌐 for Wikipedia</div>
       <div class="suggestion-chips" id="chips"></div>
     </div>`;
   renderSuggestions();
   updateTokenDisplay();
 }
 
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
 function addMessage(role, text, typing) {
   const msgs = document.getElementById('messages');
   const el   = document.createElement('div');
@@ -900,7 +1470,6 @@ function addMessage(role, text, typing) {
       '<div class="av">' + av + '</div>' +
       '<div class="msg-wrap"><div class="bubble"></div>' +
       '<div class="msg-meta"><span>' + now + '</span></div></div>';
-    // FIX 3: set user bubble text safely via textContent
     el.querySelector('.bubble').textContent = text;
   }
 
@@ -909,21 +1478,12 @@ function addMessage(role, text, typing) {
   return el;
 }
 
-function scrollBottom() {
-  const m = document.getElementById('messages');
-  m.scrollTop = m.scrollHeight;
-}
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-}
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 130) + 'px';
-}
+function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 130) + 'px'; }
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
