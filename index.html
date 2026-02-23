@@ -2,84 +2,134 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SmolLM2 500M Tester</title>
+    <title>Kitten TTS Mini 0.8 - Browser Local</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; margin: 0; padding: 15px; }
-        #status { font-size: 0.8em; color: #0f0; margin-bottom: 10px; font-family: monospace; }
-        #output { background: #111; border: 1px solid #333; padding: 10px; height: 300px; overflow-y: auto; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
-        .controls { margin-top: 15px; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
-        button:disabled { background: #444; color: #888; }
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; line-height: 1.6; background: #f4f4f9; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; }
+        select, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; width: 100%; margin-bottom: 10px; }
+        button { background: #ff4757; color: white; border: none; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        button:hover { background: #ff6b81; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { font-size: 0.9em; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="status">Status: Waiting to start...</div>
-    <div id="output">Welcome. SmolLM2-500M is smarter than BitNet 700M but uses a similar amount of RAM. Tapping "LOAD" will download ~350MB of weights.</div>
+<div class="card">
+    <h2>Kitten TTS Mini 0.8 😻</h2>
+    <p>Run high-quality TTS locally in your browser.</p>
+    
+    <label for="voice">Select Voice:</label>
+    <select id="voice">
+        <option value="Jasper">Jasper (Male)</option>
+        <option value="Bella">Bella (Female)</option>
+        <option value="Luna">Luna (Female)</option>
+        <option value="Bruno">Bruno (Male)</option>
+        <option value="Rosie">Rosie (Female)</option>
+        <option value="Hugo">Hugo (Male)</option>
+        <option value="Kiki">Kiki (Female)</option>
+        <option value="Leo">Leo (Male)</option>
+    </select>
 
-    <div class="controls">
-        <input type="text" id="userInput" placeholder="Ask me something..." disabled>
-        <button id="mainBtn">LOAD MODEL</button>
-    </div>
+    <label for="text">Text to Speak:</label>
+    <textarea id="text">Hello! I am Kitten TTS Mini 0.8. I am running entirely inside your web browser without a server.</textarea>
+    
+    <button id="generate-btn">Generate & Play</button>
+    <div id="status">Status: Waiting for user...</div>
+    <audio id="player" controls style="width: 100%; margin-top: 20px; display: none;"></audio>
+</div>
 
-    <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+<script type="module">
+    // Using Transformers.js as a wrapper for ONNX Runtime Web
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
 
-        const status = document.getElementById('status');
-        const output = document.getElementById('output');
-        const input = document.getElementById('userInput');
-        const btn = document.getElementById('mainBtn');
+    const status = document.getElementById('status');
+    const btn = document.getElementById('generate-btn');
+    const player = document.getElementById('player');
+    const voiceSelect = document.getElementById('voice');
+    const textArea = document.getElementById('text');
 
-        let pipe = null;
+    let synthesizer;
 
-        async function init() {
-            try {
-                btn.disabled = true;
-                status.innerText = "Status: Downloading Model (350MB)...";
-                
-                // Using the optimized ONNX version for browser memory safety
-                pipe = await pipeline('text-generation', 'onnx-community/SmolLM2-500M-Instruct', {
-                    device: 'wasm', 
-                    dtype: 'q4' // 4-bit quantization for iPhone 7 RAM safety
-                });
+    async function init() {
+        status.innerText = "Status: Initializing model (Downloading ~80MB)...";
+        btn.disabled = true;
 
-                status.innerText = "Status: Ready!";
-                btn.innerText = "SEND";
-                btn.disabled = false;
-                input.disabled = false;
-            } catch (e) {
-                status.innerText = "Error: " + e.message;
-            }
-        }
-
-        async function generate() {
-            const text = input.value;
-            if (!text || !pipe) return;
-
-            output.innerText += `\n\nYou: ${text}\nAI: `;
-            input.value = '';
-            btn.disabled = true;
-            status.innerText = "Status: Thinking...";
-
-            try {
-                const results = await pipe(text, { 
-                    max_new_tokens: 50,
-                    temperature: 0.6,
-                    repetition_penalty: 1.2
-                });
-                output.innerText += results[0].generated_text.replace(text, '').trim();
-            } catch (e) {
-                output.innerText += "\n[System: Model crashed due to low memory. Refresh Safari.]";
-            }
-
+        try {
+            // Load the model using the Transformers.js pipeline
+            // This pulls the ONNX model and the required configs
+            synthesizer = await pipeline('text-to-speech', 'KittenML/kitten-tts-mini-0.8', {
+                device: 'wasm', // Use 'webgpu' if your browser/hardware supports it for 10x speed
+            });
+            
+            status.innerText = "Status: Model Ready!";
             btn.disabled = false;
-            status.innerText = "Status: Ready.";
+        } catch (err) {
+            status.innerText = "Error: " + err.message;
         }
+    }
 
-        btn.onclick = () => pipe ? generate() : init();
-        input.onkeypress = (e) => { if(e.key === 'Enter') generate(); };
-    </script>
+    btn.onclick = async () => {
+        const text = textArea.value;
+        const voice = voiceSelect.value;
+        
+        status.innerText = "Status: Generating audio...";
+        btn.disabled = true;
+
+        try {
+            const start = performance.now();
+            const result = await synthesizer(text, { speaker_id: voice });
+            const end = performance.now();
+
+            // result.audio is a Float32Array of audio samples
+            const blob = encodeWAV(result.audio, result.sampling_rate);
+            const url = URL.createObjectURL(blob);
+            
+            player.src = url;
+            player.style.display = 'block';
+            player.play();
+
+            status.innerText = `Status: Generated in ${((end - start) / 1000).toFixed(2)}s`;
+        } catch (err) {
+            status.innerText = "Generation Error: " + err.message;
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    // Helper function to encode raw Float32 samples to a playable WAV Blob
+    function encodeWAV(samples, sampleRate) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        const writeString = (offset, string) => {
+            for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        };
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+
+        let offset = 44;
+        for (let i = 0; i < samples.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, samples[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    init();
+</script>
 </body>
 </html>
