@@ -2,107 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kitten TTS - Kokoro 82M Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitten Kokoro Fixed</title>
     <style>
-        :root {
-            --glass: rgba(255, 255, 255, 0.12);
-            --border: rgba(255, 255, 255, 0.3);
-            --text: #ffffff;
+        :root { --glass: rgba(255, 255, 255, 0.12); --border: rgba(255, 255, 255, 0.3); }
+        body { 
+            margin: 0; background: #0f172a; color: white; 
+            font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;
         }
-        body {
-            margin: 0; padding: 0;
-            background: linear-gradient(45deg, #6a11cb, #2575fc, #ff0080);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            height: 100vh; display: flex; align-items: center; justify-content: center;
-            font-family: -apple-system, system-ui, sans-serif; overflow: hidden;
+        .card { 
+            background: var(--glass); backdrop-filter: blur(20px); 
+            border: 1px solid var(--border); padding: 30px; border-radius: 24px; 
+            width: 350px; text-align: center;
         }
-        @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-
-        .glass-card {
-            width: 85%; max-width: 400px;
-            background: var(--glass);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--border);
-            border-radius: 35px; padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            text-align: center; color: var(--text);
-        }
-        h2 { font-weight: 600; margin-bottom: 5px; letter-spacing: -0.5px; }
-        p { font-size: 0.8rem; opacity: 0.8; margin-bottom: 25px; }
-        
-        textarea {
-            width: 100%; height: 100px; background: rgba(0,0,0,0.1);
-            border: 1px solid var(--border); border-radius: 18px;
-            padding: 15px; color: white; font-size: 16px; margin-bottom: 15px;
-            outline: none; box-sizing: border-box; resize: none;
-        }
-        select, .btn {
-            width: 100%; padding: 16px; border-radius: 18px; border: none;
-            font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s;
-        }
-        select { background: rgba(255,255,255,0.15); color: white; margin-bottom: 15px; appearance: none; text-align: center;}
-        select option { background: #2575fc; color: white; }
-        .btn { background: white; color: #2575fc; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.96); opacity: 0.9; }
-        .btn:disabled { background: rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); cursor: wait; }
-
-        #status { font-size: 10px; text-transform: uppercase; margin-top: 15px; letter-spacing: 1px; opacity: 0.8; height: 12px; }
-        audio { width: 100%; margin-top: 20px; border-radius: 10px; height: 40px; }
-        .progress-bar { width: 0%; height: 4px; background: #fff; position: absolute; bottom: 0; left: 0; border-radius: 0 0 35px 35px; transition: width 0.3s; }
+        textarea { width: 100%; height: 80px; border-radius: 12px; padding: 10px; margin: 15px 0; background: rgba(0,0,0,0.2); color: white; border: 1px solid var(--border); box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #3b82f6; color: white; font-weight: bold; cursor: pointer; }
+        .btn:disabled { background: #1e293b; color: #64748b; }
+        #status { font-size: 12px; margin-top: 15px; color: #94a3b8; }
+        audio { width: 100%; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="glass-card">
+<div class="card">
     <h2>Kitten Kokoro</h2>
-    <p>High-Fidelity 82M Parameter TTS</p>
-
-    <select id="voice">
-        <option value="af_bella">Bella (US Female)</option>
-        <option value="af_sky">Sky (US Female)</option>
-        <option value="am_michael">Michael (US Male)</option>
-        <option value="bf_isabella">Isabella (UK Female)</option>
-        <option value="bm_george">George (UK Male)</option>
-    </select>
-
-    <textarea id="text">Kokoro is an incredibly small but powerful model. I am now speaking to you entirely from your own browser hardware.</textarea>
+    <p style="font-size: 0.8rem; opacity: 0.7;">Standalone 82M TTS</p>
     
-    <button id="runBtn" class="btn">Load Kokoro (80MB)</button>
+    <textarea id="text">The quick brown fox jumps over the lazy dog.</textarea>
     
+    <button id="runBtn" class="btn">Click to Load Model (80MB)</button>
     <div id="status">Ready</div>
     <audio id="player" controls style="display:none"></audio>
-    <div id="progress" class="progress-bar"></div>
 </div>
 
 <script type="module">
-    // Using Kokoro-JS (Xenova's port for browser usage)
-    import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.min.js';
+    // Import from ESM.sh which handles dependencies better than raw jsDelivr
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.1';
 
     const runBtn = document.getElementById('runBtn');
     const status = document.getElementById('status');
     const player = document.getElementById('player');
-    const progress = document.getElementById('progress');
-    let tts;
+    let ttsPipeline;
 
     runBtn.onclick = async () => {
-        if (!tts) {
-            status.innerText = "Downloading Model...";
+        if (!ttsPipeline) {
             runBtn.disabled = true;
+            status.innerText = "Downloading Model & WASM (80MB)...";
+            
             try {
-                // Initializing the 8-bit quantized version for speed and tiny footprint
-                tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-ONNX", {
-                    dtype: "q8", 
-                    device: "wasm"
+                // Initialize the text-to-speech pipeline
+                // This will handle phonemization and ONNX execution automatically
+                ttsPipeline = await pipeline('text-to-speech', 'onnx-community/Kokoro-82M-v1.0-ONNX', {
+                    dtype: 'q8', // 8-bit quantization for speed
+                    device: 'wasm' 
                 });
-                
-                status.innerText = "Kokoro Loaded!";
-                runBtn.innerText = "Speak Text";
+
+                status.innerText = "Model Ready!";
+                runBtn.innerText = "Generate Speech";
                 runBtn.disabled = false;
-            } catch (e) {
-                console.error(e);
-                status.innerText = "Error loading model.";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error: See Console (CORS/Network)";
                 runBtn.disabled = false;
             }
             return;
@@ -112,34 +72,44 @@
     };
 
     async function generate() {
-        const textInput = document.getElementById('text').value;
-        const voiceSelected = document.getElementById('voice').value;
-        
+        const text = document.getElementById('text').value;
         status.innerText = "Synthesizing...";
         runBtn.disabled = true;
 
         try {
-            const start = performance.now();
-            const audio = await tts.generate(textInput, {
-                voice: voiceSelected
-            });
-            const end = performance.now();
-
-            // Create blob and play
-            const blob = await audio.toBlob();
-            const url = URL.createObjectURL(blob);
+            // "af_bella" is one of the high-quality default female voices
+            const output = await ttsPipeline(text, { speaker_id: 'af_bella' });
             
-            player.src = url;
+            // output.audio is a Float32Array, output.sampling_rate is usually 24000
+            const blob = new Blob([encodeWAV(output.audio, output.sampling_rate)], { type: 'audio/wav' });
+            player.src = URL.createObjectURL(blob);
             player.style.display = "block";
             player.play();
-
-            status.innerText = `Done in ${((end - start) / 1000).toFixed(2)}s`;
-            runBtn.disabled = false;
-        } catch (e) {
-            console.error(e);
+            
+            status.innerText = "Success!";
+        } catch (err) {
+            console.error(err);
             status.innerText = "Synthesis failed.";
-            runBtn.disabled = false;
         }
+        runBtn.disabled = false;
+    }
+
+    // Helper to convert raw Float32 to playable WAV
+    function encodeWAV(samples, sampleRate) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        const writeString = (off, s) => { for (let i=0; i<s.length; i++) view.setUint8(off+i, s.charCodeAt(i)); };
+        writeString(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(8, 'WAVE'); writeString(12, 'fmt '); view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+        writeString(36, 'data'); view.setUint32(40, samples.length * 2, true);
+        for (let i = 0; i < samples.length; i++) {
+            let s = Math.max(-1, Math.min(1, samples[i]));
+            view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        return buffer;
     }
 </script>
 
