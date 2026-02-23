@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kitten TTS Mini 0.8</title>
+    <title>Kitten TTS - Kokoro 82M Edition</title>
     <style>
         :root {
             --glass: rgba(255, 255, 255, 0.12);
@@ -12,7 +12,7 @@
         }
         body {
             margin: 0; padding: 0;
-            background: linear-gradient(45deg, #00c6ff, #0072ff, #fbc2eb, #a18cd1);
+            background: linear-gradient(45deg, #6a11cb, #2575fc, #ff0080);
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
             height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -21,7 +21,7 @@
         @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
 
         .glass-card {
-            width: 85%; max-width: 380px;
+            width: 85%; max-width: 400px;
             background: var(--glass);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border: 1px solid var(--border);
@@ -36,63 +36,73 @@
             width: 100%; height: 100px; background: rgba(0,0,0,0.1);
             border: 1px solid var(--border); border-radius: 18px;
             padding: 15px; color: white; font-size: 16px; margin-bottom: 15px;
-            outline: none; box-sizing: border-box;
+            outline: none; box-sizing: border-box; resize: none;
         }
         select, .btn {
             width: 100%; padding: 16px; border-radius: 18px; border: none;
             font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s;
         }
-        select { background: rgba(255,255,255,0.1); color: white; margin-bottom: 15px; appearance: none; text-align: center;}
-        .btn { background: white; color: #0072ff; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        select { background: rgba(255,255,255,0.15); color: white; margin-bottom: 15px; appearance: none; text-align: center;}
+        select option { background: #2575fc; color: white; }
+        .btn { background: white; color: #2575fc; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .btn:active { transform: scale(0.96); opacity: 0.9; }
-        .btn:disabled { background: rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); }
+        .btn:disabled { background: rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); cursor: wait; }
 
-        #status { font-size: 10px; text-transform: uppercase; margin-top: 15px; letter-spacing: 1px; opacity: 0.6; }
-        audio { width: 100%; margin-top: 20px; filter: invert(1); height: 40px; }
+        #status { font-size: 10px; text-transform: uppercase; margin-top: 15px; letter-spacing: 1px; opacity: 0.8; height: 12px; }
+        audio { width: 100%; margin-top: 20px; border-radius: 10px; height: 40px; }
+        .progress-bar { width: 0%; height: 4px; background: #fff; position: absolute; bottom: 0; left: 0; border-radius: 0 0 35px 35px; transition: width 0.3s; }
     </style>
 </head>
 <body>
 
 <div class="glass-card">
-    <h2>Kitten Mini 0.8</h2>
-    <p>Local On-Device Speech</p>
+    <h2>Kitten Kokoro</h2>
+    <p>High-Fidelity 82M Parameter TTS</p>
 
     <select id="voice">
-        <option value="Jasper">Jasper (Strong)</option>
-        <option value="Bella">Bella (Natural)</option>
-        <option value="Luna">Luna (Calm)</option>
-        <option value="Hugo">Hugo (Deep)</option>
+        <option value="af_bella">Bella (US Female)</option>
+        <option value="af_sky">Sky (US Female)</option>
+        <option value="am_michael">Michael (US Male)</option>
+        <option value="bf_isabella">Isabella (UK Female)</option>
+        <option value="bm_george">George (UK Male)</option>
     </select>
 
-    <textarea id="text">Hello! I am running entirely in your browser. No server required.</textarea>
+    <textarea id="text">Kokoro is an incredibly small but powerful model. I am now speaking to you entirely from your own browser hardware.</textarea>
     
-    <button id="runBtn" class="btn">Initialize Model</button>
+    <button id="runBtn" class="btn">Load Kokoro (80MB)</button>
     
     <div id="status">Ready</div>
     <audio id="player" controls style="display:none"></audio>
+    <div id="progress" class="progress-bar"></div>
 </div>
 
 <script type="module">
-    // Using ONNX Runtime Web directly to bypass HuggingFace config errors
-    import { InferenceSession, Tensor } from 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.es6.min.js';
+    // Using Kokoro-JS (Xenova's port for browser usage)
+    import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.min.js';
 
     const runBtn = document.getElementById('runBtn');
     const status = document.getElementById('status');
     const player = document.getElementById('player');
-    let session;
+    const progress = document.getElementById('progress');
+    let tts;
 
     runBtn.onclick = async () => {
-        if (!session) {
-            status.innerText = "Downloading Model (80MB)...";
+        if (!tts) {
+            status.innerText = "Downloading Model...";
             runBtn.disabled = true;
             try {
-                // Pointing directly to the ONNX file in the KittenML repo
-                session = await InferenceSession.create('https://huggingface.co/KittenML/kitten-tts-mini-0.8/resolve/main/kitten_tts_mini_v0_8.onnx');
-                status.innerText = "Model Loaded Locally!";
-                runBtn.innerText = "Generate Speech";
+                // Initializing the 8-bit quantized version for speed and tiny footprint
+                tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-ONNX", {
+                    dtype: "q8", 
+                    device: "wasm"
+                });
+                
+                status.innerText = "Kokoro Loaded!";
+                runBtn.innerText = "Speak Text";
                 runBtn.disabled = false;
             } catch (e) {
-                status.innerText = "Download Error. Please check your connection.";
+                console.error(e);
+                status.innerText = "Error loading model.";
                 runBtn.disabled = false;
             }
             return;
@@ -102,21 +112,32 @@
     };
 
     async function generate() {
-        const text = document.getElementById('text').value;
+        const textInput = document.getElementById('text').value;
+        const voiceSelected = document.getElementById('voice').value;
+        
         status.innerText = "Synthesizing...";
         runBtn.disabled = true;
 
         try {
-            // Placeholder for the actual inference logic.
-            // Kitten requires phonemization (text to symbols), usually via phonemizer.js
-            // This is a simplified block for UI demonstration
-            setTimeout(() => {
-                status.innerText = "Success!";
-                runBtn.disabled = false;
-                // In a full implementation, you'd feed 'text' to the 'session' here.
-            }, 1500);
+            const start = performance.now();
+            const audio = await tts.generate(textInput, {
+                voice: voiceSelected
+            });
+            const end = performance.now();
+
+            // Create blob and play
+            const blob = await audio.toBlob();
+            const url = URL.createObjectURL(blob);
+            
+            player.src = url;
+            player.style.display = "block";
+            player.play();
+
+            status.innerText = `Done in ${((end - start) / 1000).toFixed(2)}s`;
+            runBtn.disabled = false;
         } catch (e) {
-            status.innerText = "Error during inference.";
+            console.error(e);
+            status.innerText = "Synthesis failed.";
             runBtn.disabled = false;
         }
     }
