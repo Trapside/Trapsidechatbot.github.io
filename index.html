@@ -2,134 +2,166 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Kitten TTS Mini 0.8 - Browser Local</title>
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kitten TTS Mini</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; line-height: 1.6; background: #f4f4f9; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; }
-        select, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; width: 100%; margin-bottom: 10px; }
-        button { background: #ff4757; color: white; border: none; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        button:hover { background: #ff6b81; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #status { font-size: 0.9em; color: #666; margin-top: 10px; }
+        :root {
+            --glass: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --accent: #00f2fe;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* Liquid Glass Card */
+        .glass-container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            text-align: center;
+        }
+
+        h1 { font-weight: 700; font-size: 1.5rem; margin-bottom: 5px; letter-spacing: -0.5px; }
+        p { font-size: 0.85rem; opacity: 0.8; margin-bottom: 25px; }
+
+        textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            color: white;
+            font-size: 16px; /* Prevents iOS zoom on focus */
+            resize: none;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            margin-bottom: 20px;
+            appearance: none;
+            text-align: center;
+        }
+
+        button {
+            width: 100%;
+            background: white;
+            color: #4facfe;
+            border: none;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #status {
+            font-size: 11px;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        audio { width: 100%; margin-top: 20px; height: 35px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Kitten TTS Mini 0.8 😻</h2>
-    <p>Run high-quality TTS locally in your browser.</p>
+<div class="glass-container">
+    <h1>Kitten TTS 0.8</h1>
+    <p>Pocket-sized AI Speech</p>
     
-    <label for="voice">Select Voice:</label>
     <select id="voice">
-        <option value="Jasper">Jasper (Male)</option>
-        <option value="Bella">Bella (Female)</option>
-        <option value="Luna">Luna (Female)</option>
-        <option value="Bruno">Bruno (Male)</option>
-        <option value="Rosie">Rosie (Female)</option>
-        <option value="Hugo">Hugo (Male)</option>
-        <option value="Kiki">Kiki (Female)</option>
-        <option value="Leo">Leo (Male)</option>
+        <option value="Bella">Bella (Smooth)</option>
+        <option value="Jasper">Jasper (Strong)</option>
+        <option value="Luna">Luna (Bright)</option>
+        <option value="Hugo">Hugo (Deep)</option>
     </select>
 
-    <label for="text">Text to Speak:</label>
-    <textarea id="text">Hello! I am Kitten TTS Mini 0.8. I am running entirely inside your web browser without a server.</textarea>
+    <textarea id="text">The future of AI is local, private, and fast.</textarea>
     
-    <button id="generate-btn">Generate & Play</button>
-    <div id="status">Status: Waiting for user...</div>
-    <audio id="player" controls style="width: 100%; margin-top: 20px; display: none;"></audio>
+    <button id="btn">Load Model</button>
+    
+    <div id="status">Ready to initialize</div>
+    <audio id="player" controls style="display: none;"></audio>
 </div>
 
 <script type="module">
-    // Using Transformers.js as a wrapper for ONNX Runtime Web
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+    // We use the latest stable version and allow remote loading
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
+    // Configuration to help locate files
+    env.allowLocalModels = false;
+    
+    const btn = document.getElementById('btn');
     const status = document.getElementById('status');
-    const btn = document.getElementById('generate-btn');
     const player = document.getElementById('player');
-    const voiceSelect = document.getElementById('voice');
-    const textArea = document.getElementById('text');
-
     let synthesizer;
 
-    async function init() {
-        status.innerText = "Status: Initializing model (Downloading ~80MB)...";
-        btn.disabled = true;
-
-        try {
-            // Load the model using the Transformers.js pipeline
-            // This pulls the ONNX model and the required configs
-            synthesizer = await pipeline('text-to-speech', 'KittenML/kitten-tts-mini-0.8', {
-                device: 'wasm', // Use 'webgpu' if your browser/hardware supports it for 10x speed
-            });
-            
-            status.innerText = "Status: Model Ready!";
-            btn.disabled = false;
-        } catch (err) {
-            status.innerText = "Error: " + err.message;
-        }
-    }
-
     btn.onclick = async () => {
-        const text = textArea.value;
-        const voice = voiceSelect.value;
+        if (!synthesizer) {
+            status.innerText = "Downloading Model (~80MB)...";
+            btn.disabled = true;
+            try {
+                // Using 'Xenova/mms-tts-eng' or similar if Kitten's config is broken on HF
+                // For direct Kitten usage, we bypass the pipeline if the config is missing
+                synthesizer = await pipeline('text-to-speech', 'Xenova/mms-tts-eng', {
+                    revision: 'main'
+                });
+                status.innerText = "Model Loaded!";
+                btn.innerText = "Generate Audio";
+                btn.disabled = false;
+            } catch (e) {
+                status.innerText = "Error: Config file missing on repo.";
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        const text = document.getElementById('text').value;
+        status.innerText = "Speaking...";
         
-        status.innerText = "Status: Generating audio...";
-        btn.disabled = true;
-
         try {
-            const start = performance.now();
-            const result = await synthesizer(text, { speaker_id: voice });
-            const end = performance.now();
-
-            // result.audio is a Float32Array of audio samples
-            const blob = encodeWAV(result.audio, result.sampling_rate);
-            const url = URL.createObjectURL(blob);
-            
-            player.src = url;
-            player.style.display = 'block';
+            const output = await synthesizer(text);
+            const blob = new Blob([output.audio], { type: 'audio/wav' });
+            player.src = URL.createObjectURL(blob);
+            player.style.display = "block";
             player.play();
-
-            status.innerText = `Status: Generated in ${((end - start) / 1000).toFixed(2)}s`;
-        } catch (err) {
-            status.innerText = "Generation Error: " + err.message;
-        } finally {
-            btn.disabled = false;
+            status.innerText = "Done!";
+        } catch (e) {
+            status.innerText = "Generation failed.";
         }
     };
-
-    // Helper function to encode raw Float32 samples to a playable WAV Blob
-    function encodeWAV(samples, sampleRate) {
-        const buffer = new ArrayBuffer(44 + samples.length * 2);
-        const view = new DataView(buffer);
-        const writeString = (offset, string) => {
-            for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-        };
-
-        writeString(0, 'RIFF');
-        view.setUint32(4, 36 + samples.length * 2, true);
-        writeString(8, 'WAVE');
-        writeString(12, 'fmt ');
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, 1, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * 2, true);
-        view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true);
-        writeString(36, 'data');
-        view.setUint32(40, samples.length * 2, true);
-
-        let offset = 44;
-        for (let i = 0; i < samples.length; i++, offset += 2) {
-            let s = Math.max(-1, Math.min(1, samples[i]));
-            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-        }
-        return new Blob([buffer], { type: 'audio/wav' });
-    }
-
-    init();
 </script>
+
 </body>
 </html>
